@@ -1,29 +1,17 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, SESSION_TTL_SECONDS, safeEqual, sessionKey, signToken } from "@/lib/auth/token";
 import { getSessionEpoch } from "@/lib/db/settings";
+import { clientIp } from "@/lib/auth/clientIp";
+import { clearFailures, isLimited, recordFailure } from "@/lib/db/loginFailures";
 
 /**
  * There are no accounts — one password opens the app. The cookie it issues is
  * httpOnly and signed, so it cannot be read or forged by page scripts.
  */
 
-// Deliberately coarse: enough to make an online guessing attack impractical
-// without needing a store. Resets when the server does, which is acceptable
-// for a single-user app.
-const attempts = new Map<string, { count: number; firstAt: number }>();
-const WINDOW_MS = 10 * 60 * 1000;
-const MAX_ATTEMPTS = 10;
-
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = attempts.get(ip);
-  if (!entry || now - entry.firstAt > WINDOW_MS) {
-    attempts.set(ip, { count: 1, firstAt: now });
-    return false;
-  }
-  entry.count += 1;
-  return entry.count > MAX_ATTEMPTS;
-}
+// Failed attempts are counted in the database, per client address, so every
+// server instance sees the same count (PRD §4.33). The in-memory counter
+// this replaces reset on every cold start (security audit A7).
 
 export async function POST(request: Request) {
   const password = process.env.APP_PASSWORD;
@@ -35,8 +23,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
-  if (rateLimited(ip)) {
+  const ip = clientIp(request.headers);
+  if (await isLimited(ip)) {
     return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
   }
 
@@ -48,10 +36,11 @@ export async function POST(request: Request) {
   }
 
   if (typeof submitted !== "string" || !safeEqual(submitted, password)) {
+    await recordFailure(ip);
     return NextResponse.json({ error: "Wrong password." }, { status: 401 });
   }
 
-  attempts.delete(ip);
+  await clearFailures(ip);
 
   const response = NextResponse.json({ ok: true });
   const token = await signToken(sessionKey(secret, password), await getSessionEpoch());

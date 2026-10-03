@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.21.1",
+    date: "2026-10-03",
+    title: "Stronger protection for your password",
+    changes: [
+      "After ten wrong passwords from one place, sign-in pauses for ten minutes — and that now holds reliably, where before it could reset on its own.",
+    ],
+  },
+  {
     version: "1.21.0",
     date: "2026-10-03",
     title: "Problems leave a trace",

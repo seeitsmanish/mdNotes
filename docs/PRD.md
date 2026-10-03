@@ -727,6 +727,26 @@ did not save.
 Not done: alerting. Vercel keeps the logs; a monitor pointed at /api/health
 or a log drain is the user's choice of service.
 
+### 4.33 A login limit that holds
+
+Failed sign-ins were counted in server memory, which every new serverless
+instance starts empty — a guesser got a fresh allowance on each cold start
+(security audit A7).
+
+- R33.1 Failures are stored in `LoginFailure` (a new table) and counted per
+  client address over a sliding 10-minute window; at 10, further attempts get
+  429, even with the right password, until the window passes.
+- R33.2 The count is shared by every instance and survives restarts.
+- R33.3 A successful sign-in clears that address's failures; rows older than a
+  day are pruned as new failures are written.
+- R33.4 The address comes from the platform's x-forwarded-for (set by Vercel,
+  not the client), validated before it is stored; without one, attempts share
+  a single bucket, which errs towards limiting.
+
+Not done: a global limit across addresses. It would stop a distributed
+guesser but would also let anyone lock the owner out; a long random password
+is the better defence.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

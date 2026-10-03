@@ -22,7 +22,7 @@ exports or pasted from elsewhere. The user themself is trusted.
 | A4 | Low | Import decompressed zip entries without a size cap (zip bomb) | **Fixed** in v1.11.2 |
 | A5 | Medium | Sessions cannot be revoked; sign-out does not end a stolen session | **Fixed** in v1.19.0 |
 | A6 | Low | Edge gate accepted an `AUTH_SECRET` shorter than 32 characters | **Fixed** in v1.11.2 |
-| A7 | Low | Login rate limit is per server instance and resets on cold start | Open |
+| A7 | Low | Login rate limit is per server instance and resets on cold start | **Fixed** in v1.21.1 |
 | A8 | Low | Four dependency advisories, all in build-time tooling | Open |
 
 ### A1 — Open redirect after sign-in (fixed)
@@ -114,7 +114,14 @@ reverted for exactly that reason).
 handlers required 32+ characters. No bypass existed, since handlers re-check,
 but the two gates now agree and both fail closed.
 
-### A7 — Login rate limiting is per instance (open)
+### A7 — Login rate limiting is per instance (fixed in v1.21.1, PRD §4.33)
+
+*Fixed:* failures are counted in Postgres per client address (10 per 10
+minutes), shared by every instance and surviving restarts. Still per
+address, so a distributed guesser is slowed rather than stopped — a long
+random password remains the real defence.
+
+Original finding:
 
 10 attempts per IP per 10 minutes, held in memory. Serverless instances do
 not share it and cold starts reset it, so a distributed guesser gets far more

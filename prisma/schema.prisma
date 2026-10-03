@@ -86,3 +86,16 @@ model Attachment {
   height    Int?
   createdAt DateTime @default(now())
 }
+
+/// One failed sign-in (PRD §4.33). Counted per client address over a sliding
+/// window, in the database so every server instance sees the same count —
+/// an in-memory counter reset on every cold start (security audit A7). Rows
+/// older than a day are pruned on write.
+model LoginFailure {
+  id String   @id @default(cuid())
+  ip String
+  at DateTime @default(now())
+
+  @@index([ip, at])
+  @@index([at])
+}
