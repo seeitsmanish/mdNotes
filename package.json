@@ -16,7 +16,8 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx --env-file-if-exists=.env prisma/seed.ts",
-    "setup": "docker compose up -d && prisma db push && pnpm db:seed"
+    "setup": "docker compose up -d && prisma db push && pnpm db:seed",
+    "verify": "pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
