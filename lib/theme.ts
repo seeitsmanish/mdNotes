@@ -42,22 +42,41 @@ export interface AppearanceOverrides {
   headingMode: HeadingMode;
 }
 
-export function applyAppearance(root: HTMLElement, overrides: AppearanceOverrides): void {
-  const { brandColor, radius, headingMode } = overrides;
+/** The CSS custom properties an appearance sets on <html>; null removes one. */
+export type AppearanceVars = Record<"--brand" | "--on-brand" | "--radius" | "--heading", string | null>;
 
-  if (brandColor) {
-    root.style.setProperty("--brand", brandColor);
-    root.style.setProperty("--on-brand", onBrand(brandColor));
+/**
+ * What the appearance overrides become, as custom properties. One function for
+ * both sides: the server renders these into <html> so the first paint is
+ * already right, and the client applies the same values when a setting
+ * changes. Two implementations would drift, and a drift is a flash.
+ */
+export function appearanceVars(overrides: AppearanceOverrides): AppearanceVars {
+  const { brandColor, radius, headingMode } = overrides;
+  return {
     // --brand-soft, --row-active and --selection are derived from --brand in
     // globals.css, so overriding the brand carries them along automatically.
-  } else {
-    root.style.removeProperty("--brand");
-    root.style.removeProperty("--on-brand");
+    "--brand": brandColor ?? null,
+    "--on-brand": brandColor ? onBrand(brandColor) : null,
+    "--radius": `${radius}rem`,
+    "--heading":
+      headingMode === "brand" ? "var(--brand)" : headingMode === "text" ? "var(--ink)" : null,
+  };
+}
+
+export function applyAppearance(root: HTMLElement, overrides: AppearanceOverrides): void {
+  for (const [name, value] of Object.entries(appearanceVars(overrides))) {
+    if (value === null) root.style.removeProperty(name);
+    else root.style.setProperty(name, value);
   }
+}
 
-  root.style.setProperty("--radius", `${radius}rem`);
+/**
+ * Themes that use the dark variant of shared components. "system" is neither:
+ * it follows prefers-color-scheme, which only the browser knows.
+ */
+export const DARK_THEMES = new Set(["forest", "graphite", "midnight"]);
 
-  if (headingMode === "brand") root.style.setProperty("--heading", "var(--brand)");
-  else if (headingMode === "text") root.style.setProperty("--heading", "var(--ink)");
-  else root.style.removeProperty("--heading");
+export function isDarkTheme(theme: string): boolean | null {
+  return theme === "system" ? null : DARK_THEMES.has(theme);
 }

@@ -180,6 +180,12 @@ the theme chosen on a laptop. v1.2 splits it by what the setting actually is.
 - R6.3 **No flash.** The stored theme must apply before first paint. The DB is
   the source of truth, but `localStorage` keeps a copy purely as a paint-time
   cache so the inline bootstrap script has something synchronous to read.
+  *(v1.15.3)* For a signed-in request the server renders the theme, accent,
+  radius, heading colour and `dark` class straight into `<html>`, and the
+  bootstrap only fills in what the server did not (the sign-in page). Before
+  this, a stale cache painted the previous theme for ~120 ms, and a custom
+  accent always arrived ~150 ms after first paint. Server and client derive
+  the values from one function, `appearanceVars()`, so they cannot disagree.
 - R6.4 Writes are **fire-and-forget and debounced**: dragging the radius slider
   must not issue a request per frame, and a failed sync must never block the UI
   or lose the local change.

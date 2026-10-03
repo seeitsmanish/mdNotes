@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.15.3",
+    date: "2026-10-03",
+    title: "No more flash of the old theme",
+    changes: [
+      "Opening Ursa could briefly show your previous theme — or the default accent colour — before switching to the one you chose. It now opens in your theme and colours from the very first frame.",
+    ],
+  },
+  {
     version: "1.15.2",
     date: "2026-10-03",
     title: "Drill mode removed",

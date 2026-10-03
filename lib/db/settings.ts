@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "../db/prisma";
 import { type AppSettings, DEFAULT_SETTINGS } from "../settings/schema";
 
@@ -24,3 +25,9 @@ export async function saveSettings(patch: Partial<AppSettings>): Promise<AppSett
   const { id: _id, updatedAt: _updatedAt, ...settings } = row;
   return settings;
 }
+
+/**
+ * One read per request: the root layout needs the appearance to render <html>
+ * and the page needs it for the shell, and they should not query twice.
+ */
+export const getSettingsForRequest = cache(getSettings);

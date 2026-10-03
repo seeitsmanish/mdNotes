@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { hasSession } from "@/lib/auth/session";
 import { Shell } from "@/components/shell/Shell";
 import { countNotes, listNotes } from "@/lib/db/notes";
-import { getSettings } from "@/lib/db/settings";
+import { getSettingsForRequest } from "@/lib/db/settings";
 import type { NoteCounts, NoteListItem } from "@/lib/types";
 import type { SyncedSettings } from "@/lib/store/useUiStore";
 
@@ -34,7 +34,7 @@ export default async function Home() {
   // failure here must degrade to the default appearance rather than take the
   // whole app down with it — notes that read perfectly well are the point.
   try {
-    initialSettings = (await getSettings()) as SyncedSettings;
+    initialSettings = (await getSettingsForRequest()) as SyncedSettings;
   } catch {
     initialSettings = null;
   }
