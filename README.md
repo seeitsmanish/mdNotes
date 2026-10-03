@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.11.3-6ee7a8) ![tests](https://img.shields.io/badge/tests-174-6ee7a8)
+![version](https://img.shields.io/badge/version-1.11.4-6ee7a8) ![tests](https://img.shields.io/badge/tests-186-6ee7a8)
 
 ---
 
@@ -87,7 +87,7 @@ opening it.
 |---|---|
 | `pnpm dev` | Dev server |
 | `pnpm verify` | **generate + typecheck + tests + build** — run before any deploy; CI runs it on every push |
-| `pnpm test` | 174 unit tests |
+| `pnpm test` | 186 unit tests |
 | `pnpm backup` | Download a dated backup zip to `backups/` |
 | `pnpm db:push` / `db:migrate` / `db:studio` / `db:seed` | Prisma |
 | `pnpm db:up` / `db:down` | Docker Postgres |
@@ -138,9 +138,10 @@ Honest list, for whoever picks this up next:
 - **No error monitoring**, no structured logging, no health check.
 - **Schema is managed by `prisma db push`**, not migrations — there is no
   `prisma/migrations/` history and no rollback path.
-- **Search uses `ILIKE`** with a 500-row candidate cap and no `ORDER BY`, so past
-  500 matching notes the results are nondeterministic. Postgres `tsvector` is
-  the planned fix.
+- **Search scans rather than indexes.** Candidates are found by an
+  accent-folded `ILIKE` (title and body separately, newest 500 of each), so it
+  is correct but does a full scan. Postgres `tsvector` is the planned fix once
+  schema changes can ship safely (PRD §4.18).
 - **No concurrency control on save.** Two devices editing the same note is
   last-write-wins. The stale-read race that truncated notes is fixed, but a
   `version` column is still the right answer.

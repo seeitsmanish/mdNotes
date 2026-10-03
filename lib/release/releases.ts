@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.11.4",
+    date: "2026-10-03",
+    title: "Search finds what it was missing",
+    changes: [
+      "Searching for a word with an accent — café, crème, Ångström — now finds your notes. Before, it found nothing, even when you typed the word exactly as written.",
+      "In a large library, a note titled with your search could be left out of the results entirely when hundreds of other notes mentioned the same word. It is now always found, and listed first.",
+    ],
+  },
+  {
     version: "1.11.3",
     date: "2026-10-03",
     title: "An icon of its own",

@@ -273,6 +273,16 @@ appear" but not "which note did I mean".
 - R11.4 Matching is case- and accent-insensitive: searching `cafe` finds `Café`.
 - R11.5 Ranking happens where the text is, not in the client. The client must
   never need the full body of every note to order a list.
+- R11.6 *(v1.11.4)* No note is dropped from results by the size of the library.
+  Title matches and body matches are read separately, each capped at 500 and
+  newest-first, so a note titled with the query is always a candidate however
+  many notes merely mention it, and the cap is deterministic. Before this, 500
+  passing mentions hid the note titled "Zebra" from a search for `zebra`.
+- R11.7 *(v1.11.4)* Accent-insensitivity holds in the database, not only in
+  ranking. Terms were folded (`café` → `cafe`) but the stored text was not, so
+  the SQL that picks candidates never matched an accented note: `café` found
+  nothing even typed exactly. The query now folds the column with
+  `translate()`, using a table generated from the same `fold()` as ranking.
 
 ### 4.12 Trash you can actually empty
 

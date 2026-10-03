@@ -3,6 +3,9 @@ import { applyBody } from "./write";
 import { deriveExcerpt, deriveTitle } from "@/lib/markdown/derive";
 import { linksTo, normaliseTitle } from "@/lib/markdown/wikilink";
 import { rank, terms } from "@/lib/search/rank";
+import { CANDIDATE_CAP, mergeCandidates } from "@/lib/search/candidates";
+import { containsPattern, FOLD_FROM, FOLD_TO } from "@/lib/search/foldSql";
+import { Prisma } from "@/lib/generated/prisma/client";
 import type { NoteCounts, NoteDetail, NoteFilter, NoteListItem } from "@/lib/types";
 
 /**
@@ -76,18 +79,34 @@ export async function listNotes(options: {
   // editor and the server agree on what "matches" means (R11.5). Bodies are
   // read here and deliberately not returned — the client never needs them to
   // order a list.
+  //
+  // Title and body matches are read separately so the one cannot crowd out the
+  // other, and newest-first so the cap is deterministic (R11.6).
   const narrowest = queryTerms.reduce((a, b) => (a.length >= b.length ? a : b));
-  const candidates = await prisma.note.findMany({
-    where: {
-      ...filterWhere(filter),
-      OR: [
-        { body: { contains: narrowest, mode: "insensitive" } },
-        { title: { contains: narrowest, mode: "insensitive" } },
-      ],
-    },
-    select: { ...LIST_FIELDS, body: true },
-    take: 500,
-  });
+  //
+  // Raw SQL because the stored text has to be accent-folded the same way the
+  // terms are, and Prisma's `contains` cannot apply a function to the column
+  // (R11.4). Every value is a bound parameter; only fixed fragments are spliced.
+  const pattern = containsPattern(narrowest);
+  const scope =
+    filter === "trash"
+      ? Prisma.sql`"deletedAt" IS NOT NULL`
+      : filter === "pinned"
+        ? Prisma.sql`"deletedAt" IS NULL AND "pinned" = true`
+        : Prisma.sql`"deletedAt" IS NULL`;
+  const read = (column: Prisma.Sql) =>
+    prisma.$queryRaw<Array<ListRow & { body: string }>>`
+      SELECT "id", "title", "excerpt", "pinned", "updatedAt", "deletedAt", "body"
+      FROM "Note"
+      WHERE ${scope}
+        AND translate(${column}, ${FOLD_FROM}, ${FOLD_TO}) ILIKE ${pattern} ESCAPE '\\'
+      ORDER BY "updatedAt" DESC, "id" ASC
+      LIMIT ${CANDIDATE_CAP}`;
+  const [byTitle, byBody] = await Promise.all([
+    read(Prisma.sql`"title"`),
+    read(Prisma.sql`"body"`),
+  ]);
+  const candidates = mergeCandidates(byTitle, byBody);
 
   const byId = new Map(candidates.map((row) => [row.id, row]));
   return rank(candidates, query ?? "").flatMap((hit) => {
