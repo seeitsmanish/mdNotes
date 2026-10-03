@@ -6,7 +6,6 @@ import { useAutosave } from "@/components/editor/useAutosave";
 import { displayTitle } from "@/lib/markdown/derive";
 import { safeStem } from "@/lib/export/filename";
 import { normaliseTitle } from "@/lib/markdown/wikilink";
-import { conflictCopyBody } from "@/lib/notes/conflict";
 import { LIST_BOUNDS, THEMES, type SyncedSettings, useUiStore } from "@/lib/store/useUiStore";
 import { useSettingsSync } from "@/lib/store/useSettingsSync";
 import type { NoteCounts, NoteDetail, NoteListItem } from "@/lib/types";
@@ -137,12 +136,6 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         // server's copy here is what used to truncate notes on switch-away and
         // switch-back.
         const local = unsavedBodyRef.current(loaded.id);
-        // The version travels with the text it describes: adopt the server's
-        // only when adopting its body. Unsaved local text was built on the
-        // version this client already holds (PRD R18.2).
-        if (local === undefined || !versions.current.has(loaded.id)) {
-          versions.current.set(loaded.id, loaded.version);
-        }
         setNote(local === undefined ? loaded : { ...loaded, body: local });
       })
       .catch(() => {
@@ -158,83 +151,20 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
   // --- saving --------------------------------------------------------------
 
   const unsavedBodyRef = useRef<(id: string) => string | undefined>(() => undefined);
-  const takePendingRef = useRef<(id: string) => string | undefined>(() => undefined);
-  const queueRef = useRef<(id: string, body: string) => void>(() => undefined);
-  const openNoteRef = useRef<(id: string) => void>(() => undefined);
 
-  /**
-   * The body version each note's text in this client was built on (PRD §4.18).
-   * Advanced only by this client's own acknowledged saves and by adopting a
-   * body from the server, never by anything else — that is what lets a save
-   * say truthfully which version it was edited from.
-   */
-  const versions = useRef(new Map<string, number>());
+  const { queue, flush, status, unsavedBody } = useAutosave(
+    useCallback(async (id: string, body: string) => {
+      const { note: saved } = await api.patchNote(id, { body });
 
-  const onConflict = useCallback((id: string, current: NoteDetail, copy: NoteDetail) => {
-    versions.current.set(id, current.version);
-    versions.current.set(copy.id, copy.version);
-
-    // Anything typed while the losing save was in flight was built on the
-    // losing text too, so it follows that text to the copy (R18.4).
-    const newer = takePendingRef.current(id);
-    if (newer !== undefined) queueRef.current(copy.id, conflictCopyBody(newer));
-
-    // Replacing the body resets the editor to the current text.
-    setNote((prev) => (prev && prev.id === id ? current : prev));
-    setNotes((prev) => [
-      toListItem(copy),
-      ...prev.map((row) => (row.id === id ? toListItem(current) : row)),
-    ]);
-    setCounts((prev) => ({ ...prev, all: prev.all + 1 }));
-
-    toast(`“${displayTitle(current.title)}” was changed on another device.`, {
-      description: "This shows the latest version. Your edits were kept as a separate note.",
-      duration: 15_000,
-      action: { label: "Open your version", onClick: () => openNoteRef.current(copy.id) },
-    });
-  }, []);
-
-  const { queue, flush, status, unsavedBody, takePending } = useAutosave(
-    useCallback(
-      async (id: string, body: string) => {
-        const result = await api.saveBody(id, body, versions.current.get(id));
-        if (result.status === "conflict") {
-          onConflict(id, result.note, result.copy);
-          return;
-        }
-
-        const saved = result.note;
-        versions.current.set(id, saved.version);
-        // Merge everything except `body`: the user may have typed more since this
-        // request left, and overwriting the editor's source would undo those
-        // keystrokes (docs/TECH-SPEC.md §4.3).
-        setNote((prev) => (prev && prev.id === saved.id ? { ...saved, body: prev.body } : prev));
-        setNotes((prev) => prev.map((row) => (row.id === saved.id ? toListItem(saved) : row)));
-      },
-      [onConflict],
-    ),
-    useMemo(
-      () => ({
-        sendOnUnload: (id: string, body: string) => {
-          // The save ahead of this one will, if it lands, advance the version
-          // by one. If it does not, this one is stale and the server keeps it
-          // as a copy — so a wrong guess costs a duplicate, never the text.
-          const base = versions.current.get(id);
-          void fetch(`/api/notes/${id}`, {
-            method: "PATCH",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ body, baseVersion: base === undefined ? undefined : base + 1 }),
-            keepalive: true,
-          }).catch(() => undefined);
-        },
-      }),
-      [],
-    ),
+      // Merge everything except `body`: the user may have typed more since this
+      // request left, and overwriting the editor's source would undo those
+      // keystrokes (docs/TECH-SPEC.md §4.3).
+      setNote((prev) => (prev && prev.id === saved.id ? { ...saved, body: prev.body } : prev));
+      setNotes((prev) => prev.map((row) => (row.id === saved.id ? toListItem(saved) : row)));
+    }, []),
   );
 
   unsavedBodyRef.current = unsavedBody;
-  takePendingRef.current = takePending;
-  queueRef.current = queue;
 
   const onBodyChange = useCallback(
     (id: string, body: string) => {
@@ -264,7 +194,6 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     await discardFreshIfEmpty();
     const { note: created } = await api.createNote();
     freshNoteId.current = created.id;
-    versions.current.set(created.id, created.version);
 
     if (filter === "trash") setFilter("all");
     setNotes((prev) => [toListItem(created), ...prev]);
@@ -320,8 +249,6 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     },
     [discardFreshIfEmpty, flush, selectNote],
   );
-
-  openNoteRef.current = onSelectNote;
 
   // --- keyboard ------------------------------------------------------------
 
@@ -394,8 +321,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
           onClick: () => {
             void (async () => {
               const { note: created } = await api.createNote();
-              const result = await api.saveBody(created.id, `# ${title}\n\n`, created.version);
-              versions.current.set(created.id, result.note.version);
+              await api.patchNote(created.id, { body: `# ${title}\n\n` });
               await refreshList();
               selectNote(created.id);
             })();

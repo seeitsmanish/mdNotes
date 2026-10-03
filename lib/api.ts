@@ -38,48 +38,9 @@ export function createNote(): Promise<{ note: NoteDetail }> {
 
 export function patchNote(
   id: string,
-  patch: { pinned?: boolean },
+  patch: { body?: string; pinned?: boolean },
 ): Promise<{ note: NoteDetail }> {
   return request(`/api/notes/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
-}
-
-/**
- * Browsers cap the bodies of all in-flight keepalive requests at 64 KiB
- * together, and reject one over the cap outright. Below this a save is sent
- * keepalive so it survives the tab closing; above it, it is sent normally.
- */
-const KEEPALIVE_MAX_BYTES = 48 * 1024;
-
-export type SaveResult =
-  | { status: "saved"; note: NoteDetail }
-  /** Stale save (PRD §4.18): `note` is current, `copy` holds the text sent. */
-  | { status: "conflict"; note: NoteDetail; copy: NoteDetail };
-
-export async function saveBody(
-  id: string,
-  body: string,
-  baseVersion: number | undefined,
-): Promise<SaveResult> {
-  const payload = JSON.stringify({ body, baseVersion });
-  const response = await fetch(`/api/notes/${id}`, {
-    method: "PATCH",
-    headers: { "content-type": "application/json" },
-    body: payload,
-    keepalive: new TextEncoder().encode(payload).byteLength <= KEEPALIVE_MAX_BYTES,
-  });
-
-  if (response.status === 409) {
-    const { note, copy } = (await response.json()) as { note: NoteDetail; copy: NoteDetail };
-    return { status: "conflict", note, copy };
-  }
-  if (!response.ok) {
-    const detail = await response.json().catch(() => null);
-    throw new Error(
-      (detail as { error?: string } | null)?.error ?? `Request failed (${response.status}).`,
-    );
-  }
-  const { note } = (await response.json()) as { note: NoteDetail };
-  return { status: "saved", note };
 }
 
 export function trashNote(id: string): Promise<void> {

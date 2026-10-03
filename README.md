@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.12.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-163-6ee7a8)
+![version](https://img.shields.io/badge/version-1.11.1-6ee7a8) ![tests](https://img.shields.io/badge/tests-146-6ee7a8)
 
 ---
 
@@ -37,7 +37,6 @@ Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 **Appearance**
 - Five themes, an accent colour picker, radius/width/padding/text-size/typeface controls
 - Appearance syncs across devices; layout preferences stay per-device
-- Editing one note on two devices never loses text: a stale save is kept as a conflicted copy
 
 **Access**
 - Single password, HMAC-signed httpOnly cookie, enforced at the edge *and* in every route handler
@@ -87,7 +86,7 @@ opening it.
 |---|---|
 | `pnpm dev` | Dev server |
 | `pnpm verify` | **generate + typecheck + tests + build** — run before any deploy; CI runs it on every push |
-| `pnpm test` | 163 unit tests |
+| `pnpm test` | 146 unit tests |
 | `pnpm backup` | Download a dated backup zip to `backups/` |
 | `pnpm db:push` / `db:migrate` / `db:studio` / `db:seed` | Prisma |
 | `pnpm db:up` / `db:down` | Docker Postgres |
@@ -141,9 +140,9 @@ Honest list, for whoever picks this up next:
 - **Search uses `ILIKE`** with a 500-row candidate cap and no `ORDER BY`, so past
   500 matching notes the results are nondeterministic. Postgres `tsvector` is
   the planned fix.
-- **No live sync between devices.** Saves are conflict-checked (PRD §4.18), so
-  two devices can no longer overwrite each other — but a device only learns of
-  the other's edit when it next saves or reopens the note.
+- **No concurrency control on save.** Two devices editing the same note is
+  last-write-wins. The stale-read race that truncated notes is fixed, but a
+  `version` column is still the right answer.
 - **No images or attachments**, no math, no diagrams.
 - **No offline support** — the app needs a network.
 - **Tests cover pure modules only**; the stateful editor and shell code has no

@@ -18,20 +18,7 @@ const RETRY_MAX_MS = 30_000;
 
 export type SaveStatus = "idle" | "saving" | "failed";
 
-export interface AutosaveOptions {
-  /**
-   * Send `body` for `id` as the page unloads, when a save for that note is
-   * still in flight and this one cannot wait for it. Nothing reads the
-   * response, so the caller must make the request safe on its own — the
-   * server keeps a stale body as a conflicted copy (PRD R18.3).
-   */
-  sendOnUnload: (id: string, body: string, afterInFlight: true) => void;
-}
-
-export function useAutosave(
-  save: (id: string, body: string) => Promise<void>,
-  options: AutosaveOptions,
-) {
+export function useAutosave(save: (id: string, body: string) => Promise<void>) {
   const pending = useRef(new Map<string, string>());
   const inFlight = useRef(new Set<string>());
   // What each in-flight request is trying to persist, kept until it lands.
@@ -39,13 +26,11 @@ export function useAutosave(
   const failures = useRef(new Map<string, number>());
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveRef = useRef(save);
-  const optionsRef = useRef(options);
   const [status, setStatus] = useState<SaveStatus>("idle");
 
   useEffect(() => {
     saveRef.current = save;
-    optionsRef.current = options;
-  }, [save, options]);
+  }, [save]);
 
   const flushOne = useCallback(async (id: string) => {
     const body = pending.current.get(id);
@@ -90,16 +75,19 @@ export function useAutosave(
       }
 
       for (const id of [...pending.current.keys()]) {
-        // Saves go out as keepalive requests, so one started now survives the
-        // page closing and is tracked like any other. The exception is a note
-        // whose previous save is still in flight: its newer text would wait
-        // for a response this page will not live to see, so it is sent now,
-        // untracked.
-        if (options.unloading && inFlight.current.has(id)) {
+        if (options.unloading) {
+          // The browser cancels in-flight fetches when the document goes away,
+          // so the last write of a session has to be sent as a keepalive
+          // request that survives it.
           const body = pending.current.get(id);
           if (body === undefined) continue;
           pending.current.delete(id);
-          optionsRef.current.sendOnUnload(id, body, true);
+          void fetch(`/api/notes/${id}`, {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ body }),
+            keepalive: true,
+          }).catch(() => undefined);
           continue;
         }
         void flushOne(id);
@@ -123,10 +111,8 @@ export function useAutosave(
   // Closing the tab mid-sentence must cost at most the debounce window, which
   // is the "no data loss" line in the PRD's success criteria.
   useEffect(() => {
-    // Hidden is not gone: the page may come back, and must still know what
-    // it saved. Only pagehide takes the untracked path.
     const onHidden = () => {
-      if (document.visibilityState === "hidden") flush();
+      if (document.visibilityState === "hidden") flush({ unloading: true });
     };
     document.addEventListener("visibilitychange", onHidden);
     const onPageHide = () => flush({ unloading: true });
@@ -150,23 +136,5 @@ export function useAutosave(
     [],
   );
 
-  /**
-   * Remove and return the unsent body for `id`. Used when a save comes back
-   * stale (PRD R18.4): text typed since was built on the losing version too,
-   * and has to follow it to the copy rather than go to the note.
-   */
-  const takePending = useCallback((id: string): string | undefined => {
-    const body = pending.current.get(id);
-    pending.current.delete(id);
-    return body;
-  }, []);
-
-  return {
-    queue,
-    flush,
-    status,
-    unsavedBody,
-    takePending,
-    hasPending: () => pending.current.size > 0,
-  };
+  return { queue, flush, status, unsavedBody, hasPending: () => pending.current.size > 0 };
 }

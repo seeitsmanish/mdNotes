@@ -24,6 +24,4 @@ export interface NoteListItem {
 export interface NoteDetail extends NoteListItem {
   body: string;
   createdAt: string;
-  /** Body revision, for conflict detection on save (PRD §4.18). */
-  version: number;
 }
