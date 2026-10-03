@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeNextPath } from "@/lib/security/urls";
 import { LockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,10 +38,9 @@ export function LoginForm() {
         return;
       }
 
-      // `next` is used as a path only — never as a full URL, so it cannot be
-      // turned into an open redirect to another origin.
-      const next = params.get("next");
-      const target = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
+      // Resolved against this origin and kept only if it stays here, so `next`
+      // cannot become an open redirect — `/\evil.example` once did.
+      const target = safeNextPath(params.get("next"), window.location.origin);
       // typedRoutes types `replace` to known routes; the target is validated
       // above as a same-origin path, which is the property that matters here.
       router.replace(target as Parameters<typeof router.replace>[0]);

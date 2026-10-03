@@ -212,6 +212,7 @@ Each of these cost real time in the originating session.
 | **`vercel integration add neon` writes `.env.local`** | Local dev silently reads the cloud database and your notes look deleted | Delete `.env.local` |
 | **Zustand `persist` vs SSR** | Hydration mismatch warnings | `skipHydration: true` plus `persist.rehydrate()` on mount |
 | **Vercel env changes need a redeploy** | Password change appears not to work | Deploy after `vercel env add` |
+| **`main` auto-deploys to production** | Pushing a schema-dependent change ships code ahead of its column; every note query 500s (v1.12.0, reverted) | Push the schema to Neon *before* the commit that needs it reaches `main`. An agent here cannot reach Neon or Vercel — ask the user to run DEPLOYMENT.md §5 first |
 | **Wall-clock assertions are flaky** | Perf test fails from machine load and blocks a deploy | Take the best of N samples |
 
 ---
@@ -239,8 +240,9 @@ were accurate when written and the code moves.
 1. ~~**CI.**~~ Done in v1.11.1 — `.github/workflows/verify.yml` runs
    `pnpm verify` on every push and PR (PRD §4.17). A red check means do not
    deploy.
-2. **Optimistic concurrency on save.** `updateNote` writes unconditionally. Two
-   devices on one note is last-write-wins. A `version` column and a 409 closes it.
+2. **Optimistic concurrency on save.** Built (PRD §4.18, commit `818878a`) and
+   reverted because production lacked the `version` column. Re-land per §4.18
+   once the user has pushed the schema.
 3. **Note history.** No revision table exists, and switching notes discards the
    editor's undo stack, so a bad paste is unrecoverable.
 4. **Postgres FTS.** Search is `ILIKE` with a 500-row cap and no `ORDER BY`;

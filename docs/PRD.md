@@ -377,6 +377,36 @@ Not done, deliberately: CI does not deploy. Deploying stays a manual step after
 a green run (AGENT-LOOP §1 ⑥), because a deploy also needs the build SHA set in
 Vercel and a read-only production check that a workflow cannot judge.
 
+### 4.18 Two devices, one note — *reverted, waiting on a schema push*
+
+Built and shipped as v1.12.0 (commit `818878a`), then reverted in `7cec042`:
+it adds a `Note.version` column, `main` deploys to production on push, and the
+production schema had not been pushed, so opening and saving notes returned
+500. The full spec and code are in `818878a`. To re-land: push the schema to
+Neon (DEPLOYMENT.md §5), confirm the column exists, then
+`git revert 7cec042`, bump the version, and ship.
+
+### 4.19 Security hardening
+
+From the audit in [SECURITY-AUDIT.md](./SECURITY-AUDIT.md). Each requirement
+names the finding it closes.
+
+- R19.1 The post-sign-in redirect only ever lands on this origin, however
+  `next` is spelled (A1).
+- R19.2 Links in notes open only if they are `http:`, `https:` or `mailto:`.
+  Notes arrive from imports, so their links are untrusted (A2).
+- R19.3 Every response carries a CSP, `frame-ancestors 'none'`,
+  `X-Frame-Options`, `nosniff`, a referrer policy and a permissions policy.
+  `connect-src 'self'` is the part that matters most: even a script that got
+  in could not send a note to another server (A3).
+- R19.4 Import never inflates more than 2 MB per entry or 50 MB per upload,
+  whatever the compressed size (A4).
+- R19.5 The edge gate and the route handlers apply the same 32-character
+  floor to `AUTH_SECRET`, and both fail closed (A6).
+
+Not done here: revocable sessions (A5) need a schema change, and a nonce-based
+CSP needs per-request rendering. Both are listed as follow-ups in the audit.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

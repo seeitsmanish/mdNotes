@@ -24,8 +24,12 @@ export async function proxy(request: NextRequest) {
   if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
 
   const secret = process.env.AUTH_SECRET;
-  // Fail closed. A missing secret must lock the app, never open it.
-  const authed = secret ? await verifyToken(request.cookies.get(SESSION_COOKIE)?.value, secret) : false;
+  // Fail closed. A missing or short secret must lock the app, never open it —
+  // the same 32-character floor requireSession() enforces (SECURITY-AUDIT A6).
+  const authed =
+    secret && secret.length >= 32
+      ? await verifyToken(request.cookies.get(SESSION_COOKIE)?.value, secret)
+      : false;
   if (authed) return NextResponse.next();
 
   // An API call wants a status code, not a redirect to an HTML page.

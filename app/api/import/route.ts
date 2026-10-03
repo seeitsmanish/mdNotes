@@ -4,6 +4,7 @@ import { guarded } from "@/lib/auth/session";
 import { createNotesFromBodies } from "@/lib/db/notes";
 import { decide, describeSkip, IMPORT_LIMITS, isMarkdownPath } from "@/lib/export/import";
 import { parse as parseFrontmatter } from "@/lib/export/frontmatter";
+import { readEntryCapped } from "@/lib/export/unzip";
 
 /**
  * Markdown in, notes out (PRD §4.9).
@@ -31,6 +32,10 @@ async function handlePOST(request: Request) {
   }
 
   const files: Array<{ path: string; body: string; byteLength: number }> = [];
+  // Decompressed bytes across every entry. The upload cap above is on the
+  // compressed size, which says nothing about what it inflates to.
+  let inflated = 0;
+  const tooLarge = IMPORT_LIMITS.maxFileBytes + 1;
 
   for (const upload of uploads) {
     if (upload.name.toLowerCase().endsWith(".zip")) {
@@ -44,8 +49,19 @@ async function handlePOST(request: Request) {
           files.push({ path: entry.name, body: "", byteLength: 0 });
           continue;
         }
-        const body = await entry.async("string");
-        files.push({ path: entry.name, body, byteLength: body.length });
+        const remaining = IMPORT_LIMITS.maxTotalBytes - inflated;
+        const body =
+          remaining > 0
+            ? await readEntryCapped(entry, Math.min(IMPORT_LIMITS.maxFileBytes, remaining))
+            : null;
+        if (body === null) {
+          // Reported as too large rather than silently dropped (R9.4).
+          files.push({ path: entry.name, body: "", byteLength: tooLarge });
+          continue;
+        }
+        const byteLength = new TextEncoder().encode(body).byteLength;
+        inflated += byteLength;
+        files.push({ path: entry.name, body, byteLength });
       }
     } else {
       const body = await upload.text();

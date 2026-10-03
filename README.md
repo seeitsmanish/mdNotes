@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.11.1-6ee7a8) ![tests](https://img.shields.io/badge/tests-146-6ee7a8)
+![version](https://img.shields.io/badge/version-1.11.2-6ee7a8) ![tests](https://img.shields.io/badge/tests-174-6ee7a8)
 
 ---
 
@@ -40,6 +40,7 @@ Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
 **Access**
 - Single password, HMAC-signed httpOnly cookie, enforced at the edge *and* in every route handler
+- CSP and anti-framing headers; links in notes open only for http(s)/mailto — see [docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md)
 
 Full requirements live in [docs/PRD.md](docs/PRD.md); architecture in
 [docs/TECH-SPEC.md](docs/TECH-SPEC.md); deploying it in
@@ -86,7 +87,7 @@ opening it.
 |---|---|
 | `pnpm dev` | Dev server |
 | `pnpm verify` | **generate + typecheck + tests + build** — run before any deploy; CI runs it on every push |
-| `pnpm test` | 146 unit tests |
+| `pnpm test` | 174 unit tests |
 | `pnpm backup` | Download a dated backup zip to `backups/` |
 | `pnpm db:push` / `db:migrate` / `db:studio` / `db:seed` | Prisma |
 | `pnpm db:up` / `db:down` | Docker Postgres |

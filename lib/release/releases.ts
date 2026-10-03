@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.11.2",
+    date: "2026-10-03",
+    title: "Security fixes",
+    changes: [
+      "Fixed a sign-in link that could send you to another website right after you entered your password.",
+      "Links inside notes now open only if they are ordinary web or email links, so a note imported from elsewhere cannot carry a link that runs code.",
+      "Ursa can no longer be embedded inside another website, which blocks tricks that get you to click things you cannot see.",
+      "Importing a deliberately oversized zip no longer crashes the import; the oversized file is skipped and reported.",
+    ],
+  },
+  {
     version: "1.11.1",
     date: "2026-10-03",
     title: "Every change is checked before it can ship",

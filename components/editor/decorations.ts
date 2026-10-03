@@ -8,6 +8,7 @@ import {
   type ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
+import { safeExternalUrl } from "@/lib/security/urls";
 
 /**
  * Live markdown styling, driven by the Lezer syntax tree.
@@ -324,10 +325,14 @@ export function markdownStyling(options: MarkdownStyleOptions = {}) {
           const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
           if (pos === null) return false;
 
-          const href = linkAt(view, pos);
-          if (!href) return false;
+          const raw = linkAt(view, pos);
+          if (!raw) return false;
 
+          // Notes come from imports, so their links are untrusted: only
+          // http(s) and mailto are ever opened (docs/SECURITY-AUDIT.md A2).
           event.preventDefault();
+          const href = safeExternalUrl(raw);
+          if (!href) return true;
           (options.onLinkClick ??
             ((url: string) => window.open(url, "_blank", "noopener,noreferrer")))(href);
           return true;
