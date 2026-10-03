@@ -14,6 +14,7 @@ you type markdown and it styles itself in place.
 |---|---|
 | v1.0 | Three-pane shell, live editor, `#tag` organisation with a nested tag tree |
 | **v1.1** | **Tagging removed as an organising system.** Two-pane shell with search. Effort redirected into the editor, UX and typography — see §2 |
+| **v1.2** | Password gate (single password, signed cookie). Deployed to Vercel on Neon Postgres. Appearance synced to the database — §4.6 |
 
 ---
 
@@ -160,6 +161,26 @@ entirely on whether the editor feels right.
 - R5.1 `⌘K` opens a palette that jumps to a note by title or runs a command.
 - R5.2 Note matching is over the titles already loaded in the list pane, so the
   palette never waits on the network.
+
+### 4.6 Appearance follows the account, not the browser
+
+Appearance was per-browser in v1.1, which meant opening the app on a phone lost
+the theme chosen on a laptop. v1.2 splits it by what the setting actually is.
+
+- R6.1 **Identity settings sync**: theme, accent colour, radius, heading mode,
+  editor width, padding and typeface persist in the database and follow the
+  single user to any device.
+- R6.2 **Device settings stay local**: pane width, focus mode and text size
+  remain in `localStorage`, because the right value genuinely differs between a
+  laptop, an external monitor and a phone.
+- R6.3 **No flash.** The stored theme must apply before first paint. The DB is
+  the source of truth, but `localStorage` keeps a copy purely as a paint-time
+  cache so the inline bootstrap script has something synchronous to read.
+- R6.4 Writes are **fire-and-forget and debounced**: dragging the radius slider
+  must not issue a request per frame, and a failed sync must never block the UI
+  or lose the local change.
+- R6.5 Settings live in a single row. There are no accounts (PRD §2), so a
+  `userId` column would be a column of one value.
 
 ## 5. Success criteria
 

@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { hasSession } from "@/lib/auth/session";
 import { Shell } from "@/components/shell/Shell";
 import { countNotes, listNotes } from "@/lib/db/notes";
+import { getSettings } from "@/lib/db/settings";
 import type { NoteCounts, NoteListItem } from "@/lib/types";
+import type { SyncedSettings } from "@/lib/store/useUiStore";
 
 /**
  * Initial fetch happens on the server so the shell paints with content rather
@@ -17,10 +19,18 @@ export default async function Home() {
 
   let initialNotes: NoteListItem[] = [];
   let initialCounts: NoteCounts = { all: 0, pinned: 0, trash: 0 };
+  let initialSettings: SyncedSettings | null = null;
   let dbError: string | null = null;
 
   try {
-    [initialNotes, initialCounts] = await Promise.all([listNotes({ filter: "all" }), countNotes()]);
+    const [notes, counts, settings] = await Promise.all([
+      listNotes({ filter: "all" }),
+      countNotes(),
+      getSettings(),
+    ]);
+    initialNotes = notes;
+    initialCounts = counts;
+    initialSettings = settings as SyncedSettings;
   } catch (error) {
     // The overwhelmingly likely cause is that Postgres isn't up yet, so say so
     // rather than showing a stack trace.
@@ -29,7 +39,13 @@ export default async function Home() {
 
   if (dbError) return <DatabaseDown detail={dbError} />;
 
-  return <Shell initialNotes={initialNotes} initialCounts={initialCounts} />;
+  return (
+    <Shell
+      initialNotes={initialNotes}
+      initialCounts={initialCounts}
+      initialSettings={initialSettings}
+    />
+  );
 }
 
 function DatabaseDown({ detail }: { detail: string }) {

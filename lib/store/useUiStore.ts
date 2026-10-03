@@ -107,6 +107,8 @@ interface UiState {
   setRadius: (radius: number) => void;
   setHeadingMode: (mode: HeadingMode) => void;
   resetAppearance: () => void;
+  /** Server state wins over the localStorage cache on load (PRD R6.3). */
+  applyServerSettings: (settings: SyncedSettings) => void;
 }
 
 const clamp = (value: number, min: number, max: number) =>
@@ -154,6 +156,7 @@ export const useUiStore = create<UiState>()(
       setHeadingMode: (headingMode) => set({ headingMode }),
       resetAppearance: () =>
         set({ brandColor: null, radius: 0.625, headingMode: "theme", fontSize: 17 }),
+      applyServerSettings: (settings) => set(settings),
     }),
     {
       name: "ursa.ui",
@@ -176,3 +179,34 @@ export const useUiStore = create<UiState>()(
     },
   ),
 );
+
+/** The appearance that follows the user between devices (PRD R6.1). */
+export interface SyncedSettings {
+  theme: ThemeChoice;
+  brandColor: string | null;
+  radius: number;
+  headingMode: HeadingMode;
+  editorWidth: EditorWidth;
+  editorPadding: EditorPadding;
+  editorFont: EditorFont;
+}
+
+export function selectSynced(state: {
+  theme: ThemeChoice;
+  brandColor: string | null;
+  radius: number;
+  headingMode: HeadingMode;
+  editorWidth: EditorWidth;
+  editorPadding: EditorPadding;
+  editorFont: EditorFont;
+}): SyncedSettings {
+  return {
+    theme: state.theme,
+    brandColor: state.brandColor,
+    radius: state.radius,
+    headingMode: state.headingMode,
+    editorWidth: state.editorWidth,
+    editorPadding: state.editorPadding,
+    editorFont: state.editorFont,
+  };
+}

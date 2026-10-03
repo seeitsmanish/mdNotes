@@ -29,3 +29,20 @@ model Note {
 
   @@index([deletedAt, pinned, updatedAt])
 }
+
+/// Appearance that should follow the user to any device (PRD R6.1).
+///
+/// One row, always id "singleton": there are no accounts, so a `userId` column
+/// would hold one value forever. Device-specific settings — pane width, focus
+/// mode, text size — deliberately stay in localStorage (R6.2).
+model Settings {
+  id            String   @id @default("singleton")
+  theme         String   @default("forest")
+  brandColor    String?
+  radius        Float    @default(0.625)
+  headingMode   String   @default("theme")
+  editorWidth   String   @default("regular")
+  editorPadding String   @default("medium")
+  editorFont    String   @default("sans")
+  updatedAt     DateTime @updatedAt
+}

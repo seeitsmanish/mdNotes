@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as api from "@/lib/api";
 import { useAutosave } from "@/components/editor/useAutosave";
 import { displayTitle } from "@/lib/markdown/derive";
-import { LIST_BOUNDS, THEMES, useUiStore } from "@/lib/store/useUiStore";
+import { LIST_BOUNDS, THEMES, type SyncedSettings, useUiStore } from "@/lib/store/useUiStore";
+import { useSettingsSync } from "@/lib/store/useSettingsSync";
 import type { NoteCounts, NoteDetail, NoteListItem } from "@/lib/types";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -22,11 +23,12 @@ import { PaneDivider } from "./PaneDivider";
 interface ShellProps {
   initialNotes: NoteListItem[];
   initialCounts: NoteCounts;
+  initialSettings: SyncedSettings | null;
 }
 
 const SEARCH_DEBOUNCE_MS = 220;
 
-export function Shell({ initialNotes, initialCounts }: ShellProps) {
+export function Shell({ initialNotes, initialCounts, initialSettings }: ShellProps) {
   const filter = useUiStore((state) => state.filter);
   const setFilter = useUiStore((state) => state.setFilter);
   const query = useUiStore((state) => state.query);
@@ -57,11 +59,9 @@ export function Shell({ initialNotes, initialCounts }: ShellProps) {
   /** A note created but never typed into is discarded on exit. */
   const freshNoteId = useRef<string | null>(null);
 
-  // Pull persisted preferences in after mount, not during render (see the
-  // store's skipHydration note).
-  useEffect(() => {
-    void useUiStore.persist.rehydrate();
-  }, []);
+  // Rehydrates the localStorage cache, applies the server's settings over it,
+  // and writes later changes back (PRD §4.6).
+  useSettingsSync(initialSettings);
 
   const brandColor = useUiStore((state) => state.brandColor);
   const radius = useUiStore((state) => state.radius);
