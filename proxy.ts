@@ -21,7 +21,8 @@ export const config = {
   ],
 };
 
-const PUBLIC_PATHS = new Set(["/login", "/api/auth/login"]);
+// /api/health answers uptime checks, which carry no session (PRD §4.32).
+const PUBLIC_PATHS = new Set(["/login", "/api/auth/login", "/api/health"]);
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -18,6 +18,7 @@ import { ShortcutsDialog } from "./ShortcutsDialog";
 import { HistoryDialog } from "./HistoryDialog";
 import { createGate } from "@/lib/async/gate";
 import { installApp, registerServiceWorker, useInstallMode } from "@/lib/pwa/install";
+import { installGlobalReporting, reportError } from "@/lib/report/client";
 import { EditorPane } from "./EditorPane";
 import { NoteList } from "./NoteList";
 import { PaneDivider } from "./PaneDivider";
@@ -92,6 +93,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
       createGate({
         onChange: (keys) => setPending(new Set(keys)),
         onError: (key, error) => {
+          reportError(error, `action:${key.split(":")[0]}`);
           toast.error(FAILURE[key.split(":")[0] ?? ""] ?? "Something went wrong.", {
             description: error instanceof Error ? error.message : undefined,
           });
@@ -138,6 +140,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
   // Installable app (PRD §4.27).
   const installMode = useInstallMode();
   useEffect(() => registerServiceWorker(), []);
+  // Client failures reach the server log instead of vanishing (PRD §4.32).
+  useEffect(() => installGlobalReporting(), []);
 
   // --- data ----------------------------------------------------------------
 
@@ -252,7 +256,11 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
   const { queue, flush, status, unsavedBody, takePending } = useAutosave(
     useCallback(
       async (id: string, body: string) => {
-        const result = await api.saveBody(id, body, versions.current.get(id));
+        const result = await api.saveBody(id, body, versions.current.get(id)).catch((error: unknown) => {
+          // Autosave retries with backoff; one report per distinct failure.
+          reportError(error, "autosave");
+          throw error;
+        });
         if (result.status === "conflict") {
           onConflict(id, result.note, result.copy);
           return;

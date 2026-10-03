@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.20.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-317-6ee7a8)
+![version](https://img.shields.io/badge/version-1.21.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-327-6ee7a8)
 
 ---
 
@@ -96,7 +96,7 @@ opening it.
 |---|---|
 | `pnpm dev` | Dev server |
 | `pnpm verify` | **generate + typecheck + tests + build** — run before any deploy; CI runs it on every push |
-| `pnpm test` | 317 unit tests |
+| `pnpm test` | 327 unit tests |
 | `pnpm backup` | Download a dated backup zip to `backups/` |
 | `pnpm db:push` / `db:migrate` / `db:studio` / `db:seed` | Prisma |
 | `pnpm db:up` / `db:down` | Docker Postgres |
@@ -144,7 +144,8 @@ docs/              PRD, tech spec, deployment
 
 Honest list, for whoever picks this up next:
 
-- **No error monitoring**, no structured logging, no health check.
+- **Errors are logged, not alerted.** Client failures reach the server log and
+  `/api/health` reports database status, but nothing pages anyone.
 - **Schema is managed by `prisma db push`**, not migrations — there is no
   `prisma/migrations/` history and no rollback path.
 - **Search scans rather than indexes.** Candidates are found by an

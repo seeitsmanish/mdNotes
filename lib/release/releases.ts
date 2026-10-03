@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.21.0",
+    date: "2026-10-03",
+    title: "Problems leave a trace",
+    changes: [
+      "When something goes wrong in the app, it is now recorded so it can be found and fixed, instead of failing silently.",
+      "If a screen ever crashes, you get a clear message and a Reload button instead of a blank page.",
+    ],
+  },
+  {
     version: "1.20.0",
     date: "2026-10-03",
     title: "Share to Ursa from any app",

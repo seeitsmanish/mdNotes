@@ -703,6 +703,30 @@ copy, switch apps, new note, paste.
   `?open=<id>`) are read once and removed from the address bar, so a reload
   does not make a second note.
 
+### 4.32 Errors that leave a trace, and a health check
+
+Every client-side failure was caught silently or not at all. A production
+problem produced no signal anywhere, so the first anyone knew was a note that
+did not save.
+
+- R32.1 Uncaught errors, unhandled rejections, failed actions (§4.25),
+  failed saves and crashed screens are reported to `/api/log`, which writes
+  one JSON line per report to the server log, where the host keeps it.
+- R32.2 Reports are bounded (message 500 chars, stack 4 KB) and carry the
+  path **without its query** — a share's text (§4.31) must never reach a log.
+- R32.3 Each distinct failure is reported once a minute per page, so a save
+  retrying with backoff or an error thrown every render makes one report;
+  the endpoint also caps reports per instance, and only accepts signed-in
+  callers.
+- R32.4 A screen that crashes while rendering shows "Something went wrong",
+  with Try again and Reload, instead of a blank page.
+- R32.5 `/api/health` (public) answers `{ ok, db, version }` — 200 when the
+  database answers, 503 when it does not — for uptime monitors. It says
+  nothing about notes.
+
+Not done: alerting. Vercel keeps the logs; a monitor pointed at /api/health
+or a log drain is the user's choice of service.
+
 ## 5. Success criteria
 
 | Criterion | Measure |
