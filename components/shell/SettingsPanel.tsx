@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { DownloadIcon, RotateCcwIcon, UploadIcon } from "lucide-react";
+import { DownloadIcon, RotateCcwIcon, SmartphoneIcon, UploadIcon } from "lucide-react";
+import { installApp, useInstallMode } from "@/lib/pwa/install";
 import { toast } from "sonner";
 import { useUnseenRelease, WhatsNew } from "./WhatsNew";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ const HEADINGS: Array<{ value: HeadingMode; label: string }> = [
 
 export function SettingsPanel() {
   const { unseen, markSeen } = useUnseenRelease();
+  const installMode = useInstallMode();
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [importing, setImporting] = useState(false);
 
@@ -258,6 +260,13 @@ export function SettingsPanel() {
         <UploadIcon />
         {importing ? "Importing…" : "Import notes"}
       </Button>
+
+      {installMode !== "installed" && (
+        <Button variant="ghost" size="sm" className="justify-start px-2" onClick={() => void installApp()}>
+          <SmartphoneIcon />
+          Install as an app
+        </Button>
+      )}
 
       <WhatsNew unseen={unseen} onOpen={markSeen} />
     </div>

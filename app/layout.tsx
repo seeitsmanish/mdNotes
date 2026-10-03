@@ -10,13 +10,17 @@ import { appearanceVars, DARK_THEMES, isDarkTheme } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "Ursa",
-  description: "Tag-organised, single-pane markdown notes.",
+  description: "Markdown notes that style themselves as you type.",
+  // iOS ignores most of the manifest; these make "Add to Home Screen" open
+  // full-screen with the right name (PRD §4.27).
+  appleWebApp: { capable: true, title: "Ursa", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#11161d",
 };
 
 /**

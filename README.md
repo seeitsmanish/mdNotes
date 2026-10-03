@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.16.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-280-6ee7a8)
+![version](https://img.shields.io/badge/version-1.17.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-280-6ee7a8)
 
 ---
 
@@ -40,6 +40,9 @@ Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 - Five themes, an accent colour picker, radius/width/padding/text-size/typeface controls
 - Appearance syncs across devices; layout preferences stay per-device
 - Editing one note on two devices never loses text: a stale save is kept as a conflicted copy
+
+**On your phone**
+- Installable as an app — home-screen icon, full screen, offline notice
 
 **Access**
 - Single password, HMAC-signed httpOnly cookie, enforced at the edge *and* in every route handler
@@ -149,7 +152,8 @@ Honest list, for whoever picks this up next:
   the other's edit when it next saves or reopens the note.
 - **Images are not in the export zip** yet, and deleting a note leaves its
   images stored. No diagrams.
-- **No offline support** — the app needs a network.
+- **No offline editing** — the installed app shows an offline notice, but
+  reading and writing notes needs a connection.
 - **Tests cover pure modules only**; the stateful editor and shell code has no
   component or integration tests.
 

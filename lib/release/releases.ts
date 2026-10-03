@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.17.0",
+    date: "2026-10-03",
+    title: "Install Ursa on your phone",
+    changes: [
+      "Ursa can now be installed as an app: an icon on your home screen that opens full screen, without the browser around it.",
+      "Find “Install as an app” in Appearance or the command palette. On iPhone it shows you the two taps in Safari: Share, then Add to Home Screen.",
+      "With no connection, the app tells you it is offline instead of showing a browser error. Your notes are never kept out of date on the device.",
+    ],
+  },
+  {
     version: "1.16.0",
     date: "2026-10-03",
     title: "Better on your phone",

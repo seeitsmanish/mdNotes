@@ -588,6 +588,33 @@ covered, and a back gesture that left the app.
   leaving the app; the in-app back button uses the same entry so history
   stays balanced. Unsaved text is flushed on the way back.
 
+### 4.27 Install as an app
+
+On a phone, a notes app you open twenty times a day should be an icon on the
+home screen, not a browser tab you hunt for.
+
+- R27.1 Ursa is installable (Chrome reports no installability errors): a web
+  app manifest with name, standalone display, theme colours and 192/512px
+  icons, including a maskable one whose artwork stays inside Android's
+  circular safe zone.
+- R27.2 "Install as an app" in the Appearance panel and the command palette.
+  Chromium browsers get their real install prompt; Safari has no install API,
+  so on an iPhone it explains Share → Add to Home Screen. Hidden once
+  installed.
+- R27.3 iOS opens it full-screen under its own name (apple-web-app tags), and
+  the shell keeps clear of the notch with safe-area padding.
+- R27.4 A service worker that caches **nothing of yours** — a cached note is a
+  stale note, and a stale note saved back is a lost edit. It only answers a
+  failed page load with a plain "You're offline" page; API calls still fail
+  loudly so autosave's retry and the error toasts see them. It is served
+  uncached so a fix reaches every installed copy.
+- R27.5 The manifest and service worker load without a session — browsers
+  fetch them without the cookie, and a redirect to /login made the app
+  silently uninstallable.
+
+Not done: real offline editing. That needs a local copy of notes and a merge
+on reconnect; §4.18's conflict copies are the safe base for it.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

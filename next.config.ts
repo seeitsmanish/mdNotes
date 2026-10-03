@@ -57,7 +57,19 @@ const SECURITY_HEADERS = [
 const config: NextConfig = {
   typedRoutes: true,
   async headers() {
-    return [{ source: "/(.*)", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/(.*)", headers: SECURITY_HEADERS },
+      {
+        // Never cached, so a fixed service worker reaches every installed
+        // copy on its next launch (PRD §4.27).
+        source: "/sw.js",
+        headers: [
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
   },
   env: {
     NEXT_PUBLIC_APP_VERSION: version,

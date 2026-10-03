@@ -14,7 +14,11 @@ import { SESSION_COOKIE, verifyToken } from "@/lib/auth/token";
 export const config = {
   // Everything except Next's own assets and the files in public/. Without this,
   // the gate would also block CSS and JS and the login page would render bare.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  // The manifest and service worker must load without a session cookie, or
+  // the app cannot be installed (PRD §4.27).
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
 };
 
 const PUBLIC_PATHS = new Set(["/login", "/api/auth/login"]);

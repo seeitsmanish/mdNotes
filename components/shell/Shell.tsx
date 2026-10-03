@@ -16,6 +16,7 @@ import { applyAppearance } from "@/lib/theme";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { createGate } from "@/lib/async/gate";
+import { installApp, registerServiceWorker, useInstallMode } from "@/lib/pwa/install";
 import { EditorPane } from "./EditorPane";
 import { NoteList } from "./NoteList";
 import { PaneDivider } from "./PaneDivider";
@@ -120,6 +121,10 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         : (THEMES.find((entry) => entry.value === theme)?.dark ?? false);
     root.classList.toggle("dark", dark);
   }, [theme]);
+
+  // Installable app (PRD §4.27).
+  const installMode = useInstallMode();
+  useEffect(() => registerServiceWorker(), []);
 
   // --- data ----------------------------------------------------------------
 
@@ -522,6 +527,9 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         ? [{ id: "empty-trash", label: `Empty trash (${counts.trash})`, run: confirmEmptyTrash }]
         : []),
       ...(note ? [{ id: "export-one", label: "Export this note (.md)", run: exportCurrent }] : []),
+      ...(installMode !== "installed"
+        ? [{ id: "install", label: "Install Ursa as an app", run: () => void installApp() }]
+        : []),
       ...(note && !note.deletedAt
         ? [
             {
@@ -535,7 +543,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         : []),
       ...themeCommands,
     ];
-  }, [confirmEmptyTrash, counts.trash, createNote, exportAll, exportCurrent, focusMode, note, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [confirmEmptyTrash, counts.trash, createNote, exportAll, exportCurrent, focusMode, installMode, note, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -611,7 +619,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
   const listHidden = focusMode || mobilePane !== "list";
 
   return (
-    <div className="@container flex h-dvh w-full overflow-hidden">
+    <div className="ursa-shell @container flex h-dvh w-full overflow-hidden">
       <div
         ref={listRef}
         style={{ "--pane": `${listWidth}px` } as React.CSSProperties}
