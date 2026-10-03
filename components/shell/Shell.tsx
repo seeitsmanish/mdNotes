@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { applyAppearance } from "@/lib/theme";
 import { CommandPalette, type Command } from "./CommandPalette";
+import { ShortcutsDialog } from "./ShortcutsDialog";
 import { EditorPane } from "./EditorPane";
 import { NoteList } from "./NoteList";
 import { PaneDivider } from "./PaneDivider";
@@ -46,6 +47,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
   const paletteOpen = useUiStore((state) => state.paletteOpen);
   const setPaletteOpen = useUiStore((state) => state.setPaletteOpen);
   const setSettingsOpen = useUiStore((state) => state.setSettingsOpen);
+  const shortcutsOpen = useUiStore((state) => state.shortcutsOpen);
+  const setShortcutsOpen = useUiStore((state) => state.setShortcutsOpen);
   const theme = useUiStore((state) => state.theme);
   const setTheme = useUiStore((state) => state.setTheme);
 
@@ -312,6 +315,22 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     [flush, notes, refreshList, selectNote],
   );
 
+  /** Permanent and irreversible, so it states the number first (PRD R12.2). */
+  const confirmEmptyTrash = useCallback(() => {
+    const count = counts.trash;
+    if (count === 0) return;
+    const noun = count === 1 ? "note" : "notes";
+    if (!window.confirm(`Permanently delete ${count} ${noun} in Trash? This cannot be undone.`)) {
+      return;
+    }
+    void (async () => {
+      const { deleted } = await api.emptyTrash();
+      if (selectedNoteId) selectNote(null);
+      await refreshList();
+      toast(`Deleted ${deleted} ${deleted === 1 ? "note" : "notes"}.`);
+    })();
+  }, [counts.trash, refreshList, selectNote, selectedNoteId]);
+
   const commands = useMemo<Command[]>(() => {
     const themeCommands: Command[] = THEMES.map((option) => ({
       id: `theme:${option.value}`,
@@ -329,6 +348,10 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
       },
       { id: "appearance", label: "Appearance…", run: () => setSettingsOpen(true) },
       { id: "export-all", label: "Export all notes (.zip)", run: exportAll },
+      { id: "shortcuts", label: "Keyboard shortcuts", hint: "⌘/", run: () => setShortcutsOpen(true) },
+      ...(counts.trash > 0
+        ? [{ id: "empty-trash", label: `Empty trash (${counts.trash})`, run: confirmEmptyTrash }]
+        : []),
       ...(note ? [{ id: "export-one", label: "Export this note (.md)", run: exportCurrent }] : []),
       ...(note && !note.deletedAt
         ? [
@@ -343,7 +366,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         : []),
       ...themeCommands,
     ];
-  }, [createNote, exportAll, exportCurrent, focusMode, note, setSettingsOpen, setTheme, toggleFocusMode, togglePin, trash]);
+  }, [confirmEmptyTrash, counts.trash, createNote, exportAll, exportCurrent, focusMode, note, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -354,6 +377,10 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         case "k":
           event.preventDefault();
           setPaletteOpen(!useUiStore.getState().paletteOpen);
+          return;
+        case "/":
+          event.preventDefault();
+          setShortcutsOpen(!useUiStore.getState().shortcutsOpen);
           return;
         case "n":
           event.preventDefault();
@@ -390,7 +417,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [createNote, focusPane, note, setPaletteOpen, toggleFocusMode, togglePin, trash]);
+  }, [createNote, focusPane, note, setPaletteOpen, setShortcutsOpen, toggleFocusMode, togglePin, trash]);
 
   // --- layout --------------------------------------------------------------
   // Container queries, not viewport media queries, so the shell stays correct
@@ -422,6 +449,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
           onRestore={(target) => void restore(target)}
           onDeleteForever={(target) => void deleteForever(target)}
           onCreate={() => void createNote()}
+          onEmptyTrash={confirmEmptyTrash}
         />
       </div>
 
@@ -482,6 +510,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         onSelectNote={onSelectNote}
         onOpenChange={setPaletteOpen}
       />
+
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
       <Toaster position="bottom-center" />
     </div>

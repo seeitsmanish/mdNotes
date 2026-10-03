@@ -58,3 +58,7 @@ export function restoreNote(id: string): Promise<{ note: NoteDetail }> {
 export function resolveWikiLinks(titles: string[]): Promise<{ resolved: Record<string, string> }> {
   return request("/api/resolve", { method: "POST", body: JSON.stringify({ titles }) });
 }
+
+export function emptyTrash(): Promise<{ deleted: number }> {
+  return request("/api/notes/trash", { method: "DELETE" });
+}

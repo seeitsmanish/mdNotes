@@ -56,6 +56,7 @@ interface NoteListProps {
   onRestore: (note: NoteListItem) => void;
   onDeleteForever: (note: NoteListItem) => void;
   onCreate: () => void;
+  onEmptyTrash: () => void;
 }
 
 export function NoteList({
@@ -73,6 +74,7 @@ export function NoteList({
   onRestore,
   onDeleteForever,
   onCreate,
+  onEmptyTrash,
 }: NoteListProps) {
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -139,6 +141,21 @@ export function NoteList({
             />
           </div>
         </div>
+
+        {/* Only offered when there is something to empty (PRD R12.3). */}
+        {inTrash && counts.trash > 0 && (
+          <div className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEmptyTrash}
+              className="w-full text-ink-soft hover:text-brand"
+            >
+              <Trash2Icon />
+              Empty trash ({counts.trash})
+            </Button>
+          </div>
+        )}
 
         {searchOpen && (
           <div className="ursa-fade-in pt-2">

@@ -229,3 +229,14 @@ export async function backlinksFor(
     .filter((note) => linksTo(note.body, title))
     .map(({ id, title: noteTitle, excerpt }) => ({ id, title: noteTitle, excerpt }));
 }
+
+/**
+ * Permanently delete every trashed note (PRD R12.1).
+ *
+ * Only ever reachable from an explicit action — trash is never emptied on a
+ * timer, because silently deleting someone's notes is not a feature.
+ */
+export async function emptyTrash(): Promise<number> {
+  const result = await prisma.note.deleteMany({ where: { deletedAt: { not: null } } });
+  return result.count;
+}

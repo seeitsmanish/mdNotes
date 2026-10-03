@@ -274,6 +274,29 @@ appear" but not "which note did I mean".
 - R11.5 Ranking happens where the text is, not in the client. The client must
   never need the full body of every note to order a list.
 
+### 4.12 Trash you can actually empty
+
+Trash has been append-only since v1.0: notes go in and nothing takes them out.
+PRD §8 asked whether it should auto-expire; the answer is no — silently deleting
+someone's notes on a timer is the kind of helpfulness nobody asked for.
+
+- R12.1 **Empty trash** removes every trashed note permanently, on an explicit
+  action, never on a timer.
+- R12.2 It asks first, and says how many notes will go. "Are you sure?" with no
+  number is a dialog people click through without reading.
+- R12.3 The control appears only when there is something in the trash.
+
+### 4.13 Keyboard reference
+
+Roughly fifteen shortcuts exist and none are discoverable. A shortcut nobody
+can find is a shortcut nobody uses.
+
+- R13.1 `⌘/` opens a dialog listing every shortcut, grouped by what it acts on.
+- R13.2 It is also reachable from the command palette, for people who do not
+  know the shortcut that shows the shortcuts.
+- R13.3 The list is derived from one definition shared with the keymap, so a
+  shortcut cannot be renamed in one place and stale in the other.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

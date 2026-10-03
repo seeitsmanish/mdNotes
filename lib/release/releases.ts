@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.7.0",
+    date: "2026-10-03",
+    title: "Emptying the trash, and finding the shortcuts",
+    changes: [
+      "Trash can now be emptied. It asks first and tells you how many notes will go, and it never empties itself on a timer.",
+      "Press ⌘/ for a list of every keyboard shortcut, grouped by what it does.",
+      "The shortcut list also covers the markup worth knowing — code blocks, highlights and [[links]].",
+    ],
+  },
+  {
     version: "1.6.0",
     date: "2026-10-03",
     title: "Search that finds the right note",
