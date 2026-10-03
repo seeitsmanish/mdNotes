@@ -23,7 +23,7 @@ exports or pasted from elsewhere. The user themself is trusted.
 | A5 | Medium | Sessions cannot be revoked; sign-out does not end a stolen session | **Fixed** in v1.19.0 |
 | A6 | Low | Edge gate accepted an `AUTH_SECRET` shorter than 32 characters | **Fixed** in v1.11.2 |
 | A7 | Low | Login rate limit is per server instance and resets on cold start | **Fixed** in v1.21.1 |
-| A8 | Low | Four dependency advisories, all in build-time tooling | Open |
+| A8 | Low | Four dependency advisories, all in build-time tooling | **Partly fixed** in v1.21.2 |
 
 ### A1 — Open redirect after sign-in (fixed)
 
@@ -129,7 +129,15 @@ attempts. The real defence is the password: use a long random one. Proper
 fix: a Vercel Firewall rate-limit rule on `/api/auth/login`, or a counter in
 Postgres.
 
-### A8 — Dependency advisories (open, low)
+### A8 — Dependency advisories (partly fixed in v1.21.2)
+
+*v1.21.2:* `shadcn` moved to devDependencies (same version), which clears the
+`braces` path from the production audit. `cn` was checked and stays: it is
+shadcn's own class-merging package (github.com/shadcn-ui/cn), imported at
+runtime by the UI components. The three remaining advisories come from
+`@prisma/client`'s own dependency on the Prisma CLI and wait on Prisma.
+
+Original finding:
 
 `pnpm audit --prod` reports 3 high and 1 moderate, all in tooling that never
 runs in the deployed app: `mysql2` and `deepmerge-ts` under the Prisma CLI,

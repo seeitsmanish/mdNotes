@@ -18,6 +18,12 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.21.2",
+    date: "2026-10-03",
+    title: "Housekeeping",
+    changes: ["Behind-the-scenes tidying of the tools Ursa is built with. Nothing changes in how it works."],
+  },
+  {
     version: "1.21.1",
     date: "2026-10-03",
     title: "Stronger protection for your password",
