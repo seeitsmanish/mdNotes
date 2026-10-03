@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { applyBody, insertBody } from "./write";
+import { lockBody, maybeKeepRevision } from "./history";
 import { conflictCopyBody } from "@/lib/notes/conflict";
 import type { NotePatch } from "@/lib/notes/patch";
 import { deriveExcerpt, deriveTitle } from "@/lib/markdown/derive";
@@ -162,8 +163,14 @@ export async function updateNote(id: string, patch: NotePatch): Promise<UpdateRe
     }
     if (patch.body === undefined) return null;
 
+    const previous = await lockBody(tx, id);
     const applied = await applyBody(tx, id, patch.body, patch.baseVersion);
-    if (applied) return null;
+    if (applied) {
+      // Kept only now that the save has won: a stale save changes nothing,
+      // so there is nothing it replaced (PRD §4.28).
+      if (previous !== null) await maybeKeepRevision(tx, id, previous, patch.body);
+      return null;
+    }
 
     // Stale save. The text is kept, in the same transaction, so it survives
     // even when nobody reads this response — a closing tab's last save (R18.3).

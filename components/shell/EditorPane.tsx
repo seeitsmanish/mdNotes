@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import {
   ChevronLeftIcon,
+  HistoryIcon,
   Loader2Icon,
   ListTreeIcon,
   type LucideIcon,
@@ -51,6 +52,7 @@ interface EditorPaneProps {
   /** Gated actions in flight, by key, and whether the note is still loading (PRD §4.25). */
   pending: ReadonlySet<string>;
   loading: boolean;
+  onHistory: () => void;
 }
 
 export function EditorPane({
@@ -66,6 +68,7 @@ export function EditorPane({
   onOpenNote,
   pending,
   loading,
+  onHistory,
 }: EditorPaneProps) {
   const [stats, setStats] = useState<EditorStats>(() => measure(note?.body ?? ""));
   const [view, setView] = useState<EditorView | null>(null);
@@ -131,6 +134,7 @@ export function EditorPane({
                   onClick={onTogglePin}
                   pending={pending.has(`pin:${note.id}`)}
                 />
+                <IconAction icon={HistoryIcon} label="History" onClick={onHistory} />
                 <IconAction
                   icon={Trash2Icon}
                   label="Move to trash (⌘⌫)"

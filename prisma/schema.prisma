@@ -30,7 +30,22 @@ model Note {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  revisions NoteRevision[]
+
   @@index([deletedAt, pinned, updatedAt])
+}
+
+/// An earlier body of a note, kept so a bad edit can be undone after the
+/// editor's own undo is gone (PRD §4.28). Deleting a note for good deletes its
+/// history with it; moving it to the trash does not.
+model NoteRevision {
+  id        String   @id @default(cuid())
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([noteId, createdAt])
 }
 
 /// Appearance that should follow the user to any device (PRD R6.1).

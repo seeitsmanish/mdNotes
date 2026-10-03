@@ -101,3 +101,25 @@ export function resolveWikiLinks(titles: string[]): Promise<{ resolved: Record<s
 export function emptyTrash(): Promise<{ deleted: number }> {
   return request("/api/notes/trash", { method: "DELETE" });
 }
+
+export interface RevisionSummary {
+  id: string;
+  createdAt: string;
+  title: string;
+  words: number;
+}
+
+export function fetchHistory(noteId: string): Promise<{ revisions: RevisionSummary[] }> {
+  return request(`/api/notes/${noteId}/history`);
+}
+
+export function fetchRevision(
+  noteId: string,
+  revisionId: string,
+): Promise<{ revision: { id: string; createdAt: string; body: string } }> {
+  return request(`/api/notes/${noteId}/history/${revisionId}`);
+}
+
+export function restoreRevision(noteId: string, revisionId: string): Promise<{ note: NoteDetail }> {
+  return request(`/api/notes/${noteId}/history/${revisionId}`, { method: "POST" });
+}

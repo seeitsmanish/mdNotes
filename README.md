@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.17.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-280-6ee7a8)
+![version](https://img.shields.io/badge/version-1.18.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-291-6ee7a8)
 
 ---
 
@@ -32,6 +32,7 @@ Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 - Unresolved links offer to create the note
 
 **Owning your data**
+- History: earlier versions of every note, with a preview of what restoring brings back
 - Streaming export to a zip of `.md` files, with id/created/pinned as frontmatter
 - Import from a zip or loose markdown — works with Bear and Obsidian exports
 - `pnpm backup` writes a dated archive to local disk
@@ -93,7 +94,7 @@ opening it.
 |---|---|
 | `pnpm dev` | Dev server |
 | `pnpm verify` | **generate + typecheck + tests + build** — run before any deploy; CI runs it on every push |
-| `pnpm test` | 280 unit tests |
+| `pnpm test` | 291 unit tests |
 | `pnpm backup` | Download a dated backup zip to `backups/` |
 | `pnpm db:push` / `db:migrate` / `db:studio` / `db:seed` | Prisma |
 | `pnpm db:up` / `db:down` | Docker Postgres |

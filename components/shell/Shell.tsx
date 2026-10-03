@@ -15,6 +15,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { applyAppearance } from "@/lib/theme";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { ShortcutsDialog } from "./ShortcutsDialog";
+import { HistoryDialog } from "./HistoryDialog";
 import { createGate } from "@/lib/async/gate";
 import { installApp, registerServiceWorker, useInstallMode } from "@/lib/pwa/install";
 import { EditorPane } from "./EditorPane";
@@ -71,6 +72,15 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
   const [counts, setCounts] = useState(initialCounts);
   const [note, setNote] = useState<NoteDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  /**
+   * The editor's latest text per note. A ref, not state: it changes on every
+   * keystroke and only matters when something needs "what is in the editor
+   * now" — the history dialog's comparison (PRD §4.28). `note.body` is the
+   * text as loaded, which goes stale as soon as you type.
+   */
+  const liveBody = useRef(new Map<string, string>());
+
+  const [historyOpen, setHistoryOpen] = useState(false);
   /** A note is being fetched after a switch (PRD §4.25). */
   const [noteLoading, setNoteLoading] = useState(false);
 
@@ -179,7 +189,9 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         if (local === undefined || !versions.current.has(loaded.id)) {
           versions.current.set(loaded.id, loaded.version);
         }
-        setNote(local === undefined ? loaded : { ...loaded, body: local });
+        const adopted = local === undefined ? loaded : { ...loaded, body: local };
+        liveBody.current.set(adopted.id, adopted.body);
+        setNote(adopted);
       })
       .catch(() => {
         if (!cancelled) setNote(null);
@@ -219,6 +231,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     if (newer !== undefined) queueRef.current(copy.id, conflictCopyBody(newer));
 
     // Replacing the body resets the editor to the current text.
+    liveBody.current.set(id, current.body);
     setNote((prev) => (prev && prev.id === id ? current : prev));
     setNotes((prev) => [
       toListItem(copy),
@@ -277,6 +290,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
 
   const onBodyChange = useCallback(
     (id: string, body: string) => {
+      liveBody.current.set(id, body);
       if (freshNoteId.current === id && body.length > 0) freshNoteId.current = null;
       queue(id, body);
     },
@@ -504,6 +518,30 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     });
   }, [counts.trash, gate, refreshList, selectNote, selectedNoteId]);
 
+  // --- history (PRD §4.28) --------------------------------------------------
+
+  const openHistory = useCallback(() => {
+    // Send anything unsaved first, so the newest text is what versions are
+    // compared against and, if it qualifies, kept.
+    flush();
+    setHistoryOpen(true);
+  }, [flush]);
+
+  const onRestored = useCallback(
+    (restored: NoteDetail) => {
+      // Restoring is an explicit choice: typing not yet sent for this note
+      // was built on the text being replaced, so it is dropped rather than
+      // saved over the restore. A save already in flight carries the old
+      // version and becomes a conflicted copy, never an overwrite.
+      takePending(restored.id);
+      liveBody.current.set(restored.id, restored.body);
+      versions.current.set(restored.id, restored.version);
+      setNote((prev) => (prev && prev.id === restored.id ? restored : prev));
+      setNotes((prev) => prev.map((row) => (row.id === restored.id ? toListItem(restored) : row)));
+    },
+    [takePending],
+  );
+
   const commands = useMemo<Command[]>(() => {
     const themeCommands: Command[] = THEMES.map((option) => ({
       id: `theme:${option.value}`,
@@ -527,6 +565,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         ? [{ id: "empty-trash", label: `Empty trash (${counts.trash})`, run: confirmEmptyTrash }]
         : []),
       ...(note ? [{ id: "export-one", label: "Export this note (.md)", run: exportCurrent }] : []),
+      ...(note ? [{ id: "history", label: "Note history…", run: openHistory }] : []),
       ...(installMode !== "installed"
         ? [{ id: "install", label: "Install Ursa as an app", run: () => void installApp() }]
         : []),
@@ -543,7 +582,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         : []),
       ...themeCommands,
     ];
-  }, [confirmEmptyTrash, counts.trash, createNote, exportAll, exportCurrent, focusMode, installMode, note, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [confirmEmptyTrash, counts.trash, createNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -682,6 +721,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
             onOpenNote={onSelectNote}
             pending={pending}
             loading={noteLoading}
+            onHistory={openHistory}
           />
         </div>
       </div>
@@ -708,6 +748,13 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
       />
 
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <HistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        noteId={note?.id ?? null}
+        currentBody={note ? (liveBody.current.get(note.id) ?? note.body) : ""}
+        onRestored={onRestored}
+      />
 
       <Toaster position="bottom-center" />
     </div>

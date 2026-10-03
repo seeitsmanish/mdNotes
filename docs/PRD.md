@@ -615,6 +615,31 @@ home screen, not a browser tab you hunt for.
 Not done: real offline editing. That needs a local copy of notes and a merge
 on reconnect; §4.18's conflict copies are the safe base for it.
 
+### 4.28 Note history
+
+Every save replaced the last, and the editor's undo history is lost on every
+note switch. A bad paste, a select-all-delete or a wrong conflict resolution
+could not be taken back once you had looked at another note.
+
+- R28.1 Earlier versions are kept in `NoteRevision` (added to production as
+  a new table, rehearsed on a Neon branch first).
+- R28.2 A version is kept at most once every ten minutes while you write —
+  the text as it was before the session's changes — and **always** before a
+  save that removes more than half of a note of 200+ characters, which is
+  what a bad paste or select-all-delete looks like. Quick edits do not pile up.
+- R28.3 The kept text is read under a row lock in the same transaction as the
+  save, so it is exactly what was overwritten. A stale save (§4.18) keeps
+  nothing, because it changed nothing.
+- R28.4 History (toolbar, or the palette) lists versions newest first, previews
+  one, and says what restoring it would do: "brings back N lines · drops M you
+  have now", with the returning lines highlighted. Compared against the
+  editor's live text, not the text as loaded.
+- R28.5 Restoring keeps the current text as a version first, so a restore can
+  itself be undone; unsent typing for the note is dropped, and a save already
+  in flight becomes a conflicted copy rather than overwriting the restore.
+- R28.6 At most 50 versions per note; the oldest go first. Deleting a note
+  permanently deletes its history; trashing it does not.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

@@ -244,8 +244,7 @@ were accurate when written and the code moves.
    `version` column, a conditional UPDATE, a 409, and the stale text kept as a
    conflicted copy server-side. First shipped before the production schema had
    the column and reverted; re-landed after the column was added on Neon.
-3. **Note history.** No revision table exists, and switching notes discards the
-   editor's undo stack, so a bad paste is unrecoverable.
+3. ~~**Note history.**~~ Done in v1.18.0 (PRD §4.28).
 4. **Postgres FTS.** Search is `ILIKE` with a 500-row cap and no `ORDER BY`;
    past 500 matches, results are nondeterministic.
 5. **Error monitoring.** Every client `catch` is silent. A production failure

@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.18.0",
+    date: "2026-10-03",
+    title: "Undo, even after you have moved on",
+    changes: [
+      "Every note now keeps its earlier versions. Open History from the toolbar to see them and put one back.",
+      "If you accidentally delete most of a note — a bad paste, select-all by mistake — the text from just before is always kept.",
+      "Before you restore, Ursa shows exactly which lines would come back. Restoring keeps your current text too, so you can change your mind.",
+    ],
+  },
+  {
     version: "1.17.0",
     date: "2026-10-03",
     title: "Install Ursa on your phone",
