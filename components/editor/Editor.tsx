@@ -10,6 +10,7 @@ import { syntaxHighlighting } from "@codemirror/language";
 import { BearMarkup } from "./bearMarkup";
 import { ursaHighlightStyle } from "./highlightStyle";
 import { markdownStyling } from "./decorations";
+import { tableField } from "./tableField";
 import { smartPaste, ursaKeymap } from "./commands";
 
 /**
@@ -115,6 +116,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
         addKeymap: false,
       }),
       syntaxHighlighting(ursaHighlightStyle),
+      tableField,
       markdownStyling({
         onWikiLink: (title) => handlers.current.onWikiLink?.(title),
       }),

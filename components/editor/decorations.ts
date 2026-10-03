@@ -191,7 +191,10 @@ function buildDecorations(view: EditorView): DecorationSet {
           }
 
           case "Table":
-            lineClass(node.from, node.to, "ursa-table");
+            // Only the being-edited case lives here. The rendered table is a
+            // block decoration, which CodeMirror requires to come from a
+            // StateField — see tableField.ts.
+            if (isRevealed(node.from, node.to)) lineClass(node.from, node.to, "ursa-table");
             return;
 
           case "CodeInfo": {

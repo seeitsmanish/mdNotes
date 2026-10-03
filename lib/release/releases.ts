@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.9.0",
+    date: "2026-10-03",
+    title: "Tables that look like tables",
+    changes: [
+      "Markdown tables now render as real tables — borders, aligned columns, a header row — instead of raw pipes.",
+      "Column alignment set with :--- and ---: is respected.",
+      "Bold, italic, code and links inside cells render properly.",
+      "Click a table and it turns back into markdown so you can edit it, exactly like syntax markers on the line you are editing.",
+    ],
+  },
+  {
     version: "1.8.0",
     date: "2026-10-03",
     title: "Find your way around a long note",
