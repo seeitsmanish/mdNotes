@@ -199,6 +199,23 @@ visible version and a changelog you read without leaving the app.
 - R7.5 Every release is tagged in git, so the tag, the version in the UI and the
   changelog entry cannot drift apart.
 
+### 4.8 Export and backup
+
+Notes you cannot get out are notes you do not really own. There is no backup of
+the hosted database, so export is the only recovery path that exists.
+
+- R8.1 **Export everything** as a `.zip` of `.md` files, one per note, named
+  after the note's title.
+- R8.2 **Export one note** as a `.md` file from the command palette.
+- R8.3 Exported files are the raw markdown exactly as stored — no conversion, no
+  re-serialisation. What comes out is what Bear, Obsidian or a text editor reads.
+- R8.4 Filenames are made safe for every OS and **de-duplicated**: two notes
+  titled "Groceries" must not silently become one file.
+- R8.5 Trashed notes are excluded by default, with an option to include them —
+  trash is where you put things you meant to delete.
+- R8.6 Export is streamed and authenticated like every other route. An export
+  endpoint that skipped the gate would hand the whole library to anyone.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

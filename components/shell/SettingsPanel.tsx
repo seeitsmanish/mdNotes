@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcwIcon } from "lucide-react";
+import { DownloadIcon, RotateCcwIcon } from "lucide-react";
 import { useUnseenRelease, WhatsNew } from "./WhatsNew";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -177,6 +177,23 @@ export function SettingsPanel() {
       <Button variant="ghost" size="sm" onClick={resetAppearance} className="justify-start px-2">
         <RotateCcwIcon />
         Reset appearance
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="justify-start px-2"
+        onClick={() => {
+          const link = document.createElement("a");
+          link.href = "/api/export";
+          link.download = "ursa-notes.zip";
+          document.body.append(link);
+          link.click();
+          link.remove();
+        }}
+      >
+        <DownloadIcon />
+        Export all notes
       </Button>
 
       <WhatsNew unseen={unseen} onOpen={markSeen} />

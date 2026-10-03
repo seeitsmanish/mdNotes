@@ -122,3 +122,14 @@ export async function restoreNote(id: string): Promise<NoteDetail | null> {
 export async function deleteNoteForever(id: string): Promise<void> {
   await prisma.note.delete({ where: { id } });
 }
+
+/** Full note bodies for export (PRD §4.8). Trash is excluded unless asked for. */
+export async function listNotesForExport(options: { includeTrashed?: boolean } = {}): Promise<
+  Array<{ title: string; body: string; updatedAt: Date }>
+> {
+  return prisma.note.findMany({
+    where: options.includeTrashed ? {} : { deletedAt: null },
+    orderBy: [{ updatedAt: "desc" }],
+    select: { title: true, body: true, updatedAt: true },
+  });
+}

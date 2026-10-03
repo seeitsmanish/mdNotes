@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as api from "@/lib/api";
 import { useAutosave } from "@/components/editor/useAutosave";
 import { displayTitle } from "@/lib/markdown/derive";
+import { safeStem } from "@/lib/export/filename";
 import { LIST_BOUNDS, THEMES, type SyncedSettings, useUiStore } from "@/lib/store/useUiStore";
 import { useSettingsSync } from "@/lib/store/useSettingsSync";
 import type { NoteCounts, NoteDetail, NoteListItem } from "@/lib/types";
@@ -243,6 +244,29 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     [setMobilePane],
   );
 
+  /** Hand the browser a file without routing it through React state. */
+  const download = useCallback((href: string, filename: string) => {
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+  }, []);
+
+  const exportAll = useCallback(() => {
+    download("/api/export", "ursa-notes.zip");
+    toast("Export started — check your downloads.");
+  }, [download]);
+
+  const exportCurrent = useCallback(() => {
+    if (!note) return;
+    const url = URL.createObjectURL(new Blob([note.body], { type: "text/markdown" }));
+    download(url, `${safeStem(note.title)}.md`);
+    // Revoking immediately can cancel the download in some browsers.
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }, [download, note]);
+
   const commands = useMemo<Command[]>(() => {
     const themeCommands: Command[] = THEMES.map((option) => ({
       id: `theme:${option.value}`,
@@ -259,6 +283,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         run: toggleFocusMode,
       },
       { id: "appearance", label: "Appearance…", run: () => setSettingsOpen(true) },
+      { id: "export-all", label: "Export all notes (.zip)", run: exportAll },
+      ...(note ? [{ id: "export-one", label: "Export this note (.md)", run: exportCurrent }] : []),
       ...(note && !note.deletedAt
         ? [
             {
@@ -272,7 +298,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         : []),
       ...themeCommands,
     ];
-  }, [createNote, focusMode, note, setSettingsOpen, setTheme, toggleFocusMode, togglePin, trash]);
+  }, [createNote, exportAll, exportCurrent, focusMode, note, setSettingsOpen, setTheme, toggleFocusMode, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

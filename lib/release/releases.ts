@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.3.0",
+    date: "2026-10-03",
+    title: "Your notes, in your hands",
+    changes: [
+      "Export every note as a .zip of markdown files, from Appearance → Export all notes or the ⌘K palette.",
+      "Export just the note you are reading as a single .md file.",
+      "Exports are the raw markdown exactly as stored, so Bear, Obsidian or any text editor reads them straight back.",
+      "Notes in Trash are left out of exports, and notes sharing a title get numbered rather than overwriting each other.",
+    ],
+  },
+  {
     version: "1.2.0",
     date: "2026-10-03",
     title: "Accounts of one, and a changelog",
