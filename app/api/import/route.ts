@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { guarded } from "@/lib/auth/session";
 import { createNotesFromBodies } from "@/lib/db/notes";
 import { decide, describeSkip, IMPORT_LIMITS, isMarkdownPath } from "@/lib/export/import";
+import { parse as parseFrontmatter } from "@/lib/export/frontmatter";
 
 /**
  * Markdown in, notes out (PRD §4.9).
@@ -53,7 +54,18 @@ async function handlePOST(request: Request) {
   }
 
   const { accepted, skipped } = decide(files);
-  const imported = await createNotesFromBodies(accepted.map((file) => file.body));
+
+  const imported = await createNotesFromBodies(
+    accepted.map((file) => {
+      const { meta, body } = parseFrontmatter(file.body);
+      const createdAt = meta.createdAt ? new Date(meta.createdAt) : undefined;
+      return {
+        body,
+        pinned: meta.pinned === true,
+        createdAt: createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt : undefined,
+      };
+    }),
+  );
 
   return NextResponse.json({
     imported,

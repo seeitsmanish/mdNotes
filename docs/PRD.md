@@ -313,6 +313,24 @@ headings already describe that structure.
   markdown parse, so the outline cannot disagree with the document.
 - R14.5 Toggled with ⌘⇧O, and the choice persists per device.
 
+### 4.16 Backup and restore
+
+Export has been the only recovery path since §4.8, and it was not good enough
+to be one: it dropped pins and dates, and it built the whole archive in memory,
+so it would fail on exactly the library large enough to be worth saving.
+
+- R16.1 Export is **streamed**, so archive size is bounded by the library, not
+  by the memory of one serverless function.
+- R16.2 Export is **lossless**: each file carries YAML frontmatter with the
+  note's id, creation time, last edit and pinned state.
+- R16.3 Import reads that frontmatter and restores pinned state and creation
+  time, so a restore reproduces the library rather than a flattened copy of it.
+- R16.4 Frontmatter is not treated as note text. A file without frontmatter is
+  still a valid note — anything exported from Bear or Obsidian must import
+  cleanly.
+- R16.5 A one-command local backup writes a dated archive to disk, so a backup
+  can be scheduled by the user without depending on the hosting provider.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

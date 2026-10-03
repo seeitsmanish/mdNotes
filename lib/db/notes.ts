@@ -149,12 +149,12 @@ export async function deleteNoteForever(id: string): Promise<void> {
 
 /** Full note bodies for export (PRD §4.8). Trash is excluded unless asked for. */
 export async function listNotesForExport(options: { includeTrashed?: boolean } = {}): Promise<
-  Array<{ title: string; body: string; updatedAt: Date }>
+  Array<{ id: string; title: string; body: string; pinned: boolean; createdAt: Date; updatedAt: Date }>
 > {
   return prisma.note.findMany({
     where: options.includeTrashed ? {} : { deletedAt: null },
     orderBy: [{ updatedAt: "desc" }],
-    select: { title: true, body: true, updatedAt: true },
+    select: { id: true, title: true, body: true, pinned: true, createdAt: true, updatedAt: true },
   });
 }
 
@@ -162,13 +162,19 @@ export async function listNotesForExport(options: { includeTrashed?: boolean } =
  * Create many notes in one transaction (PRD §4.9). Import never overwrites, so
  * this only ever inserts — there is no merge to get wrong.
  */
-export async function createNotesFromBodies(bodies: string[]): Promise<number> {
-  if (bodies.length === 0) return 0;
+export async function createNotesFromBodies(
+  entries: Array<{ body: string; createdAt?: Date; pinned?: boolean }>,
+): Promise<number> {
+  if (entries.length === 0) return 0;
 
-  const rows = bodies.map((body) => ({
-    body,
-    title: deriveTitle(body),
-    excerpt: deriveExcerpt(body),
+  const rows = entries.map((entry) => ({
+    body: entry.body,
+    title: deriveTitle(entry.body),
+    excerpt: deriveExcerpt(entry.body),
+    // Restored from frontmatter when present, so a restore reproduces the
+    // library rather than flattening it to "everything created just now".
+    ...(entry.createdAt ? { createdAt: entry.createdAt } : {}),
+    ...(entry.pinned ? { pinned: true } : {}),
   }));
 
   const result = await prisma.note.createMany({ data: rows });

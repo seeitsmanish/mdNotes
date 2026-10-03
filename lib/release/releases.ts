@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.11.0",
+    date: "2026-10-03",
+    title: "Backups you can actually restore from",
+    changes: [
+      "Export now streams, so it works on a large library instead of running out of memory on the one backup that mattered.",
+      "Exported notes carry their id, creation date and pinned state, and importing them puts all of that back — a restore reproduces your library rather than flattening it.",
+      "Notes exported from Bear or Obsidian still import cleanly; files without that metadata are treated as ordinary notes.",
+      "A new command, pnpm backup, writes a dated archive to your own disk so a copy exists somewhere the host cannot delete.",
+    ],
+  },
+  {
     version: "1.10.0",
     date: "2026-10-03",
     title: "Fixes a note-truncation bug, and a round of defects",
