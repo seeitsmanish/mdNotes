@@ -787,6 +787,24 @@ the notes.
   states the count and size, and works out the set again inside the delete's
   transaction rather than trusting the count shown.
 
+### 4.36 Accessible to read and to operate
+
+An axe audit (WCAG 2 A/AA) of the sign-in page, list, editor and Appearance
+panel found: faint text — timestamps, excerpts, the editor's status line — at
+2.2–3.4:1 contrast in every theme; the editor's editable surface with no
+accessible name; and the two sliders unnamed, because their label sat on the
+root while the range input lives in the thumb.
+
+- R36.1 `--ink-soft` and `--ink-faint` reach at least 4.5:1 on the canvas, list,
+  raised surfaces and the selected row, in all five themes. Each grey was moved
+  the least distance towards `--ink` that reaches it, and `--ink-soft` was
+  raised to at least 6:1 so it stays a visible step above `--ink-faint`.
+- R36.2 A test reads `app/globals.css` and fails if any theme drops below
+  4.5:1, so a future palette edit cannot quietly undo this.
+- R36.3 The editor is announced as "Note text"; the sliders as "Corner radius"
+  and "Editor text size".
+- R36.4 axe reports no violations on any of the four screens.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

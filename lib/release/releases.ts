@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.23.2",
+    date: "2026-10-03",
+    title: "Easier to read",
+    changes: [
+      "The lighter grey text — dates, previews, word counts — is a little stronger in every theme, so it is comfortable to read, not just visible.",
+      "Screen readers now announce the editor and the appearance sliders by name.",
+    ],
+  },
+  {
     version: "1.23.1",
     date: "2026-10-03",
     title: "Every setting within reach",

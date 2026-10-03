@@ -126,6 +126,8 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       smartPaste,
       imagePaste,
       EditorView.lineWrapping,
+      // The editable surface is a textbox to assistive tech; give it a name.
+      EditorView.contentAttributes.of({ "aria-label": "Note text" }),
       placeholder(readOnly ? "" : "Start writing."),
       EditorState.readOnly.of(readOnly),
       EditorView.editable.of(!readOnly),
