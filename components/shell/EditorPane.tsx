@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import {
   ChevronLeftIcon,
-  GraduationCapIcon,
   Loader2Icon,
   ListTreeIcon,
   type LucideIcon,
@@ -49,9 +48,6 @@ interface EditorPaneProps {
   onBack: () => void;
   onWikiLink: (title: string) => void;
   onOpenNote: (id: string) => void;
-  /** Questions found in this note; the drill button shows when there are some. */
-  drillCount: number;
-  onDrill: () => void;
   /** Gated actions in flight, by key, and whether the note is still loading (PRD §4.25). */
   pending: ReadonlySet<string>;
   loading: boolean;
@@ -68,8 +64,6 @@ export function EditorPane({
   onBack,
   onWikiLink,
   onOpenNote,
-  drillCount,
-  onDrill,
   pending,
   loading,
 }: EditorPaneProps) {
@@ -147,14 +141,6 @@ export function EditorPane({
             )}
             <Separator orientation="vertical" className="mx-1 !h-4" />
           </>
-        )}
-
-        {note && !inTrash && drillCount > 0 && (
-          <IconAction
-            icon={GraduationCapIcon}
-            label={`Drill ${drillCount} question${drillCount === 1 ? "" : "s"} (⌘⇧L)`}
-            onClick={onDrill}
-          />
         )}
 
         <IconAction

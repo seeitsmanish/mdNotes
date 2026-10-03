@@ -35,7 +35,6 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: "↑ ↓", label: "Move through the list" },
       { keys: "⌘.", label: "Focus mode" },
       { keys: "⌘⇧O", label: "Show or hide the outline" },
-      { keys: "⌘⇧L", label: "Drill this note's questions" },
       { keys: "⌘/", label: "This dialog" },
     ],
   },

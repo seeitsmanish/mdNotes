@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.15.2",
+    date: "2026-10-03",
+    title: "Drill mode removed",
+    changes: [
+      "Drill mode is gone: no Drill button, no ⌘⇧L. Your notes were never changed by it and are exactly as you wrote them.",
+    ],
+  },
+  {
     version: "1.15.1",
     date: "2026-10-03",
     title: "Buttons that show they are working",
@@ -41,13 +49,8 @@ export const RELEASES: Release[] = [
   {
     version: "1.14.0",
     date: "2026-10-03",
-    title: "Practise your question lists",
-    changes: [
-      "Any note with questions in it — a numbered list of interview questions, headings ending in ?, or Question :: answer lines — now has a Drill button (⌘⇧L).",
-      "Drill asks one question at a time with a clock, like an interview. Answer out loud, peek at anything you wrote under the question, then rate yourself 1, 2 or 3.",
-      "Questions you blanked or were shaky on come back first next time; ones you nail come back less and less often.",
-      "Nothing to mark up: your existing lists already work.",
-    ],
+    title: "Drill mode (since removed)",
+    changes: ["Added a drill mode for question lists. It was removed in 1.15.2."],
   },
   {
     version: "1.13.0",

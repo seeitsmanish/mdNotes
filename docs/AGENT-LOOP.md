@@ -250,9 +250,11 @@ were accurate when written and the code moves.
    past 500 matches, results are nondeterministic.
 5. **Error monitoring.** Every client `catch` is silent. A production failure
    produces no signal anywhere.
-6. **Recall features.** The library is question banks; the app can store and
-   find but not test. Spoiler blocks → study mode → spaced repetition was the
-   most-recommended direction across reviewers.
+6. ~~**Recall features.**~~ Tried as Drill mode (v1.14.0) and **removed at the
+   user's request** in v1.15.2. Do not revisit quizzes, flashcards or spaced
+   repetition without asking. Ask what the user wants before inventing
+   features. The unshipped spoilers branch (fe0fa0a) was built for the same
+   study use; check with the user before reviving it.
 
 ---
 
