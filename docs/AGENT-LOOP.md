@@ -237,6 +237,9 @@ Each of these cost real time in the originating session.
 Taken from a five-perspective product review. Re-verify before acting — these
 were accurate when written and the code moves.
 
+*See docs/PM-REVIEW.md for the latest plan and what shipped overnight on
+2026-10-03; the list below is the original review, struck through as done.*
+
 1. ~~**CI.**~~ Done in v1.11.1 — `.github/workflows/verify.yml` runs
    `pnpm verify` on every push and PR (PRD §4.17). A red check means do not
    deploy.
