@@ -36,7 +36,8 @@ const CSP = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  // https: so an image linked from the web shows; attachments are 'self'.
+  "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   `connect-src 'self'${dev ? " ws: wss:" : ""}`,
   "object-src 'none'",

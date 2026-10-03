@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import type { EditorView } from "@codemirror/view";
 import {
   BoldIcon,
@@ -7,6 +8,7 @@ import {
   CodeIcon,
   HeadingIcon,
   HighlighterIcon,
+  ImageIcon,
   ItalicIcon,
   LinkIcon,
   ListIcon,
@@ -23,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { insertImages } from "./imagePaste";
 import {
   insertCodeBlock,
   insertLink,
@@ -49,6 +52,7 @@ interface FormatBarProps {
 }
 
 export function FormatBar({ view }: FormatBarProps) {
+  const filePicker = useRef<HTMLInputElement | null>(null);
   if (!view) return null;
 
   const run = (command: (view: EditorView) => boolean) => {
@@ -88,7 +92,21 @@ export function FormatBar({ view }: FormatBarProps) {
 
         <Separator orientation="vertical" className="mx-1 !h-4" />
 
-        <Action icon={LinkIcon} label="Link (⌘K)" onClick={() => run(insertLink)} />
+        <Action icon={LinkIcon} label="Link (⌘⇧K)" onClick={() => run(insertLink)} />
+        <Action icon={ImageIcon} label="Image — or paste / drop one" onClick={() => filePicker.current?.click()} />
+        <input
+          ref={filePicker}
+          type="file"
+          accept="image/png,image/jpeg,image/gif,image/webp,image/heic,image/avif"
+          multiple
+          hidden
+          onChange={(event) => {
+            const files = [...(event.target.files ?? [])];
+            event.target.value = "";
+            if (files.length > 0) insertImages(view, files);
+            view.focus();
+          }}
+        />
         <Action icon={TableIcon} label="Table" onClick={() => run(insertTable)} />
         <Action icon={CodeIcon} label="Code block" onClick={() => run(insertCodeBlock)} />
       </div>

@@ -540,6 +540,34 @@ already read is not practice.
 Not done: drilling across several notes at once (a mock interview), and
 syncing ratings across devices — both are natural next steps.
 
+### 4.24 Images
+
+Notes could hold text only. Screenshots of an error, a whiteboard photo, a
+diagram from a talk — all had to live somewhere else.
+
+- R24.1 Paste an image, drop one onto the editor, or pick one from the format
+  bar. A placeholder appears at once and becomes the image when the upload
+  lands; a failed upload removes the placeholder and says why.
+- R24.2 The note stores ordinary markdown, `![name](/api/attachments/<id>)`,
+  so the text stays the source of truth and the image reveals its markdown on
+  the caret's line like every other construct.
+- R24.3 Images are stored in Postgres (`Attachment`, bytea), behind the same
+  password as the notes — no extra service, no public URLs. Each is scaled to
+  at most 2000px on the long side and re-encoded as WebP in the browser before
+  upload; GIFs are kept as-is so animation survives. The server caps uploads
+  at 4 MB.
+- R24.4 The server decides the type from the file's magic bytes and accepts
+  only PNG, JPEG, GIF and WebP. SVG is refused: it can carry script, and
+  serving it from this origin would be stored XSS. Images are served with
+  `nosniff` and cached privately for good, since an attachment never changes.
+- R24.5 Images linked from the web (`https:`) are drawn too; the CSP's
+  `img-src` allows `https:` for that. Any other scheme stays as text.
+
+Not done: images are not yet included in the export zip (the markdown links
+are, so an export references them but does not contain them); deleting a
+note does not delete its images, because one image can appear in several
+notes — orphan cleanup is a later job; no resizing handles in the editor.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

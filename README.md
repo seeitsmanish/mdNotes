@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.14.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-289-6ee7a8)
+![version](https://img.shields.io/badge/version-1.15.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-299-6ee7a8)
 
 ---
 
@@ -17,6 +17,7 @@ Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 - Fenced code blocks parsed **in the language they declare** — ` ```json ` is really highlighted as JSON (~30 languages, loaded on demand)
 - Tables render as real tables, and turn back into markdown when you click into one
 - Clickable to-do checkboxes, list continuation on Enter, smart paste of URLs
+- Images: paste, drop or pick — resized in the browser, stored privately
 - Floating format bar, and an outline panel for long notes (`⌘⇧O`)
 - Live math: end a line with `=` and the answer appears — names, `%`, currencies and `total`
 
@@ -92,7 +93,7 @@ opening it.
 |---|---|
 | `pnpm dev` | Dev server |
 | `pnpm verify` | **generate + typecheck + tests + build** — run before any deploy; CI runs it on every push |
-| `pnpm test` | 289 unit tests |
+| `pnpm test` | 299 unit tests |
 | `pnpm backup` | Download a dated backup zip to `backups/` |
 | `pnpm db:push` / `db:migrate` / `db:studio` / `db:seed` | Prisma |
 | `pnpm db:up` / `db:down` | Docker Postgres |
@@ -149,7 +150,8 @@ Honest list, for whoever picks this up next:
 - **No live sync between devices.** Saves are conflict-checked (PRD §4.18), so
   two devices can no longer overwrite each other — but a device only learns of
   the other's edit when it next saves or reopens the note.
-- **No images or attachments**, no math, no diagrams.
+- **Images are not in the export zip** yet, and deleting a note leaves its
+  images stored. No diagrams.
 - **No offline support** — the app needs a network.
 - **Tests cover pure modules only**; the stateful editor and shell code has no
   component or integration tests.

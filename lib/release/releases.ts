@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.15.0",
+    date: "2026-10-03",
+    title: "Images in your notes",
+    changes: [
+      "Paste an image, drag one onto a note, or use the new image button on the format bar.",
+      "Large photos are shrunk before they upload, so they arrive quickly and do not eat your storage.",
+      "Your images are private: they are only shown to you, behind your password, never at a public link.",
+    ],
+  },
+  {
     version: "1.14.0",
     date: "2026-10-03",
     title: "Practise your question lists",

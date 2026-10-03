@@ -58,6 +58,9 @@ site and clicked through. Now set for every response in `next.config.ts`:
 - `Content-Security-Policy` — `default-src 'self'`, `connect-src 'self'`,
   `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`,
   `frame-ancestors 'none'`
+- `img-src 'self' data: blob: https:` — widened in v1.15.0 so images linked
+  from the web show in notes (PRD §4.24). An image cannot run script, so the
+  cost is that a note can make the browser fetch a remote image.
 - `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: strict-origin-when-cross-origin`, a restrictive
   `Permissions-Policy`

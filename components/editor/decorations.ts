@@ -119,6 +119,48 @@ class RuleWidget extends WidgetType {
  * hidden, the chip is the only thing on that line — so a code block reads as a
  * labelled container rather than a row of grey punctuation.
  */
+/**
+ * A note's image, shown in place of its markdown when the caret is elsewhere
+ * (PRD §4.24). Only this app's attachments and https images are drawn —
+ * anything else stays as text.
+ */
+class ImageWidget extends WidgetType {
+  constructor(
+    readonly src: string,
+    readonly alt: string,
+  ) {
+    super();
+  }
+
+  eq(other: ImageWidget): boolean {
+    return other.src === this.src && other.alt === this.alt;
+  }
+
+  toDOM(view: EditorView): HTMLElement {
+    const wrap = document.createElement("span");
+    wrap.className = "ursa-image";
+    const img = document.createElement("img");
+    img.src = this.src;
+    img.alt = this.alt;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.draggable = false;
+    // The line's height changes when the image arrives; tell the editor.
+    img.addEventListener("load", () => view.requestMeasure());
+    img.addEventListener("error", () => wrap.classList.add("ursa-image-broken"));
+    wrap.append(img);
+    return wrap;
+  }
+
+  ignoreEvent(): boolean {
+    return false;
+  }
+}
+
+function drawableImage(src: string): boolean {
+  return /^\/api\/attachments\/[a-z0-9]{20,40}$/.test(src) || /^https:\/\//i.test(src);
+}
+
 class LangWidget extends WidgetType {
   constructor(readonly lang: string) {
     super();
@@ -290,6 +332,20 @@ function buildDecorations(view: EditorView): DecorationSet {
               }).range(node.from + 2, node.to - 2),
             );
             return;
+          }
+
+          case "Image": {
+            if (isRevealed(node.from, node.to)) return;
+            const urlNode = node.node.getChild("URL");
+            if (!urlNode) return;
+            const src = view.state.sliceDoc(urlNode.from, urlNode.to).trim();
+            if (!drawableImage(src)) return;
+            const text = view.state.sliceDoc(node.from, node.to);
+            const alt = /^!\[([^\]]*)\]/.exec(text)?.[1] ?? "";
+            ranges.push(
+              Decoration.replace({ widget: new ImageWidget(src, alt) }).range(node.from, node.to),
+            );
+            return false;
           }
 
           case "BearTag": {

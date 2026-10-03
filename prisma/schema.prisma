@@ -49,3 +49,21 @@ model Settings {
   editorFont    String   @default("sans")
   updatedAt     DateTime @updatedAt
 }
+
+/// An image pasted or dropped into a note (PRD §4.24), served only to a
+/// signed-in session from /api/attachments/:id. Notes refer to it by URL in
+/// ordinary markdown, `![alt](/api/attachments/<id>)`, so the text stays the
+/// source of truth and exports remain plain markdown.
+///
+/// No foreign key to Note: one image can appear in several notes, and a note
+/// in the trash must still show its images if it is restored.
+model Attachment {
+  id        String   @id @default(cuid())
+  /// Decided by the server from the file's magic bytes, never from the client.
+  mime      String
+  bytes     Bytes
+  size      Int
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now())
+}
