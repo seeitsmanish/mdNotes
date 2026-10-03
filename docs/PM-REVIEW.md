@@ -103,5 +103,6 @@ A regression sweep across both layouts after the batch found nothing broken.
 2. **Real offline editing.** The installed app shows an offline page; editing
    offline needs a local copy and a merge on reconnect — §4.18's conflict
    copies are the safe base.
-3. Anything the owner asks for. Two speculative features this week were
-   wrong (Drill, removed; spoilers, parked). Ask first.
+3. Anything the owner asks for. A speculative feature this week was
+   rejected (Drill, removed), and spoilers — built for the same study idea —
+   are parked unshipped on the session branch. Ask before inventing.
