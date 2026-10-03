@@ -586,6 +586,10 @@ covered, and a back gesture that left the app.
 - R26.4 The format bar rides above the on-screen keyboard (visual viewport),
   and scrolls sideways with a fade at the edge when it is wider than the
   screen.
+- R26.6 *(v1.23.1)* The Appearance panel is capped at the screen's available
+  height and scrolls. As actions were added it outgrew a phone and even a
+  720px laptop window, and everything below the fold — export, import,
+  install, both sign-outs — could not be reached.
 - R26.5 Opening a note on a narrow screen adds a history entry, so the system
   back gesture and Android's back button return to the list instead of
   leaving the app; the in-app back button uses the same entry so history

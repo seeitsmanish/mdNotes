@@ -180,7 +180,13 @@ export function EditorPane({
               </Button>
             }
           />
-          <PopoverContent align="end" className="w-76">
+          {/* Capped at the space the screen actually has, and scrollable: the
+              panel outgrew a phone, and a 720px laptop, as actions were added,
+              leaving sign-out and export unreachable below the fold. */}
+          <PopoverContent
+            align="end"
+            className="max-h-[min(var(--available-height),85dvh)] w-76 overflow-y-auto overscroll-contain"
+          >
             <SettingsPanel />
           </PopoverContent>
         </Popover>

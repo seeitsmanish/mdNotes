@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.23.1",
+    date: "2026-10-03",
+    title: "Every setting within reach",
+    changes: [
+      "The Appearance panel now scrolls. On a phone or a smaller laptop screen its lower half — export, import, install and sign out — was cut off and could not be reached.",
+    ],
+  },
+  {
     version: "1.23.0",
     date: "2026-10-03",
     title: "Clean up images you no longer use",
