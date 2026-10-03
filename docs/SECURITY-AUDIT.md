@@ -65,7 +65,16 @@ site and clicked through. Now set for every response in `next.config.ts`:
   `Referrer-Policy: strict-origin-when-cross-origin`, a restrictive
   `Permissions-Policy`
 
-**Limit, stated plainly:** `script-src` includes `'unsafe-inline'`, because
+*Update, v1.22.0 (PRD §4.34):* the limit below is gone. The CSP is now built
+per request with a nonce (`script-src 'self' 'nonce-…' 'strict-dynamic'`);
+`'unsafe-inline'` is no longer allowed for scripts. Verified: injected markup
+such as `<img onerror=…>` no longer runs. What `'strict-dynamic'` still
+allows, by design, is a script *created by already-trusted code* — so it
+stops HTML injection from becoming code execution, but does not contain code
+that is already running. Styles keep `'unsafe-inline'` (CodeMirror needs it;
+styles cannot run code).
+
+**Original limit, stated plainly:** `script-src` includes `'unsafe-inline'`, because
 Next's inline bootstrap scripts need it without per-request nonces. The CSP
 therefore does not stop an injected inline script from *running*; it stops
 such a script from *sending notes anywhere* (`connect-src 'self'`) or loading

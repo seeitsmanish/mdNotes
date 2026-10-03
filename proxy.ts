@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, sessionKey, verifyToken } from "@/lib/auth/token";
+import { buildCsp, createNonce } from "@/lib/security/csp";
 
 /**
  * Edge gate. In Next 16 this file is `proxy.ts` — `middleware.ts` is deprecated.
@@ -26,7 +27,22 @@ const PUBLIC_PATHS = new Set(["/login", "/api/auth/login", "/api/health"]);
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
+
+  // A fresh nonce and policy for every request (PRD §4.34). Next reads the
+  // nonce back out of the request's CSP header and stamps its own scripts;
+  // the layout reads x-nonce for the theme bootstrap.
+  const nonce = createNonce();
+  const csp = buildCsp(nonce, { dev: process.env.NODE_ENV !== "production" });
+  const pass = () => {
+    const headers = new Headers(request.headers);
+    headers.set("x-nonce", nonce);
+    headers.set("Content-Security-Policy", csp);
+    const response = NextResponse.next({ request: { headers } });
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
+  };
+
+  if (PUBLIC_PATHS.has(pathname)) return pass();
 
   const secret = process.env.AUTH_SECRET;
   const password = process.env.APP_PASSWORD;
@@ -36,7 +52,7 @@ export async function proxy(request: NextRequest) {
     secret && secret.length >= 32 && password
       ? await verifyToken(request.cookies.get(SESSION_COOKIE)?.value, sessionKey(secret, password))
       : false;
-  if (authed) return NextResponse.next();
+  if (authed) return pass();
 
   // An API call wants a status code, not a redirect to an HTML page.
   if (pathname.startsWith("/api/")) {

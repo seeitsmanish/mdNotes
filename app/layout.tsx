@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import type { CSSProperties } from "react";
+import { headers } from "next/headers";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { hasSession } from "@/lib/auth/session";
 import { getSettingsForRequest } from "@/lib/db/settings";
@@ -69,6 +70,9 @@ const THEME_BOOTSTRAP = `
 `;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Set by proxy.ts; the bootstrap is an inline script, so it must carry it
+  // or the CSP refuses it (PRD §4.34).
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const settings = await serverAppearance();
   const vars = settings
     ? appearanceVars({
@@ -92,7 +96,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       style={style}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>
       <body className="antialiased">
         <TooltipProvider delay={400}>{children}</TooltipProvider>

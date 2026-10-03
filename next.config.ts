@@ -22,32 +22,11 @@ function commitSha(): string {
 }
 
 /**
- * Security headers (docs/SECURITY-AUDIT.md A3).
- *
- * Without nonces, Next's inline bootstrap scripts need 'unsafe-inline', so
- * this CSP does not stop an injected inline script from running. What it does
- * do is fence one in: `connect-src 'self'` means such a script cannot send a
- * note anywhere but this app, and no script, frame or plugin loads from
- * another origin. `frame-ancestors 'none'` stops the app being framed and
- * clicked through by another site.
+ * Security headers (docs/SECURITY-AUDIT.md A3). The Content-Security-Policy
+ * is not here: it carries a per-request nonce, so proxy.ts builds it for each
+ * request (lib/security/csp.ts, PRD §4.34).
  */
-const dev = process.env.NODE_ENV !== "production";
-const CSP = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
-  // https: so an image linked from the web shows; attachments are 'self'.
-  "img-src 'self' data: blob: https:",
-  "font-src 'self' data:",
-  `connect-src 'self'${dev ? " ws: wss:" : ""}`,
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-].join("; ");
-
 const SECURITY_HEADERS = [
-  { key: "Content-Security-Policy", value: CSP },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

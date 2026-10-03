@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.22.0",
+    date: "2026-10-03",
+    title: "A tighter lock on the page",
+    changes: [
+      "Ursa now only runs code it issued for that exact page load, so text that somehow slipped into a page could not run as a program. Nothing changes in how you use it.",
+    ],
+  },
+  {
     version: "1.21.2",
     date: "2026-10-03",
     title: "Housekeeping",

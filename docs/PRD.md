@@ -747,6 +747,25 @@ Not done: a global limit across addresses. It would stop a distributed
 guesser but would also let anyone lock the owner out; a long random password
 is the better defence.
 
+### 4.34 A CSP without 'unsafe-inline' for scripts
+
+Since v1.11.2 the CSP fenced scripts in (`connect-src 'self'`) but did not
+stop an injected inline script from running: Next's own inline bootstrap
+needed `'unsafe-inline'` (audit A3).
+
+- R34.1 Every request gets a fresh 128-bit nonce. proxy.ts builds the policy
+  (`lib/security/csp.ts`) and passes it to Next, which stamps the nonce on
+  its own scripts; the theme bootstrap carries it explicitly.
+- R34.2 `script-src 'self' 'nonce-…' 'strict-dynamic'`: no `'unsafe-inline'`,
+  no `'unsafe-eval'` in production. Injected markup — an `onerror`, an inline
+  `<script>` in HTML — does not run.
+- R34.3 Every other directive is unchanged (`connect-src 'self'`,
+  `frame-ancestors 'none'`, `object-src 'none'`, images from https), plus
+  `worker-src` and `manifest-src 'self'` for the installed app.
+- R34.4 Styles keep `'unsafe-inline'`: CodeMirror injects style elements and
+  the editor sets style attributes, which nonces cannot cover, and a style
+  cannot run code.
+
 ## 5. Success criteria
 
 | Criterion | Measure |
