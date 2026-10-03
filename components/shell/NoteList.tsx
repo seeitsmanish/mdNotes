@@ -241,7 +241,7 @@ export function NoteList({
                 </button>
 
                 <span
-                  className={`absolute right-2 top-2 flex items-center gap-0.5 transition-opacity focus-within:opacity-100 group-hover:opacity-100 ${
+                  className={`ursa-row-actions absolute right-2 top-2 flex items-center gap-0.5 transition-opacity focus-within:opacity-100 group-hover:opacity-100 ${
                     ["pin", "trash", "restore", "delete"].some((k) => pending.has(`${k}:${note.id}`))
                       ? "opacity-100"
                       : "opacity-0"

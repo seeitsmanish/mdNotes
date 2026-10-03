@@ -367,6 +367,39 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
 
   openNoteRef.current = onSelectNote;
 
+  // --- phone back gesture (PRD R26.5) ---------------------------------------
+
+  // On a phone the list and the editor are two screens, but they were one
+  // history entry, so the system back gesture left the app. Opening a note on
+  // a narrow screen now pushes an entry; going back pops it to the list.
+  useEffect(() => {
+    if (mobilePane !== "editor") return;
+    if (!window.matchMedia("(max-width: 899px)").matches) return;
+    if ((window.history.state as { ursaPane?: string } | null)?.ursaPane === "editor") return;
+    window.history.pushState({ ...(window.history.state ?? {}), ursaPane: "editor" }, "");
+  }, [mobilePane, selectedNoteId]);
+
+  useEffect(() => {
+    const onPop = (event: PopStateEvent) => {
+      if ((event.state as { ursaPane?: string } | null)?.ursaPane !== "editor") {
+        flush();
+        setMobilePane("list");
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [flush, setMobilePane]);
+
+  const backToList = useCallback(() => {
+    // Use the history entry when there is one, so the in-app back button and
+    // the system gesture leave history in the same state.
+    if ((window.history.state as { ursaPane?: string } | null)?.ursaPane === "editor") {
+      window.history.back();
+    } else {
+      setMobilePane("list");
+    }
+  }, [setMobilePane]);
+
   // --- keyboard ------------------------------------------------------------
 
   const focusPane = useCallback(
@@ -637,7 +670,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
             onTogglePin={() => note && void togglePin(note)}
             onTrash={() => note && void trash(note)}
             onRestore={() => note && void restore(note)}
-            onBack={() => setMobilePane("list")}
+            onBack={backToList}
             onOpenNote={onSelectNote}
             pending={pending}
             loading={noteLoading}

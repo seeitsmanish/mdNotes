@@ -18,6 +18,18 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.16.0",
+    date: "2026-10-03",
+    title: "Better on your phone",
+    changes: [
+      "Buttons are big enough to hit with a thumb.",
+      "Notes use the width of your screen instead of a narrow column in the middle.",
+      "The formatting bar stays above the keyboard, and scrolls sideways when it does not fit.",
+      "Swiping back, or Android's back button, returns to your list instead of leaving Ursa.",
+      "The hidden pin and trash buttons on each list row are gone on touch screens, so a stray tap can no longer trash a note.",
+    ],
+  },
+  {
     version: "1.15.3",
     date: "2026-10-03",
     title: "No more flash of the old theme",

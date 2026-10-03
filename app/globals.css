@@ -355,6 +355,7 @@ input[type="search"]::-webkit-search-cancel-button {
 .ursa-editor-host {
   --editor-measure: 44rem;
   --editor-pad: 3rem;
+  --line-pad: 1rem;
   --editor-size: 16px;
   --editor-family: var(--font-sans);
 }
@@ -405,8 +406,9 @@ input[type="search"]::-webkit-search-cancel-button {
 }
 
 .cm-editor .cm-line {
-  /* Inner padding: keeps a fenced block's background off its own code. */
-  padding: 0 1rem;
+  /* Inner padding: keeps a fenced block's background off its own code. A
+     variable, because list hanging indents are computed on top of it. */
+  padding: 0 var(--line-pad);
 }
 
 .cm-cursor,
@@ -840,4 +842,71 @@ input[type="search"]::-webkit-search-cancel-button {
 
 .ursa-rendered-table tbody tr:hover td {
   background: color-mix(in srgb, var(--ink) 3%, transparent);
+}
+
+/* ---------------------------------------------------------------------------
+   Phones and touch screens (PRD §4.26)
+   ------------------------------------------------------------------------ */
+
+/* Fingers, not cursors: icon buttons grow to a comfortable target. */
+@media (pointer: coarse) {
+  /* Keyed on data-size alone: a tooltip trigger replaces the button's
+     data-slot with its own. */
+  button[data-size="icon-sm"],
+  button[data-size="icon"] {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  button[data-size="icon-xs"] {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  /* Small text buttons — the Headings and Lists menus, the Notes menu. */
+  button[data-size="sm"],
+  button[data-size="xs"] {
+    min-height: 2.5rem;
+  }
+  button[data-size^="icon"] svg:not([class*="size-"]) {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+  /* Bigger box, smaller gap: the same 1.5em in total, so a to-do's hanging
+     indent (CHECKBOX_EM) still lines up. */
+  .ursa-checkbox {
+    width: 1.15em;
+    height: 1.15em;
+    margin-right: 0.35em;
+    vertical-align: -0.2em;
+  }
+}
+
+/* No hover on a touch screen, so hover-revealed row buttons would be
+   invisible yet still tappable — a stray tap near a row's corner could trash
+   a note. The editor's toolbar has the same actions, in plain sight. */
+@media (hover: none) {
+  .ursa-row-actions {
+    display: none !important;
+  }
+}
+
+/* A phone's width is too precious for desktop gutters; the Padding setting
+   applies from tablet width up. */
+@media (max-width: 640px) {
+  .cm-editor .cm-scroller {
+    padding-top: 1.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .ursa-editor-host {
+    --line-pad: 0.25rem;
+  }
+  /* The bar is wider than a phone and scrolls sideways; the fade says so
+     instead of cutting the last button in half with no hint. */
+  .ursa-format-bar {
+    scrollbar-width: none;
+    mask-image: linear-gradient(to right, #000 82%, transparent);
+  }
+  .ursa-format-bar::-webkit-scrollbar {
+    display: none;
+  }
 }

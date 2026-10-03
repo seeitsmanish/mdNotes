@@ -236,7 +236,7 @@ function buildDecorations(view: EditorView): DecorationSet {
               ranges.push(
                 Decoration.line({
                   attributes: {
-                    style: `padding-left: calc(1rem + ${px}px); text-indent: -${px}px`,
+                    style: `padding-left: calc(var(--line-pad) + ${px}px); text-indent: -${px}px`,
                   },
                 }).range(line.from),
               );

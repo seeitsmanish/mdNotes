@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import {
   BoldIcon,
@@ -51,8 +51,36 @@ interface FormatBarProps {
   view: EditorView | null;
 }
 
+/**
+ * How far the on-screen keyboard covers the bottom of the layout viewport, in
+ * px (PRD R26.4). Mobile browsers overlay the keyboard rather than resizing
+ * the page, so a bar pinned to the bottom ends up underneath it; the visual
+ * viewport says how much of the page is actually showing.
+ */
+function useKeyboardInset(): number {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => {
+      const covered = window.innerHeight - viewport.height - viewport.offsetTop;
+      // Small differences are browser chrome sliding, not a keyboard.
+      setInset(covered > 80 ? Math.round(covered) : 0);
+    };
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, []);
+  return inset;
+}
+
 export function FormatBar({ view }: FormatBarProps) {
   const filePicker = useRef<HTMLInputElement | null>(null);
+  const keyboardInset = useKeyboardInset();
   if (!view) return null;
 
   const run = (command: (view: EditorView) => boolean) => {
@@ -61,8 +89,11 @@ export function FormatBar({ view }: FormatBarProps) {
   };
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
-      <div className="pointer-events-auto flex items-center gap-0.5 rounded-xl border border-border bg-raised/95 px-1.5 py-1.5 shadow-[var(--shadow)] backdrop-blur">
+    <div
+      className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4"
+      style={keyboardInset ? { bottom: `calc(0.5rem + ${keyboardInset}px)` } : undefined}
+    >
+      <div className="ursa-format-bar pointer-events-auto flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-raised/95 px-1.5 py-1.5 shadow-[var(--shadow)] backdrop-blur">
         <Menu icon={HeadingIcon} label="Headings">
           {[1, 2, 3].map((level) => (
             <DropdownMenuItem key={level} onClick={() => run(setHeading(level))}>

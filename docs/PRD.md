@@ -564,6 +564,30 @@ server woke up made three notes; a failure was swallowed without a word.
 - R25.4 A failure says so — what failed and the server's reason — instead of
   disappearing into the console.
 
+### 4.26 Phones
+
+Ursa was built at a desk. On a phone it worked but fought you: 24–28px
+buttons, desktop gutters leaving a 250px column of text on a 390px screen,
+invisible-but-tappable buttons on every list row, a format bar the keyboard
+covered, and a back gesture that left the app.
+
+- R26.1 On touch screens every icon button is at least 40px, small text
+  buttons at least 40px tall, and to-do checkboxes grow (keeping the same
+  total width, so hanging indents still line up).
+- R26.2 Below 640px the editor drops the desktop gutters: the text uses the
+  screen (366 of 390px), and the Padding setting applies from tablet width up.
+- R26.3 Hover-revealed row buttons (pin, trash, restore, delete) do not exist
+  on screens without hover. They were invisible yet still tappable, so a tap
+  near a row's corner could trash a note. The editor toolbar has the same
+  actions in plain sight.
+- R26.4 The format bar rides above the on-screen keyboard (visual viewport),
+  and scrolls sideways with a fade at the edge when it is wider than the
+  screen.
+- R26.5 Opening a note on a narrow screen adds a history entry, so the system
+  back gesture and Android's back button return to the list instead of
+  leaving the app; the in-app back button uses the same entry so history
+  stays balanced. Unsaved text is flushed on the way back.
+
 ## 5. Success criteria
 
 | Criterion | Measure |
