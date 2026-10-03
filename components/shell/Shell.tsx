@@ -15,6 +15,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { applyAppearance } from "@/lib/theme";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { ShortcutsDialog } from "./ShortcutsDialog";
+import { DrillDialog } from "./DrillDialog";
+import { extractQuestions, type Question } from "@/lib/drill/questions";
 import { EditorPane } from "./EditorPane";
 import { NoteList } from "./NoteList";
 import { PaneDivider } from "./PaneDivider";
@@ -31,6 +33,7 @@ interface ShellProps {
 }
 
 const SEARCH_DEBOUNCE_MS = 220;
+const NO_QUESTIONS: Question[] = [];
 
 export function Shell({ initialNotes, initialCounts, initialSettings }: ShellProps) {
   const filter = useUiStore((state) => state.filter);
@@ -57,6 +60,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
   const [notes, setNotes] = useState(initialNotes);
   const [counts, setCounts] = useState(initialCounts);
   const [note, setNote] = useState<NoteDetail | null>(null);
+  /** Questions captured when a drill starts, so the session is stable while it runs. */
+  const [drill, setDrill] = useState<{ title: string; questions: Question[] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState(query);
 
@@ -422,6 +427,28 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     })();
   }, [counts.trash, refreshList, selectNote, selectedNoteId]);
 
+  // --- drill (PRD §4.23) ----------------------------------------------------
+
+  /** From the stored body: cheap, and close enough to decide whether to offer a drill. */
+  const noteQuestionCount = useMemo(
+    () => (note ? extractQuestions(note.body).length : 0),
+    [note],
+  );
+
+  const startDrill = useCallback(() => {
+    if (!note) return;
+    // The editor may hold text the server has not acknowledged yet; drill on that.
+    const body = unsavedBody(note.id) ?? note.body;
+    const questions = extractQuestions(body);
+    if (questions.length === 0) {
+      toast("No questions found in this note.", {
+        description: "Write them as a list (“1. How would you…”), as headings ending in ?, or as Question :: answer.",
+      });
+      return;
+    }
+    setDrill({ title: displayTitle(note.title), questions });
+  }, [note, unsavedBody]);
+
   const commands = useMemo<Command[]>(() => {
     const themeCommands: Command[] = THEMES.map((option) => ({
       id: `theme:${option.value}`,
@@ -445,6 +472,9 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         ? [{ id: "empty-trash", label: `Empty trash (${counts.trash})`, run: confirmEmptyTrash }]
         : []),
       ...(note ? [{ id: "export-one", label: "Export this note (.md)", run: exportCurrent }] : []),
+      ...(noteQuestionCount > 0
+        ? [{ id: "drill", label: `Drill this note (${noteQuestionCount} questions)`, hint: "⌘⇧L", run: startDrill }]
+        : []),
       ...(note && !note.deletedAt
         ? [
             {
@@ -458,7 +488,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         : []),
       ...themeCommands,
     ];
-  }, [confirmEmptyTrash, counts.trash, createNote, exportAll, exportCurrent, focusMode, note, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [confirmEmptyTrash, counts.trash, createNote, exportAll, exportCurrent, focusMode, note, noteQuestionCount, setSettingsOpen, setShortcutsOpen, setTheme, startDrill, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -480,6 +510,14 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         case "O":
           event.preventDefault();
           toggleOutline();
+          return;
+        case "l":
+        case "L":
+          // ⌘⇧L — "learn". ⌘⇧D is the browser's bookmark-all-tabs.
+          if (event.shiftKey) {
+            event.preventDefault();
+            startDrill();
+          }
           return;
         case "/":
           event.preventDefault();
@@ -525,7 +563,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [createNote, focusPane, note, setPaletteOpen, setShortcutsOpen, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [createNote, focusPane, note, setPaletteOpen, setShortcutsOpen, startDrill, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   // --- layout --------------------------------------------------------------
   // Container queries, not viewport media queries, so the shell stays correct
@@ -594,6 +632,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
             onRestore={() => note && void restore(note)}
             onBack={() => setMobilePane("list")}
             onOpenNote={onSelectNote}
+            drillCount={noteQuestionCount}
+            onDrill={startDrill}
           />
         </div>
       </div>
@@ -620,6 +660,12 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
       />
 
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <DrillDialog
+        open={drill !== null}
+        onOpenChange={(open) => !open && setDrill(null)}
+        title={drill?.title ?? ""}
+        questions={drill?.questions ?? NO_QUESTIONS}
+      />
 
       <Toaster position="bottom-center" />
     </div>

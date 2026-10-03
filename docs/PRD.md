@@ -507,6 +507,39 @@ Not done: units (`5 km in miles`), dates, and currency conversion — each needs
 data that changes or a much larger grammar. `x` always means multiply, so it
 cannot be a name.
 
+### 4.23 Drill mode
+
+The library is interview question banks — "Questions asked in Gartner",
+"Behavioural Questions", "Fundamentals" — written as numbered lists. A notes
+app stores them; it cannot ask them. Reading a list of questions you have
+already read is not practice.
+
+- R23.1 **No markup required.** Questions are found where they already are:
+  list items phrased as questions; any list where at least half the items read
+  as questions counts as a question bank, so every item in it is asked
+  ("Situational question — where would you…" included); headings ending in
+  `?`; plain lines ending in `?`; and `Question :: answer` lines.
+- R23.2 Whatever sits under a question — nested items, a paragraph — is its
+  notes, shown on demand. Notes you write become the answer key without any
+  extra step.
+- R23.3 One question at a time, **weakest first**: blanked, then shaky, then
+  never asked, then nailed ones that are due. Equal questions are shuffled —
+  an interview does not ask in the order you wrote them.
+- R23.4 A clock per question, turning to the warning colour at two minutes:
+  the answer that counts is the one you can give out loud in the time.
+- R23.5 Rate with 1 / 2 / 3 (blanked / shaky / nailed). Each nailed answer in
+  a row doubles the rest before it comes back (1, 2, 4 … days, capped at 30).
+- R23.6 A summary lists what to work on and offers to drill just those.
+- R23.7 Ratings are kept per device in browser storage, keyed by a hash of
+  the question text, so moving or renumbering a question keeps its history.
+  They describe how *you* are doing, not the note, so they are not synced.
+- R23.8 Opened from the toolbar (shown only when a note has questions), the
+  command palette, or ⌘⇧L. It drills the text in the editor, including edits
+  not yet saved.
+
+Not done: drilling across several notes at once (a mock interview), and
+syncing ratings across devices — both are natural next steps.
+
 ## 5. Success criteria
 
 | Criterion | Measure |
