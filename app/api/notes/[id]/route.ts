@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { guarded } from "@/lib/auth/session";
 import { deleteNoteForever, getNote, trashNote, updateNote } from "@/lib/db/notes";
+import { parseNotePatch } from "@/lib/notes/patch";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -21,20 +22,22 @@ async function handlePATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Body must be JSON." }, { status: 400 });
   }
 
-  const patch = payload as { body?: unknown; pinned?: unknown };
-  if (patch.body !== undefined && typeof patch.body !== "string") {
-    return NextResponse.json({ error: "`body` must be a string." }, { status: 400 });
-  }
-  if (patch.pinned !== undefined && typeof patch.pinned !== "boolean") {
-    return NextResponse.json({ error: "`pinned` must be a boolean." }, { status: 400 });
-  }
+  const parsed = parseNotePatch(payload);
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
-  const note = await updateNote(id, {
-    body: patch.body as string | undefined,
-    pinned: patch.pinned as boolean | undefined,
-  });
-  if (!note) return NextResponse.json({ error: "No such note." }, { status: 404 });
-  return NextResponse.json({ note });
+  const result = await updateNote(id, parsed.patch);
+  if (result.status === "missing") {
+    return NextResponse.json({ error: "No such note." }, { status: 404 });
+  }
+  if (result.status === "conflict") {
+    // The stale text is already safe in `copy` (PRD R18.3); 409 tells the
+    // client its editor holds an out-of-date version of `note`.
+    return NextResponse.json(
+      { error: "This note was changed elsewhere.", note: result.note, copy: result.copy },
+      { status: 409 },
+    );
+  }
+  return NextResponse.json({ note: result.note });
 }
 
 async function handleDELETE(request: Request, { params }: Params) {

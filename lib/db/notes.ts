@@ -1,5 +1,7 @@
 import { prisma } from "./prisma";
-import { applyBody } from "./write";
+import { applyBody, insertBody } from "./write";
+import { conflictCopyBody } from "@/lib/notes/conflict";
+import type { NotePatch } from "@/lib/notes/patch";
 import { deriveExcerpt, deriveTitle } from "@/lib/markdown/derive";
 import { linksTo, normaliseTitle } from "@/lib/markdown/wikilink";
 import { rank, terms } from "@/lib/search/rank";
@@ -37,6 +39,17 @@ function toListItem(row: ListRow): NoteListItem {
     pinned: row.pinned,
     updatedAt: row.updatedAt.toISOString(),
     deletedAt: row.deletedAt?.toISOString() ?? null,
+  };
+}
+
+const DETAIL_FIELDS = { ...LIST_FIELDS, body: true, createdAt: true, version: true } as const;
+
+function toDetail(row: ListRow & { body: string; createdAt: Date; version: number }): NoteDetail {
+  return {
+    ...toListItem(row),
+    body: row.body,
+    createdAt: row.createdAt.toISOString(),
+    version: row.version,
   };
 }
 
@@ -100,37 +113,49 @@ export async function listNotes(options: {
 export async function getNote(id: string): Promise<NoteDetail | null> {
   const row = await prisma.note.findUnique({
     where: { id },
-    select: { ...LIST_FIELDS, body: true, createdAt: true },
+    select: DETAIL_FIELDS,
   });
   if (!row) return null;
-  return { ...toListItem(row), body: row.body, createdAt: row.createdAt.toISOString() };
+  return toDetail(row);
 }
 
 export async function createNote(): Promise<NoteDetail> {
   const row = await prisma.note.create({
     data: {},
-    select: { ...LIST_FIELDS, body: true, createdAt: true },
+    select: DETAIL_FIELDS,
   });
-  return { ...toListItem(row), body: row.body, createdAt: row.createdAt.toISOString() };
+  return toDetail(row);
 }
 
-export async function updateNote(
-  id: string,
-  patch: { body?: string; pinned?: boolean },
-): Promise<NoteDetail | null> {
-  const exists = await prisma.note.findUnique({ where: { id }, select: { id: true } });
-  if (!exists) return null;
+export type UpdateResult =
+  | { status: "saved"; note: NoteDetail }
+  | { status: "missing" }
+  /** The body was stale: `note` is the current one, `copy` holds the stale text. */
+  | { status: "conflict"; note: NoteDetail; copy: NoteDetail };
 
-  await prisma.$transaction(async (tx) => {
+export async function updateNote(id: string, patch: NotePatch): Promise<UpdateResult> {
+  const exists = await prisma.note.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return { status: "missing" };
+
+  const copyId = await prisma.$transaction(async (tx) => {
     if (patch.pinned !== undefined) {
       await tx.note.update({ where: { id }, data: { pinned: patch.pinned } });
     }
-    if (patch.body !== undefined) {
-      await applyBody(tx, id, patch.body);
-    }
+    if (patch.body === undefined) return null;
+
+    const applied = await applyBody(tx, id, patch.body, patch.baseVersion);
+    if (applied) return null;
+
+    // Stale save. The text is kept, in the same transaction, so it survives
+    // even when nobody reads this response — a closing tab's last save (R18.3).
+    const copy = await insertBody(tx, conflictCopyBody(patch.body));
+    return copy.id;
   });
 
-  return getNote(id);
+  const [note, copy] = await Promise.all([getNote(id), copyId ? getNote(copyId) : null]);
+  if (!note) return { status: "missing" };
+  if (copy) return { status: "conflict", note, copy };
+  return { status: "saved", note };
 }
 
 /** Trash. Reversible, and the stamp doubles as a sync tombstone. */
