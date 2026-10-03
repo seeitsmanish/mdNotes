@@ -45,26 +45,53 @@ export function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export async function signToken(secret: string, ttlSeconds = SESSION_TTL_SECONDS): Promise<string> {
-  const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
-  const payload = String(expiresAt);
-  return `${payload}.${await hmac(payload, secret)}`;
+/**
+ * The HMAC key for sessions: the secret and the password together, so that
+ * changing APP_PASSWORD ends every session at once (PRD R30.3) — before
+ * v1.19 a password change left every old cookie working.
+ */
+export function sessionKey(secret: string, password: string): string {
+  return `${secret}\u0000${password}`;
 }
 
-export async function verifyToken(token: string | undefined, secret: string): Promise<boolean> {
-  if (!token) return false;
+/**
+ * `<expiresAt>.<epoch>.<signature>`. The epoch is the one in force when the
+ * session began; raising the stored epoch ends it (PRD §4.30).
+ */
+export async function signToken(key: string, epoch: number, ttlSeconds = SESSION_TTL_SECONDS): Promise<string> {
+  const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const payload = `${expiresAt}.${epoch}`;
+  return `${payload}.${await hmac(payload, key)}`;
+}
+
+export interface SessionClaims {
+  expiresAt: number;
+  epoch: number;
+}
+
+/** The claims of a genuine, unexpired token, or null. */
+export async function readToken(token: string | undefined, key: string): Promise<SessionClaims | null> {
+  if (!token) return null;
 
   const separator = token.lastIndexOf(".");
-  if (separator <= 0) return false;
+  if (separator <= 0) return null;
 
   const payload = token.slice(0, separator);
   const signature = token.slice(separator + 1);
 
-  const expiresAt = Number(payload);
-  if (!Number.isFinite(expiresAt)) return false;
+  const match = /^(\d{1,12})\.(\d{1,9})$/.exec(payload);
+  if (!match) return null;
 
-  // Verify the signature before trusting the expiry it carries.
-  if (!safeEqual(signature, await hmac(payload, secret))) return false;
+  // Verify the signature before trusting anything the payload says.
+  if (!safeEqual(signature, await hmac(payload, key))) return null;
 
-  return expiresAt > Math.floor(Date.now() / 1000);
+  const expiresAt = Number(match[1]);
+  const epoch = Number(match[2]);
+  if (expiresAt <= Math.floor(Date.now() / 1000)) return null;
+  return { expiresAt, epoch };
+}
+
+/** Signature and expiry only — what the edge gate can check without a database. */
+export async function verifyToken(token: string | undefined, key: string): Promise<boolean> {
+  return (await readToken(token, key)) !== null;
 }

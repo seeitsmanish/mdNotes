@@ -62,6 +62,10 @@ model Settings {
   editorWidth   String   @default("regular")
   editorPadding String   @default("medium")
   editorFont    String   @default("sans")
+  /// Every session token carries the epoch it was issued under; raising it
+  /// ends every session at once — "sign out everywhere" (PRD §4.30). Server
+  /// only: never sent to the client with the appearance settings.
+  sessionEpoch  Int      @default(0)
   updatedAt     DateTime @updatedAt
 }
 

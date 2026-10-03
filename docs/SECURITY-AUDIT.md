@@ -20,7 +20,7 @@ exports or pasted from elsewhere. The user themself is trusted.
 | A2 | Medium | Links in notes opened with any URL scheme, including `javascript:` | **Fixed** in v1.11.2 |
 | A3 | Medium | No security headers: frameable (clickjacking), no CSP | **Fixed** in v1.11.2 |
 | A4 | Low | Import decompressed zip entries without a size cap (zip bomb) | **Fixed** in v1.11.2 |
-| A5 | Medium | Sessions cannot be revoked; sign-out does not end a stolen session | Open — mitigation below |
+| A5 | Medium | Sessions cannot be revoked; sign-out does not end a stolen session | **Fixed** in v1.19.0 |
 | A6 | Low | Edge gate accepted an `AUTH_SECRET` shorter than 32 characters | **Fixed** in v1.11.2 |
 | A7 | Low | Login rate limit is per server instance and resets on cold start | Open |
 | A8 | Low | Four dependency advisories, all in build-time tooling | Open |
@@ -84,7 +84,15 @@ Low. Fix: `readEntryCapped()` in `lib/export/unzip.ts` streams each entry and
 abandons it past 2 MB, with a 50 MB budget across all entries. Verified: a
 30 MB entry is reported as "larger than 2 MB" and the rest of the zip imports.
 
-### A5 — Sessions cannot be revoked (open)
+### A5 — Sessions cannot be revoked (fixed in v1.19.0, PRD §4.30)
+
+*Fixed:* tokens now carry a session epoch stored in the database; "Sign out
+everywhere" raises it and every older session is refused on its next
+request. Tokens are signed with the secret **and** the password, so changing
+`APP_PASSWORD` also ends every session. Deploying v1.19.0 itself ended all
+sessions issued before it, including the one exposed on 2026-10-03.
+
+Original finding:
 
 A session is a signed expiry with no server-side record, valid for 30 days.
 Signing out clears the cookie in *this* browser only; a copied cookie keeps

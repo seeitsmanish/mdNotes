@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { DownloadIcon, RotateCcwIcon, SmartphoneIcon, UploadIcon } from "lucide-react";
+import { DownloadIcon, LogOutIcon, MonitorSmartphoneIcon, RotateCcwIcon, SmartphoneIcon, UploadIcon } from "lucide-react";
 import { installApp, useInstallMode } from "@/lib/pwa/install";
 import { toast } from "sonner";
 import { useUnseenRelease, WhatsNew } from "./WhatsNew";
@@ -40,6 +40,22 @@ const HEADINGS: Array<{ value: HeadingMode; label: string }> = [
   { value: "brand", label: "Accent" },
   { value: "text", label: "Text" },
 ];
+
+/** PRD §4.30. A failed request still leaves this device signed out locally. */
+async function signOut(everywhere: boolean): Promise<void> {
+  try {
+    const response = await fetch(`/api/auth/logout${everywhere ? "?everywhere=true" : ""}`, { method: "POST" });
+    if (!response.ok) throw new Error(`Sign-out failed (${response.status}).`);
+  } catch (error) {
+    if (everywhere) {
+      toast.error("Couldn’t sign out the other devices.", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+      return;
+    }
+  }
+  window.location.href = "/login";
+}
 
 export function SettingsPanel() {
   const { unseen, markSeen } = useUnseenRelease();
@@ -269,6 +285,30 @@ export function SettingsPanel() {
           Install as an app
         </Button>
       )}
+
+      <Separator className="my-1" />
+
+      <Button variant="ghost" size="sm" className="justify-start px-2" onClick={() => void signOut(false)}>
+        <LogOutIcon />
+        Sign out
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="justify-start px-2"
+        onClick={() => {
+          if (
+            window.confirm(
+              "Sign out on every device, including this one? Anyone using a copied sign-in will be locked out too.",
+            )
+          ) {
+            void signOut(true);
+          }
+        }}
+      >
+        <MonitorSmartphoneIcon />
+        Sign out everywhere
+      </Button>
 
       <WhatsNew unseen={unseen} onOpen={markSeen} />
     </div>

@@ -1,7 +1,8 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import { SESSION_COOKIE, verifyToken } from "./token";
+import { getSessionEpoch } from "@/lib/db/settings";
+import { readToken, SESSION_COOKIE, sessionKey } from "./token";
 
 /**
  * The request-scoped gate.
@@ -31,9 +32,28 @@ function secret(): string {
   return value;
 }
 
+function password(): string {
+  const value = process.env.APP_PASSWORD;
+  // Fail closed, like the secret: no password must not mean no lock.
+  if (!value) throw new Error("APP_PASSWORD is missing.");
+  return value;
+}
+
+/** The key sessions are signed with: secret + password (PRD R30.3). */
+export function signingKey(): string {
+  return sessionKey(secret(), password());
+}
+
+/**
+ * A genuine, unexpired token issued under the current epoch (PRD §4.30). The
+ * epoch check is what makes "sign out everywhere" real; the edge gate cannot
+ * do it, having no database, so this is the check that counts.
+ */
 export async function hasSession(): Promise<boolean> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  return verifyToken(token, secret());
+  const claims = await readToken(token, signingKey());
+  if (!claims) return false;
+  return claims.epoch === (await getSessionEpoch());
 }
 
 export async function requireSession(): Promise<void> {

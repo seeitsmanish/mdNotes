@@ -658,6 +658,30 @@ Restoring a backup silently lost every image.
   never overwrites, so re-importing a backup duplicates rather than merges.
 - R29.4 The import report counts images, and lists any that were refused.
 
+### 4.30 Sign out, everywhere
+
+Signing out ended nothing: a session was a signed expiry with no server-side
+record, valid for 30 days, and there was not even a sign-out button. A copied
+cookie — and one was pasted into a chat on 2026-10-03 — kept working, and
+changing the password did not stop it (security audit A5).
+
+- R30.1 "Sign out" and "Sign out everywhere" in the Appearance panel.
+- R30.2 Every session carries the epoch it began under; "everywhere" raises
+  the stored epoch, and any older session is refused on its very next request
+  — API call or page load. Only a signed-in caller can do this.
+- R30.3 Sessions are signed with the secret and the password together, so
+  changing `APP_PASSWORD` ends every session without any other step.
+- R30.4 The epoch is read from the database on every request, not cached: a
+  per-instance cache was tried and, because Next bundles routes separately,
+  let old sessions in and issued new ones under the old epoch for seconds
+  after a sign-out.
+- R30.5 The epoch never leaves the server; appearance settings sent to the
+  page exclude it.
+
+Shipping this ends every existing session once (old tokens lack the epoch and
+were signed with the old key) — the owner signs in again, and the exposed
+cookie dies with the rest.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

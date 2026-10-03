@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE, SESSION_TTL_SECONDS, safeEqual, signToken } from "@/lib/auth/token";
+import { SESSION_COOKIE, SESSION_TTL_SECONDS, safeEqual, sessionKey, signToken } from "@/lib/auth/token";
+import { getSessionEpoch } from "@/lib/db/settings";
 
 /**
  * There are no accounts — one password opens the app. The cookie it issues is
@@ -53,7 +54,8 @@ export async function POST(request: Request) {
   attempts.delete(ip);
 
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(SESSION_COOKIE, await signToken(secret), {
+  const token = await signToken(sessionKey(secret, password), await getSessionEpoch());
+  response.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

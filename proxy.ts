@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE, verifyToken } from "@/lib/auth/token";
+import { SESSION_COOKIE, sessionKey, verifyToken } from "@/lib/auth/token";
 
 /**
  * Edge gate. In Next 16 this file is `proxy.ts` — `middleware.ts` is deprecated.
@@ -28,11 +28,12 @@ export async function proxy(request: NextRequest) {
   if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
 
   const secret = process.env.AUTH_SECRET;
+  const password = process.env.APP_PASSWORD;
   // Fail closed. A missing or short secret must lock the app, never open it —
   // the same 32-character floor requireSession() enforces (SECURITY-AUDIT A6).
   const authed =
-    secret && secret.length >= 32
-      ? await verifyToken(request.cookies.get(SESSION_COOKIE)?.value, secret)
+    secret && secret.length >= 32 && password
+      ? await verifyToken(request.cookies.get(SESSION_COOKIE)?.value, sessionKey(secret, password))
       : false;
   if (authed) return NextResponse.next();
 

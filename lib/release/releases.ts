@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.19.0",
+    date: "2026-10-03",
+    title: "Sign out, everywhere",
+    changes: [
+      "There is now a Sign out button in Appearance, and Sign out everywhere, which signs out every device and anyone using a copied sign-in.",
+      "Changing your password now signs out every device automatically.",
+      "You will need to sign in once after this update.",
+    ],
+  },
+  {
     version: "1.18.1",
     date: "2026-10-03",
     title: "Backups include your images",
