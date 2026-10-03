@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.20.0",
+    date: "2026-10-03",
+    title: "Share to Ursa from any app",
+    changes: [
+      "With Ursa installed on your phone, it appears in the share sheet: share a link, an article or a message and it becomes a note.",
+      "You see what will be saved, and can edit it, before tapping Save.",
+      "Long-press the Ursa icon on your home screen for New note or Search.",
+    ],
+  },
+  {
     version: "1.19.0",
     date: "2026-10-03",
     title: "Sign out, everywhere",

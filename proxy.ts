@@ -43,6 +43,9 @@ export async function proxy(request: NextRequest) {
   }
 
   const login = new URL("/login", request.url);
-  if (pathname !== "/") login.searchParams.set("next", pathname);
+  // The query matters: a share opened while signed out carries its content
+  // there (PRD §4.31), and a shortcut its intent.
+  const next = `${pathname}${request.nextUrl.search}`;
+  if (next !== "/") login.searchParams.set("next", next);
   return NextResponse.redirect(login);
 }

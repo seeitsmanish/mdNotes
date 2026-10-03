@@ -58,6 +58,8 @@ interface NoteListProps {
   onDeleteForever: (note: NoteListItem) => void;
   /** Gated actions in flight, by key (PRD §4.25). */
   pending: ReadonlySet<string>;
+  /** Changes when something outside asks for the search field (PRD §4.31). */
+  searchSignal?: number;
   onCreate: () => void;
   onEmptyTrash: () => void;
 }
@@ -77,11 +79,26 @@ export function NoteList({
   onRestore,
   onDeleteForever,
   pending,
+  searchSignal = 0,
   onCreate,
   onEmptyTrash,
 }: NoteListProps) {
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Focus once the field exists: requesting it in the same tick as opening
+  // the field ran before the field had rendered (PRD §4.31).
+  const focusWhenOpen = useRef(false);
+  useEffect(() => {
+    if (searchSignal === 0) return;
+    focusWhenOpen.current = true;
+    setSearchOpen(true);
+  }, [searchSignal]);
+  useEffect(() => {
+    if (!searchOpen || !focusWhenOpen.current) return;
+    focusWhenOpen.current = false;
+    searchRef.current?.focus();
+  }, [searchOpen]);
 
   const inTrash = filter === "trash";
   const current = FILTERS.find((entry) => entry.value === filter) ?? FILTERS[0]!;

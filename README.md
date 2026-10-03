@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.19.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-311-6ee7a8)
+![version](https://img.shields.io/badge/version-1.20.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-317-6ee7a8)
 
 ---
 
@@ -44,6 +44,7 @@ Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
 **On your phone**
 - Installable as an app — home-screen icon, full screen, offline notice
+- Share to Ursa from any app; long-press the icon for New note / Search
 
 **Access**
 - Single password, HMAC-signed httpOnly cookie, enforced at the edge *and* in every route handler
@@ -95,7 +96,7 @@ opening it.
 |---|---|
 | `pnpm dev` | Dev server |
 | `pnpm verify` | **generate + typecheck + tests + build** — run before any deploy; CI runs it on every push |
-| `pnpm test` | 311 unit tests |
+| `pnpm test` | 317 unit tests |
 | `pnpm backup` | Download a dated backup zip to `backups/` |
 | `pnpm db:push` / `db:migrate` / `db:studio` / `db:seed` | Prisma |
 | `pnpm db:up` / `db:down` | Docker Postgres |

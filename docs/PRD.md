@@ -682,6 +682,27 @@ Shipping this ends every existing session once (old tokens lack the epoch and
 were signed with the old key) — the owner signs in again, and the exposed
 cookie dies with the rest.
 
+### 4.31 Share to Ursa, and home-screen shortcuts
+
+On a phone, things worth keeping turn up in other apps — a link in Chrome, a
+paragraph in an article, a question in a message. Getting one into Ursa meant
+copy, switch apps, new note, paste.
+
+- R31.1 The installed app is a share target: it appears in the system share
+  sheet, and a share opens a "Save to Ursa" preview.
+- R31.2 The preview turns the share's loose title/text/url into a tidy note —
+  a heading, the text, the link once (Chrome on Android puts the link inside
+  the text; it is pulled out, not repeated). It is editable before saving.
+- R31.3 **Nothing is saved on arrival.** A share arrives as a GET, and a GET
+  that wrote a note would let any website plant notes by linking to it — the
+  session cookie travels with a top-level link. Saving takes one tap.
+- R31.4 A share made while signed out survives the sign-in: the edge gate's
+  `next` now keeps the query string, not just the path.
+- R31.5 Long-pressing the home-screen icon offers "New note" and "Search
+  notes". Their intents (`?new=1`, `?search=1`, and a saved share's
+  `?open=<id>`) are read once and removed from the address bar, so a reload
+  does not make a second note.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

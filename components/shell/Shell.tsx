@@ -132,6 +132,9 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     root.classList.toggle("dark", dark);
   }, [theme]);
 
+  /** Bumped to ask the note list to open its search field (PRD §4.31). */
+  const [searchSignal, setSearchSignal] = useState(0);
+
   // Installable app (PRD §4.27).
   const installMode = useInstallMode();
   useEffect(() => registerServiceWorker(), []);
@@ -419,6 +422,31 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     }
   }, [setMobilePane]);
 
+  // --- links into the app (PRD §4.31) ---------------------------------------
+
+  // A share lands on /?open=<id>; home-screen shortcuts on /?new=1 and
+  // /?search=1. Read once on arrival, then removed from the address bar so a
+  // reload does not make a second note.
+  const intentHandled = useRef(false);
+  useEffect(() => {
+    if (intentHandled.current) return;
+    intentHandled.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const open = params.get("open");
+    const wantsNew = params.get("new") === "1";
+    const wantsSearch = params.get("search") === "1";
+    if (!open && !wantsNew && !wantsSearch) return;
+    window.history.replaceState(window.history.state, "", "/");
+    if (open) {
+      void refreshList();
+      selectNote(open);
+    } else if (wantsNew) {
+      void createNote();
+    } else {
+      setSearchSignal((n) => n + 1);
+    }
+  }, [createNote, refreshList, selectNote]);
+
   // --- keyboard ------------------------------------------------------------
 
   const focusPane = useCallback(
@@ -683,6 +711,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
           onCreate={() => void createNote()}
           onEmptyTrash={confirmEmptyTrash}
           pending={pending}
+          searchSignal={searchSignal}
         />
       </div>
 
