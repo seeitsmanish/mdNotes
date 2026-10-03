@@ -313,6 +313,27 @@ headings already describe that structure.
   markdown parse, so the outline cannot disagree with the document.
 - R14.5 Toggled with ⌘⇧O, and the choice persists per device.
 
+### 4.15 Tables
+
+*Written retrospectively: v1.9.0 shipped this without its PRD section. Recorded
+from the commit that built it.*
+
+A table styled as monospace text is a wall of pipes. Tables are the one
+construct where in-place styling has to replace whole lines rather than hide a
+few markers.
+
+- R15.1 A GFM pipe table renders as a real table — borders, a header row,
+  aligned columns — when the caret is outside it.
+- R15.2 Column alignment from `:---` / `---:` / `:---:` is respected.
+- R15.3 Inline markup inside cells (bold, italic, code, links) renders.
+- R15.4 Clicking into a table turns it back into markdown. The document stays
+  the source of truth; there is deliberately no grid editor.
+- R15.5 Cell splitting is a pure, separately tested module: escaped pipes,
+  missing outer pipes and ragged rows each shift every later column if handled
+  wrongly.
+- R15.6 Cells are built as DOM nodes, never `innerHTML` — a table is exactly
+  where someone pastes content from elsewhere.
+
 ### 4.16 Backup and restore
 
 Export has been the only recovery path since §4.8, and it was not good enough
@@ -330,6 +351,31 @@ so it would fail on exactly the library large enough to be worth saving.
   cleanly.
 - R16.5 A one-command local backup writes a dated archive to disk, so a backup
   can be scheduled by the user without depending on the hosting provider.
+
+### 4.17 Continuous integration
+
+`pnpm verify` existed but nothing ran it. A check that depends on someone
+remembering is not a check. Running it on a clean machine also exposed that it
+had never passed from a fresh clone: `typecheck` ran before the Prisma client
+was generated, so it only ever worked on a machine that had already built once.
+
+- R17.1 `pnpm verify` passes on a fresh clone after `pnpm install`, with no
+  `.env` and no prior build — it generates the Prisma client first.
+- R17.2 A GitHub Actions workflow runs `pnpm verify` on every push and every
+  pull request.
+- R17.3 CI installs with `--frozen-lockfile`, so a `package.json` change that
+  was never locked fails CI rather than resolving differently in production.
+- R17.4 CI needs no secrets and no database. `DATABASE_URL` is set to an
+  unreachable placeholder because Prisma's config refuses to load without one;
+  nothing in typecheck, the unit tests or the build connects to it. If a future
+  change makes the build query the database, CI fails loudly instead of
+  silently testing against something real.
+- R17.5 Node and pnpm versions in CI match what the project is developed on
+  (Node 22, pnpm 10).
+
+Not done, deliberately: CI does not deploy. Deploying stays a manual step after
+a green run (AGENT-LOOP §1 ⑥), because a deploy also needs the build SHA set in
+Vercel and a read-only production check that a workflow cannot judge.
 
 ## 5. Success criteria
 

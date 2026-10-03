@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.11.1",
+    date: "2026-10-03",
+    title: "Every change is checked before it can ship",
+    changes: [
+      "Every change to Ursa is now type-checked, tested and built automatically before it can be released, so a broken build can no longer reach you by someone forgetting a step.",
+    ],
+  },
+  {
     version: "1.11.0",
     date: "2026-10-03",
     title: "Backups you can actually restore from",
