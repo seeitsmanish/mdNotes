@@ -28,8 +28,8 @@ export function fetchNotes(options: {
   return request(`/api/notes?${params}`);
 }
 
-export function fetchNote(id: string): Promise<{ note: NoteDetail }> {
-  return request(`/api/notes/${id}`);
+export function fetchNote(id: string, signal?: AbortSignal): Promise<{ note: NoteDetail }> {
+  return request(`/api/notes/${id}`, { signal });
 }
 
 export function createNote(): Promise<{ note: NoteDetail }> {

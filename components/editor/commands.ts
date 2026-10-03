@@ -204,7 +204,8 @@ export const ursaKeymap: KeyBinding[] = [
   { key: "Mod-Shift-h", run: toggleHighlight, preventDefault: true },
   { key: "Mod-Shift-c", run: toggleInlineCode, preventDefault: true },
   { key: "Mod-Shift-x", run: toggleStrike, preventDefault: true },
-  { key: "Mod-k", run: insertLink, preventDefault: true },
+  // ⌘K belongs to the command palette; the editor must not also claim it.
+  { key: "Mod-Shift-k", run: insertLink, preventDefault: true },
   { key: "Mod-Shift-7", run: toggleTodo, preventDefault: true },
   { key: "Mod-Shift-8", run: toggleBullet, preventDefault: true },
 ];

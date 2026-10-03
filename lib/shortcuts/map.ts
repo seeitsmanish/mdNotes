@@ -43,7 +43,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     shortcuts: [
       { keys: "⌘B", label: "Bold" },
       { keys: "⌘I", label: "Italic" },
-      { keys: "⌘K", label: "Link" },
+      { keys: "⌘⇧K", label: "Link" },
       { keys: "⌘⇧H", label: "Highlight" },
       { keys: "⌘⇧C", label: "Inline code" },
       { keys: "⌘⇧X", label: "Strikethrough" },

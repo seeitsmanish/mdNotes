@@ -393,10 +393,15 @@ input[type="search"]::-webkit-search-cancel-button {
   caret-color: var(--brand);
   padding: 0;
   max-width: var(--editor-measure);
-  /* Left-aligned, not centred. Centring would make the gutter above invisible
-     on a wide window — the slack either side already exceeds it — so the
-     padding control would appear to do nothing. */
-  margin-inline: 0;
+  /* Centred. Left-aligning made the Padding control visibly effective at every
+     width, but it pinned the text to the left edge of a wide window with all
+     the slack piled on the right, which reads as broken.
+     The trade-off is deliberate: once the window is wider than the measure,
+     centring absorbs the gutter and Padding stops being visible. It still
+     governs narrow windows and the Full width setting, which is where a gutter
+     actually matters. Width → Full removes the measure entirely for anyone who
+     wants the text to span the whole pane. */
+  margin-inline: auto;
 }
 
 .cm-editor .cm-line {
@@ -437,24 +442,24 @@ input[type="search"]::-webkit-search-cancel-button {
   color: var(--heading);
   letter-spacing: -0.015em;
 }
-.ursa-h1 {
+.cm-editor .cm-line.ursa-h1 {
   font-size: 1.55em;
   line-height: 1.4;
   padding-top: 0.5em;
 }
-.ursa-h2 {
+.cm-editor .cm-line.ursa-h2 {
   font-size: 1.28em;
   line-height: 1.45;
   padding-top: 0.45em;
 }
-.ursa-h3 {
+.cm-editor .cm-line.ursa-h3 {
   font-size: 1.12em;
   line-height: 1.5;
   padding-top: 0.35em;
 }
-.ursa-h4,
-.ursa-h5,
-.ursa-h6 {
+.cm-editor .cm-line.ursa-h4,
+.cm-editor .cm-line.ursa-h5,
+.cm-editor .cm-line.ursa-h6 {
   font-size: 1.02em;
   line-height: 1.6;
   padding-top: 0.25em;
@@ -498,7 +503,7 @@ input[type="search"]::-webkit-search-cancel-button {
     inset 1px 0 0 var(--border),
     inset -1px 0 0 var(--border);
 }
-.ursa-code-top {
+.cm-editor .cm-line.ursa-code-top {
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
   padding-top: 0.7em;
@@ -507,7 +512,7 @@ input[type="search"]::-webkit-search-cancel-button {
     inset -1px 0 0 var(--border),
     inset 0 1px 0 var(--border);
 }
-.ursa-code-bottom {
+.cm-editor .cm-line.ursa-code-bottom {
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
   padding-bottom: 0.7em;
@@ -585,10 +590,23 @@ input[type="search"]::-webkit-search-cancel-button {
   border-color: var(--brand);
 }
 .ursa-checkbox:checked {
-  background: var(--brand);
+  background-color: var(--brand);
   border-color: var(--brand);
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3.5 8.5l3 3 6-6.5' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-  background-size: 100%;
+  /* The tick is masked rather than drawn, so it takes --on-brand, which is
+     computed from the accent's luminance. A hardcoded white tick was invisible
+     on the mint accent the app ships with by default. */
+}
+
+.ursa-checkbox:checked::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--on-brand);
+  -webkit-mask-image: var(--ursa-tick);
+  mask-image: var(--ursa-tick);
+  -webkit-mask-size: 100%;
+  mask-size: 100%;
 }
 
 .ursa-rule {
@@ -673,6 +691,7 @@ input[type="search"]::-webkit-search-cancel-button {
 
 :root {
   --radius: 0.625rem;
+  --ursa-tick: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3.5 8.5l3 3 6-6.5' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 
   /* Surfaces derived from the brand, so a changed accent carries through to the
      selected row, tag pills and text selection instead of leaving them tinted

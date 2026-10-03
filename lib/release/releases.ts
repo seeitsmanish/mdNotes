@@ -18,6 +18,20 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.10.0",
+    date: "2026-10-03",
+    title: "Fixes a note-truncation bug, and a round of defects",
+    changes: [
+      "Fixed a bug that could silently truncate a note: switching away and back while a save was still in flight could load the pre-edit text and then write it back over your edits. Unsaved text now always wins over a stale read.",
+      "A failing save now backs off instead of retrying in a tight loop, and the last save of a session survives closing the tab.",
+      "Headings and code blocks have their vertical spacing back — a CSS specificity bug had silently zeroed it.",
+      "The checkbox tick was drawn in white, so it was invisible against the default mint accent. It now follows the accent.",
+      "⌘K opened the command palette and inserted a link at the same time. Link is now ⌘⇧K.",
+      "⌘⌫ no longer trashes the note while you are typing — it is delete-to-start-of-line again.",
+      "The editor column is centred, so a wide window no longer pins the text to the left. Width → Full makes it span the whole pane.",
+    ],
+  },
+  {
     version: "1.9.0",
     date: "2026-10-03",
     title: "Tables that look like tables",

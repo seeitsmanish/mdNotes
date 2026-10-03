@@ -207,7 +207,14 @@ export function EditorPane({
       <Outline view={view} open={outlineOpen && note !== null} />
       </div>
 
-      <Backlinks noteId={note?.id ?? null} onOpen={onOpenNote} />
+      {/* Inside the host so --editor-measure resolves and the strip lines up
+          with the text column rather than the pane. */}
+      <div
+        className="ursa-editor-host flex-none"
+        style={{ "--editor-measure": measureRem === 0 ? "none" : `${measureRem}rem` } as React.CSSProperties}
+      >
+        <Backlinks noteId={note?.id ?? null} onOpen={onOpenNote} />
+      </div>
 
       {note && !inTrash && <FormatBar view={view} />}
     </section>

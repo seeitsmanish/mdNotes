@@ -122,23 +122,37 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
       setNote(null);
       return;
     }
+
+    // A superseded request must not land after the one that replaced it.
+    const controller = new AbortController();
     let cancelled = false;
+
     api
-      .fetchNote(selectedNoteId)
+      .fetchNote(selectedNoteId, controller.signal)
       .then(({ note: loaded }) => {
-        if (!cancelled) setNote(loaded);
+        if (cancelled) return;
+        // If this client still holds text the server has not acknowledged, the
+        // response is stale by definition — keep the local body. Adopting the
+        // server's copy here is what used to truncate notes on switch-away and
+        // switch-back.
+        const local = unsavedBodyRef.current(loaded.id);
+        setNote(local === undefined ? loaded : { ...loaded, body: local });
       })
       .catch(() => {
         if (!cancelled) setNote(null);
       });
+
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [selectedNoteId]);
 
   // --- saving --------------------------------------------------------------
 
-  const { queue, flush, status } = useAutosave(
+  const unsavedBodyRef = useRef<(id: string) => string | undefined>(() => undefined);
+
+  const { queue, flush, status, unsavedBody } = useAutosave(
     useCallback(async (id: string, body: string) => {
       const { note: saved } = await api.patchNote(id, { body });
 
@@ -149,6 +163,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
       setNotes((prev) => prev.map((row) => (row.id === saved.id ? toListItem(saved) : row)));
     }, []),
   );
+
+  unsavedBodyRef.current = unsavedBody;
 
   const onBodyChange = useCallback(
     (id: string, body: string) => {
@@ -417,12 +433,17 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
             void togglePin(note);
           }
           return;
-        case "Backspace":
+        case "Backspace": {
+          // ⌘⌫ is delete-to-start-of-line while writing. Trashing the note out
+          // from under that is the most alarming thing the app could do.
+          const inEditor = document.activeElement?.closest(".cm-content") != null;
+          if (inEditor) return;
           if (note && !note.deletedAt) {
             event.preventDefault();
             void trash(note);
           }
           return;
+        }
         default:
           return;
       }
