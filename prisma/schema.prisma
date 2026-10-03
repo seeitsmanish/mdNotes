@@ -1,0 +1,31 @@
+// Ursa — see docs/TECH-SPEC.md §3 for the reasoning behind this shape.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+// The connection URL lives in prisma.config.ts (Prisma 7 no longer accepts it
+// here); the runtime client connects through the pg driver adapter.
+datasource db {
+  provider = "postgresql"
+}
+
+/// A note. `body` is the source of truth — raw markdown, exactly as typed.
+/// `title` and `excerpt` are derived from it on every write so the note list
+/// can be queried without shipping full bodies to the client.
+///
+/// There is no tag table: since v1.1 tags are styling, not filing, so nothing
+/// about a note's organisation is derived from its text.
+model Note {
+  id        String    @id @default(cuid())
+  body      String    @default("")
+  title     String    @default("")
+  excerpt   String    @default("")
+  pinned    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt, pinned, updatedAt])
+}

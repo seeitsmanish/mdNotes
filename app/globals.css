@@ -1,0 +1,724 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------------
+   Themes.
+
+   Light is defined on bare :root. The system default picks up Graphite under
+   prefers-color-scheme when no explicit choice is stamped on <html>; an
+   explicit [data-theme] always wins. Nothing in a component hardcodes a colour.
+
+   `--row-active` is deliberately a tint rather than the accent itself: a
+   saturated block for the selected row reads as a toy, and at list density it
+   is the loudest thing on screen.
+--------------------------------------------------------------------------- */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --canvas: #ffffff;
+  --list: #fafaf9;
+  --raised: #ffffff;
+  --border: #eceae6;
+  --border-strong: #dad7d1;
+  --ink: #1f1f22;
+  --heading: #1f1f22;
+  --ink-soft: #5c5c66;
+  --ink-faint: #9b9ba4;
+  --marker: #c6c6ce;
+  --brand: #cf4136;
+  --on-brand: #ffffff;
+  --highlight: #fff1a8;
+  --code-bg: #f6f5f2;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.08);
+
+  --tok-keyword: #9c3a95;
+  --tok-string: #2c7a4b;
+  --tok-number: #a8530b;
+  --tok-atom: #a8530b;
+  --tok-comment: #a0a0a9;
+  --tok-property: #1a6aad;
+  --tok-type: #0a7383;
+  --tok-function: #7146ce;
+  --tok-name: #1f1f22;
+  --tok-operator: #87673d;
+  --tok-punct: #8a8a94;
+  --tok-regexp: #ab3272;
+  --tok-meta: #5c5c66;
+}
+
+:root[data-theme="forest"] {
+  color-scheme: dark;
+  --canvas: #11161d;
+  --list: #161c25;
+  --raised: #1d242e;
+  --border: #242d39;
+  --border-strong: #33404f;
+  --ink: #c8d3df;
+  --heading: var(--brand);
+  --ink-soft: #8695a7;
+  --ink-faint: #5f6d7e;
+  --marker: #44525f;
+  --brand: #6ee7a8;
+  --on-brand: #0b1117;
+  --highlight: #4d5a24;
+  --code-bg: #0c1118;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 36px rgb(0 0 0 / 0.55);
+
+  --tok-keyword: #8ddba8;
+  --tok-string: #d9b68c;
+  --tok-number: #e4a87c;
+  --tok-atom: #e4a87c;
+  --tok-comment: #5f6d7e;
+  --tok-property: #7fc6e8;
+  --tok-type: #68d9c8;
+  --tok-function: #a9b9f0;
+  --tok-name: #c8d3df;
+  --tok-operator: #9fb0c0;
+  --tok-punct: #76859a;
+  --tok-regexp: #e49bc0;
+  --tok-meta: #8695a7;
+}
+
+:root[data-theme="sepia"] {
+  color-scheme: light;
+  --canvas: #fcf5e9;
+  --list: #f6ecda;
+  --raised: #fdf8ef;
+  --border: #e6dac3;
+  --border-strong: #d2c2a4;
+  --ink: #332b23;
+  --heading: #332b23;
+  --ink-soft: #675949;
+  --ink-faint: #9a8872;
+  --marker: #c2b096;
+  --brand: #ad4f1d;
+  --on-brand: #fdf8ef;
+  --highlight: #f6e096;
+  --code-bg: #f2e7d1;
+  --shadow: 0 1px 2px rgb(60 40 10 / 0.06), 0 8px 24px rgb(60 40 10 / 0.1);
+
+  --tok-keyword: #90357d;
+  --tok-string: #3f6b2b;
+  --tok-number: #9a5118;
+  --tok-atom: #9a5118;
+  --tok-comment: #a08f78;
+  --tok-property: #27648a;
+  --tok-type: #19696c;
+  --tok-function: #68459f;
+  --tok-name: #332b23;
+  --tok-operator: #87673d;
+  --tok-punct: #8b7b66;
+  --tok-regexp: #9c365e;
+  --tok-meta: #675949;
+}
+
+:root[data-theme="graphite"] {
+  color-scheme: dark;
+  --canvas: #242428;
+  --list: #1d1d21;
+  --raised: #2c2c32;
+  --border: #35353c;
+  --border-strong: #46464f;
+  --ink: #e2e2e8;
+  --heading: #e2e2e8;
+  --ink-soft: #a7a7b2;
+  --ink-faint: #73737e;
+  --marker: #56565f;
+  --brand: #ef5f55;
+  --on-brand: #2a1310;
+  --highlight: #6d5f20;
+  --code-bg: #1a1a1e;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px rgb(0 0 0 / 0.45);
+
+  --tok-keyword: #e394db;
+  --tok-string: #93d79f;
+  --tok-number: #f2b87d;
+  --tok-atom: #f2b87d;
+  --tok-comment: #71717c;
+  --tok-property: #84c3f2;
+  --tok-type: #6bd7db;
+  --tok-function: #b9a0f7;
+  --tok-name: #e2e2e8;
+  --tok-operator: #dbb485;
+  --tok-punct: #8f8f9a;
+  --tok-regexp: #f297c2;
+  --tok-meta: #a7a7b2;
+}
+
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+  --canvas: #101014;
+  --list: #0b0b0f;
+  --raised: #18181f;
+  --border: #22222c;
+  --border-strong: #31313d;
+  --ink: #dcdce4;
+  --heading: #dcdce4;
+  --ink-soft: #9e9ead;
+  --ink-faint: #686876;
+  --marker: #4b4b59;
+  --brand: #ff6b5e;
+  --on-brand: #2a1210;
+  --highlight: #5e5218;
+  --code-bg: #07070a;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 12px 32px rgb(0 0 0 / 0.6);
+
+  --tok-keyword: #f5a2e9;
+  --tok-string: #96e3a8;
+  --tok-number: #ffc48f;
+  --tok-atom: #ffc48f;
+  --tok-comment: #5d5d6b;
+  --tok-property: #90cdff;
+  --tok-type: #72e5ea;
+  --tok-function: #c6acff;
+  --tok-name: #dcdce4;
+  --tok-operator: #e6bd8d;
+  --tok-punct: #838391;
+  --tok-regexp: #ffa2cd;
+  --tok-meta: #9e9ead;
+}
+
+/* System default: follow the OS when no theme is stamped. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --canvas: #242428;
+    --list: #1d1d21;
+    --raised: #2c2c32;
+    --border: #35353c;
+    --border-strong: #46464f;
+    --ink: #e2e2e8;
+    --heading: #e2e2e8;
+    --ink-soft: #a7a7b2;
+    --ink-faint: #73737e;
+    --marker: #56565f;
+    --brand: #ef5f55;
+    --on-brand: #2a1310;
+    --highlight: #6d5f20;
+    --code-bg: #1a1a1e;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px rgb(0 0 0 / 0.45);
+
+    --tok-keyword: #e394db;
+    --tok-string: #93d79f;
+    --tok-number: #f2b87d;
+    --tok-atom: #f2b87d;
+    --tok-comment: #71717c;
+    --tok-property: #84c3f2;
+    --tok-type: #6bd7db;
+    --tok-function: #b9a0f7;
+    --tok-name: #e2e2e8;
+    --tok-operator: #dbb485;
+    --tok-punct: #8f8f9a;
+    --tok-regexp: #f297c2;
+    --tok-meta: #a7a7b2;
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-list: var(--list);
+  --color-raised: var(--raised);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-heading: var(--heading);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-marker: var(--marker);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-row-hover: var(--row-hover);
+  --color-row-active: var(--row-active);
+  --color-highlight: var(--highlight);
+  --color-code-bg: var(--code-bg);
+
+  --font-sans: "Inter", "Avenir Next", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv05", "ss01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+}
+
+::selection {
+  background: var(--selection);
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--brand) 55%, transparent);
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+
+/* Thin, unobtrusive scrollbars that appear only against content. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Editor.
+
+   Measure, size and family are custom properties on the host element, so the
+   typography controls change one variable instead of re-theming.
+--------------------------------------------------------------------------- */
+
+.ursa-editor-host {
+  --editor-measure: 44rem;
+  --editor-pad: 3rem;
+  --editor-size: 16px;
+  --editor-family: var(--font-sans);
+}
+
+.cm-editor {
+  height: 100%;
+  background: transparent;
+  font-size: var(--editor-size);
+}
+
+.cm-editor.cm-focused {
+  outline: none;
+}
+
+/* CodeMirror's injected base theme sets monospace on the scroller, so the
+   app's font needs the extra specificity to win. */
+.cm-editor .cm-scroller,
+.cm-editor .cm-content {
+  font-family: var(--editor-family);
+}
+
+/* CodeMirror injects its own base theme for .cm-scroller, .cm-content and
+   .cm-line at the same specificity as a bare class, and its sheet wins. Every
+   rule that has to beat it is scoped under .cm-editor — without that, the
+   line padding below silently resolves to CodeMirror's 6px and the text hugs
+   the pane edge. */
+.cm-editor .cm-scroller {
+  line-height: 1.75;
+  /* The outer gutter. Lives on the scroller, not on the pane, so the header
+     border and the scrollbar still span the full width of the pane. */
+  padding: 3rem var(--editor-pad) 45vh;
+  overflow-y: auto;
+}
+
+.cm-editor .cm-content {
+  caret-color: var(--brand);
+  padding: 0;
+  max-width: var(--editor-measure);
+  /* Left-aligned, not centred. Centring would make the gutter above invisible
+     on a wide window — the slack either side already exceeds it — so the
+     padding control would appear to do nothing. */
+  margin-inline: 0;
+}
+
+.cm-editor .cm-line {
+  /* Inner padding: keeps a fenced block's background off its own code. */
+  padding: 0 1rem;
+}
+
+.cm-cursor,
+.cm-dropCursor {
+  border-left-color: var(--brand);
+  border-left-width: 2px;
+}
+
+.cm-selectionBackground,
+.cm-editor .cm-selectionBackground,
+.cm-content ::selection {
+  background: var(--selection) !important;
+}
+
+.cm-placeholder {
+  color: var(--ink-faint);
+}
+
+/* --- markdown constructs --- */
+
+.ursa-marker {
+  color: var(--marker);
+  font-weight: 400;
+}
+
+.ursa-h1,
+.ursa-h2,
+.ursa-h3,
+.ursa-h4,
+.ursa-h5,
+.ursa-h6 {
+  font-weight: 640;
+  color: var(--heading);
+  letter-spacing: -0.015em;
+}
+.ursa-h1 {
+  font-size: 1.55em;
+  line-height: 1.4;
+  padding-top: 0.5em;
+}
+.ursa-h2 {
+  font-size: 1.28em;
+  line-height: 1.45;
+  padding-top: 0.45em;
+}
+.ursa-h3 {
+  font-size: 1.12em;
+  line-height: 1.5;
+  padding-top: 0.35em;
+}
+.ursa-h4,
+.ursa-h5,
+.ursa-h6 {
+  font-size: 1.02em;
+  line-height: 1.6;
+  padding-top: 0.25em;
+}
+
+.ursa-bold {
+  font-weight: 650;
+}
+.ursa-italic {
+  font-style: italic;
+}
+.ursa-strike {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  color: var(--ink-soft);
+}
+.ursa-highlight {
+  background: var(--highlight);
+  border-radius: 2px;
+  padding: 0.06em 0.14em;
+}
+
+.ursa-code {
+  font-family: var(--font-mono);
+  font-size: 0.87em;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.08em 0.34em;
+}
+
+/* A fenced block is one container: the first and last rows carry the rounded
+   edges and the padding, and the fence backticks are hidden, so what is left
+   on screen is the code and a small language chip. */
+.ursa-codeblock {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  line-height: 1.62;
+  background: var(--code-bg);
+  box-shadow:
+    inset 1px 0 0 var(--border),
+    inset -1px 0 0 var(--border);
+}
+.ursa-code-top {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  padding-top: 0.7em;
+  box-shadow:
+    inset 1px 0 0 var(--border),
+    inset -1px 0 0 var(--border),
+    inset 0 1px 0 var(--border);
+}
+.ursa-code-bottom {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  padding-bottom: 0.7em;
+  box-shadow:
+    inset 1px 0 0 var(--border),
+    inset -1px 0 0 var(--border),
+    inset 0 -1px 0 var(--border);
+}
+
+.ursa-lang {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  user-select: none;
+}
+
+.ursa-quote {
+  color: var(--ink-soft);
+  font-style: italic;
+  box-shadow: inset 2px 0 0 var(--border-strong);
+}
+
+.ursa-table {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  color: var(--ink-soft);
+}
+
+.ursa-list-marker {
+  color: var(--brand);
+}
+
+.ursa-todo-done {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--ink-faint) 60%, transparent);
+}
+
+.ursa-link {
+  color: var(--brand);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--brand) 30%, transparent);
+}
+
+.ursa-tag,
+.ursa-tag-pill {
+  color: var(--brand);
+}
+.ursa-tag-pill {
+  background: var(--brand-soft);
+  border-radius: 5px;
+  padding: 0.1em 0.36em;
+}
+
+.ursa-checkbox {
+  appearance: none;
+  width: 0.95em;
+  height: 0.95em;
+  margin: 0 0.55em 0 0;
+  vertical-align: -0.1em;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--raised);
+  cursor: pointer;
+  flex: none;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+.ursa-checkbox:hover {
+  border-color: var(--brand);
+}
+.ursa-checkbox:checked {
+  background: var(--brand);
+  border-color: var(--brand);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3.5 8.5l3 3 6-6.5' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-size: 100%;
+}
+
+.ursa-rule {
+  display: inline-block;
+  width: 100%;
+  height: 1px;
+  vertical-align: middle;
+  background: var(--border-strong);
+}
+
+/* --- code tokens (what makes ```json look like JSON) --- */
+
+.tok-keyword {
+  color: var(--tok-keyword);
+}
+.tok-string {
+  color: var(--tok-string);
+}
+.tok-number,
+.tok-atom {
+  color: var(--tok-number);
+}
+.tok-comment {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+.tok-property {
+  color: var(--tok-property);
+}
+.tok-type {
+  color: var(--tok-type);
+}
+.tok-function,
+.tok-definition {
+  color: var(--tok-function);
+}
+.tok-name {
+  color: var(--tok-name);
+}
+.tok-operator {
+  color: var(--tok-operator);
+}
+.tok-punct {
+  color: var(--tok-punct);
+}
+.tok-regexp,
+.tok-escape {
+  color: var(--tok-regexp);
+}
+.tok-meta {
+  color: var(--tok-meta);
+}
+.tok-invalid {
+  color: var(--brand);
+  text-decoration: underline wavy;
+}
+
+/* --- chrome --- */
+
+.ursa-fade-in {
+  animation: ursa-fade-in 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes ursa-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   shadcn's semantic tokens, derived from the theme above.
+
+   They are mappings, not colours: a theme is still defined once, in one block,
+   and shadcn components inherit it. Note that shadcn's `--accent` means "muted
+   hover surface", which is why this app's brand colour is `--brand`.
+--------------------------------------------------------------------------- */
+
+:root {
+  --radius: 0.625rem;
+
+  /* Surfaces derived from the brand, so a changed accent carries through to the
+     selected row, tag pills and text selection instead of leaving them tinted
+     toward whatever colour the theme originally shipped with. */
+  --brand-soft: color-mix(in srgb, var(--brand) 16%, transparent);
+  --row-active: color-mix(in srgb, var(--brand) 13%, var(--list));
+  --selection: color-mix(in srgb, var(--brand) 26%, var(--canvas));
+  /* Hover stays neutral — it should not read as a second selected state. */
+  --row-hover: color-mix(in srgb, var(--ink) 7%, var(--list));
+
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--raised);
+  --card-foreground: var(--ink);
+  --popover: var(--raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: var(--on-brand);
+  --secondary: var(--row-hover);
+  --secondary-foreground: var(--ink);
+  --muted: var(--row-hover);
+  --muted-foreground: var(--ink-soft);
+  --accent: var(--row-hover);
+  --accent-foreground: var(--ink);
+  --destructive: #e5484d;
+  --input: var(--border);
+  --ring: var(--brand);
+
+  --sidebar: var(--list);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--on-brand);
+  --sidebar-accent: var(--row-hover);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--brand);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

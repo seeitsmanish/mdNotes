@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ursa-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ursa
+      POSTGRES_PASSWORD: ursa
+      POSTGRES_DB: ursa
+    ports:
+      - "5432:5432"
+    volumes:
+      - ursa-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ursa -d ursa"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ursa-pgdata:
