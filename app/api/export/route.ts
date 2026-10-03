@@ -3,6 +3,8 @@ import { guarded } from "@/lib/auth/session";
 import { listNotesForExport } from "@/lib/db/notes";
 import { createNamer } from "@/lib/export/filename";
 import { serialise } from "@/lib/export/frontmatter";
+import { getAttachments } from "@/lib/db/attachments";
+import { archivePath, referencedIds, toArchive } from "@/lib/export/attachments";
 
 /**
  * Every note as a zip of .md files (PRD §4.8, §4.16).
@@ -24,7 +26,16 @@ async function handleGET(request: Request) {
   const zip = new JSZip();
   const name = createNamer(".md");
 
+  // Images travel with the notes that show them (PRD §4.29): each referenced
+  // attachment once, under attachments/, with links rewritten to match.
+  const images = await getAttachments([...new Set(notes.flatMap((n) => referencedIds(n.body)))]);
+  const mimes = new Map(images.map((image) => [image.id, image.mime]));
+  for (const image of images) {
+    zip.file(archivePath(image.id, image.mime), image.bytes, { date: image.createdAt, binary: true });
+  }
+
   for (const note of notes) {
+    const body = toArchive(note.body, mimes);
     const content = withMeta
       ? serialise(
           {
@@ -33,9 +44,9 @@ async function handleGET(request: Request) {
             updatedAt: note.updatedAt.toISOString(),
             pinned: note.pinned,
           },
-          note.body,
+          body,
         )
-      : note.body;
+      : body;
     zip.file(name(note.title), content, { date: note.updatedAt });
   }
 

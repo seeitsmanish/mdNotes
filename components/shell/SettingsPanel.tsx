@@ -58,6 +58,7 @@ export function SettingsPanel() {
       const response = await fetch("/api/import", { method: "POST", body });
       const result = (await response.json()) as {
         imported?: number;
+        images?: number;
         skipped?: Array<{ path: string; reason: string }>;
         error?: string;
       };
@@ -70,7 +71,8 @@ export function SettingsPanel() {
       const skipped = result.skipped?.length ?? 0;
       // A silent import is indistinguishable from a broken one (R9.4).
       toast.success(
-        `Imported ${result.imported} ${result.imported === 1 ? "note" : "notes"}.` +
+        `Imported ${result.imported} ${result.imported === 1 ? "note" : "notes"}` +
+          (result.images ? ` and ${result.images} ${result.images === 1 ? "image" : "images"}.` : ".") +
           (skipped > 0 ? ` Skipped ${skipped}.` : ""),
         skipped > 0
           ? { description: result.skipped!.slice(0, 5).map((s) => `${s.path} — ${s.reason}`).join("\n") }

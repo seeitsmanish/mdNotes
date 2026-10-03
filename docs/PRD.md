@@ -219,6 +219,9 @@ the hosted database, so export is the only recovery path that exists.
 - R8.2 **Export one note** as a `.md` file from the command palette.
 - R8.3 Exported files are the raw markdown exactly as stored — no conversion, no
   re-serialisation. What comes out is what Bear, Obsidian or a text editor reads.
+  *One exception since v1.18.1:* image links are rewritten to the image's path
+  inside the archive (§4.29), because the app's own URL means nothing outside
+  it.
 - R8.4 Filenames are made safe for every OS and **de-duplicated**: two notes
   titled "Groceries" must not silently become one file.
 - R8.5 Trashed notes are excluded by default, with an option to include them —
@@ -639,6 +642,21 @@ could not be taken back once you had looked at another note.
   in flight becomes a conflicted copy rather than overwriting the restore.
 - R28.6 At most 50 versions per note; the oldest go first. Deleting a note
   permanently deletes its history; trashing it does not.
+
+### 4.29 Images in exports
+
+v1.15 added images, but the export zip — the only backup — left them out.
+Restoring a backup silently lost every image.
+
+- R29.1 Export puts every image a note refers to in the zip once, under
+  `attachments/<id>.<ext>`, byte for byte.
+- R29.2 The note's links are rewritten to those relative paths, so the archive
+  shows its images in Obsidian, VS Code or any markdown viewer.
+- R29.3 Import stores those images again through the same checks as an upload
+  (magic bytes decide the type, SVG never passes, 4 MB cap, inside the import's
+  overall size budget) and points the links at the new copies. Import still
+  never overwrites, so re-importing a backup duplicates rather than merges.
+- R29.4 The import report counts images, and lists any that were refused.
 
 ## 5. Success criteria
 

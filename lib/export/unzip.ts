@@ -11,10 +11,15 @@ import type JSZip from "jszip";
  *
  * Resolves to the text, or null when the entry is larger than `maxBytes`.
  */
-export function readEntryCapped(entry: JSZip.JSZipObject, maxBytes: number): Promise<string | null> {
+export async function readEntryCapped(entry: JSZip.JSZipObject, maxBytes: number): Promise<string | null> {
+  const bytes = await readEntryBytesCapped(entry, maxBytes);
+  return bytes === null ? null : new TextDecoder().decode(bytes);
+}
+
+/** The same capped read, as bytes — for images in an archive (PRD §4.29). */
+export function readEntryBytesCapped(entry: JSZip.JSZipObject, maxBytes: number): Promise<Uint8Array | null> {
   return new Promise((resolve, reject) => {
-    const decoder = new TextDecoder();
-    let text = "";
+    const chunks: Uint8Array[] = [];
     let bytes = 0;
     let done = false;
 
@@ -33,7 +38,7 @@ export function readEntryCapped(entry: JSZip.JSZipObject, maxBytes: number): Pro
         resolve(null);
         return;
       }
-      text += decoder.decode(chunk, { stream: true });
+      chunks.push(new Uint8Array(chunk));
     });
     stream.on("error", (error: Error) => {
       if (done) return;
@@ -43,7 +48,13 @@ export function readEntryCapped(entry: JSZip.JSZipObject, maxBytes: number): Pro
     stream.on("end", () => {
       if (done) return;
       done = true;
-      resolve(text + decoder.decode());
+      const out = new Uint8Array(bytes);
+      let offset = 0;
+      for (const chunk of chunks) {
+        out.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      resolve(out);
     });
   });
 }

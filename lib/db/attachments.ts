@@ -24,3 +24,15 @@ export async function getAttachment(id: string): Promise<{ mime: string; bytes: 
   const row = await prisma.attachment.findUnique({ where: { id }, select: { mime: true, bytes: true } });
   return row ? { mime: row.mime, bytes: new Uint8Array(row.bytes) } : null;
 }
+
+/** Several attachments at once, for export. Unknown ids are simply absent. */
+export async function getAttachments(
+  ids: string[],
+): Promise<Array<{ id: string; mime: string; bytes: Uint8Array; createdAt: Date }>> {
+  if (ids.length === 0) return [];
+  const rows = await prisma.attachment.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, mime: true, bytes: true, createdAt: true },
+  });
+  return rows.map((row) => ({ ...row, bytes: new Uint8Array(row.bytes) }));
+}

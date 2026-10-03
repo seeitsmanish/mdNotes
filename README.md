@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.18.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-291-6ee7a8)
+![version](https://img.shields.io/badge/version-1.18.1-6ee7a8) ![tests](https://img.shields.io/badge/tests-299-6ee7a8)
 
 ---
 
@@ -33,7 +33,7 @@ Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
 **Owning your data**
 - History: earlier versions of every note, with a preview of what restoring brings back
-- Streaming export to a zip of `.md` files, with id/created/pinned as frontmatter
+- Streaming export to a zip of `.md` files, with id/created/pinned as frontmatter — and your images
 - Import from a zip or loose markdown — works with Bear and Obsidian exports
 - `pnpm backup` writes a dated archive to local disk
 
@@ -94,7 +94,7 @@ opening it.
 |---|---|
 | `pnpm dev` | Dev server |
 | `pnpm verify` | **generate + typecheck + tests + build** — run before any deploy; CI runs it on every push |
-| `pnpm test` | 291 unit tests |
+| `pnpm test` | 299 unit tests |
 | `pnpm backup` | Download a dated backup zip to `backups/` |
 | `pnpm db:push` / `db:migrate` / `db:studio` / `db:seed` | Prisma |
 | `pnpm db:up` / `db:down` | Docker Postgres |
@@ -151,8 +151,8 @@ Honest list, for whoever picks this up next:
 - **No live sync between devices.** Saves are conflict-checked (PRD §4.18), so
   two devices can no longer overwrite each other — but a device only learns of
   the other's edit when it next saves or reopens the note.
-- **Images are not in the export zip** yet, and deleting a note leaves its
-  images stored. No diagrams.
+- **Deleting a note leaves its images stored**, since an image may appear in
+  several notes; there is no orphan clean-up yet. No diagrams.
 - **No offline editing** — the installed app shows an offline notice, but
   reading and writing notes needs a connection.
 - **Tests cover pure modules only**; the stateful editor and shell code has no

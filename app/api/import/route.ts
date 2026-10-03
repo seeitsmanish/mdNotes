@@ -4,7 +4,10 @@ import { guarded } from "@/lib/auth/session";
 import { createNotesFromBodies } from "@/lib/db/notes";
 import { decide, describeSkip, IMPORT_LIMITS, isMarkdownPath } from "@/lib/export/import";
 import { parse as parseFrontmatter } from "@/lib/export/frontmatter";
-import { readEntryCapped } from "@/lib/export/unzip";
+import { readEntryBytesCapped, readEntryCapped } from "@/lib/export/unzip";
+import { archiveEntryId, fromArchive } from "@/lib/export/attachments";
+import { createAttachment } from "@/lib/db/attachments";
+import { MAX_ATTACHMENT_BYTES, sniffImage } from "@/lib/attachments/sniff";
 
 /**
  * Markdown in, notes out (PRD §4.9).
@@ -36,6 +39,9 @@ async function handlePOST(request: Request) {
   // compressed size, which says nothing about what it inflates to.
   let inflated = 0;
   const tooLarge = IMPORT_LIMITS.maxFileBytes + 1;
+  /** Exported images, old id → the id each gets here (PRD §4.29). */
+  const newImageIds = new Map<string, string>();
+  const imageSkips: Array<{ path: string; reason: string }> = [];
 
   for (const upload of uploads) {
     if (upload.name.toLowerCase().endsWith(".zip")) {
@@ -43,6 +49,25 @@ async function handlePOST(request: Request) {
       for (const entry of Object.values(zip.files)) {
         if (entry.dir) continue;
         if (files.length >= IMPORT_LIMITS.maxFiles) break;
+
+        // An image exported with its notes: stored again, through the same
+        // checks as an upload — magic bytes decide the type, SVG never passes.
+        const oldId = archiveEntryId(entry.name);
+        if (oldId) {
+          const remaining = IMPORT_LIMITS.maxTotalBytes - inflated;
+          const bytes =
+            remaining > 0 ? await readEntryBytesCapped(entry, Math.min(MAX_ATTACHMENT_BYTES, remaining)) : null;
+          const mime = bytes ? sniffImage(bytes) : null;
+          if (!bytes || !mime) {
+            imageSkips.push({ path: entry.name, reason: bytes ? "not a supported image" : "image too large" });
+            continue;
+          }
+          inflated += bytes.byteLength;
+          const { id } = await createAttachment({ mime, bytes });
+          newImageIds.set(oldId, id);
+          continue;
+        }
+
         // Decompress only what could plausibly be a note, so a zip full of
         // large binaries is not expanded into memory.
         if (!isMarkdownPath(entry.name)) {
@@ -76,7 +101,9 @@ async function handlePOST(request: Request) {
       const { meta, body } = parseFrontmatter(file.body);
       const createdAt = meta.createdAt ? new Date(meta.createdAt) : undefined;
       return {
-        body,
+        // Links to images that came in with this archive point at their new
+        // home; anything else is left exactly as written.
+        body: newImageIds.size > 0 ? fromArchive(body, newImageIds) : body,
         pinned: meta.pinned === true,
         createdAt: createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt : undefined,
       };
@@ -85,7 +112,11 @@ async function handlePOST(request: Request) {
 
   return NextResponse.json({
     imported,
-    skipped: skipped.map((entry) => ({ path: entry.path, reason: describeSkip(entry.reason) })),
+    images: newImageIds.size,
+    skipped: [
+      ...skipped.map((entry) => ({ path: entry.path, reason: describeSkip(entry.reason) })),
+      ...imageSkips,
+    ],
   });
 }
 

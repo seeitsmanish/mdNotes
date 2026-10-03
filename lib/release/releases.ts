@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.18.1",
+    date: "2026-10-03",
+    title: "Backups include your images",
+    changes: [
+      "Exporting your notes now includes the images in them, so a backup is complete.",
+      "Importing that backup puts the images back in the notes that show them.",
+      "The exported files also show their images in other apps, like Obsidian.",
+    ],
+  },
+  {
     version: "1.18.0",
     date: "2026-10-03",
     title: "Undo, even after you have moved on",
