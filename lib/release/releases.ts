@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.6.0",
+    date: "2026-10-03",
+    title: "Search that finds the right note",
+    changes: [
+      "Results are ranked: a note titled after what you searched for comes before one that merely mentions it.",
+      "Each result shows the text around the match with your words highlighted, instead of the note's opening line.",
+      "Searching several words finds notes containing all of them, in any order.",
+      "Accents are ignored, so searching cafe finds Café.",
+    ],
+  },
+  {
     version: "1.5.0",
     date: "2026-10-03",
     title: "Notes that point at each other",

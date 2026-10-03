@@ -5,6 +5,12 @@ export type NoteFilter = "all" | "pinned" | "trash";
 /** Row counts for the note list's filter control. */
 export type NoteCounts = Record<NoteFilter, number>;
 
+/** Present only on search results (PRD §4.11). */
+export interface SearchMatch {
+  snippet: string;
+  marks: Array<[number, number]>;
+}
+
 export interface NoteListItem {
   id: string;
   title: string;
@@ -12,6 +18,7 @@ export interface NoteListItem {
   pinned: boolean;
   updatedAt: string;
   deletedAt: string | null;
+  match?: SearchMatch;
 }
 
 export interface NoteDetail extends NoteListItem {

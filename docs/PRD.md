@@ -257,6 +257,23 @@ correctly here without editing.
   There is no second source of truth to keep in step with the text, which is the
   same reason tags were derived rather than stored in v1.0.
 
+### 4.11 Search that earns its place
+
+With tags gone (§2), search is the only way to find a note. v1.1 shipped the
+minimum — a substring match in modified order — which answers "does this word
+appear" but not "which note did I mean".
+
+- R11.1 **Rank** results: a match in the title outranks a match in the body, and
+  an earlier match outranks a later one. Recency breaks ties, not the ordering.
+- R11.2 **Show the match**: a result displays the text around the hit with the
+  matched term marked, rather than the note's opening line, which is often
+  identical across results and tells you nothing.
+- R11.3 Multi-word queries match notes containing **all** the terms, in any
+  order and anywhere in the note.
+- R11.4 Matching is case- and accent-insensitive: searching `cafe` finds `Café`.
+- R11.5 Ranking happens where the text is, not in the client. The client must
+  never need the full body of every note to order a list.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

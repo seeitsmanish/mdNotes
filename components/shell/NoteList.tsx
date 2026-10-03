@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { displayTitle } from "@/lib/markdown/derive";
 import { relativeTime } from "@/lib/time";
-import type { NoteCounts, NoteFilter, NoteListItem } from "@/lib/types";
+import type { NoteCounts, NoteFilter, NoteListItem, SearchMatch } from "@/lib/types";
 
 /**
  * The left pane: a header carrying the current filter, an optional search
@@ -202,7 +202,11 @@ export function NoteList({
                   </span>
 
                   <span className="mt-1 line-clamp-2 block text-[0.76rem] leading-snug text-ink-soft">
-                    {note.excerpt || "No additional text"}
+                    {note.match ? (
+                      <Highlighted match={note.match} />
+                    ) : (
+                      note.excerpt || "No additional text"
+                    )}
                   </span>
 
                   <span className="mt-1.5 block text-[0.7rem] tabular-nums text-ink-faint">
@@ -247,6 +251,32 @@ export function NoteList({
       )}
     </div>
   );
+}
+
+/**
+ * Renders a search snippet with the matched terms marked (PRD R11.2).
+ *
+ * Offsets come from the server, so the text is sliced rather than re-searched —
+ * re-finding the term in the client would be a second matching implementation
+ * and would disagree about accents.
+ */
+function Highlighted({ match }: { match: SearchMatch }) {
+  const pieces: React.ReactNode[] = [];
+  let cursor = 0;
+
+  for (const [from, to] of match.marks) {
+    if (from < cursor || to > match.snippet.length) continue; // ignore overlaps
+    if (from > cursor) pieces.push(match.snippet.slice(cursor, from));
+    pieces.push(
+      <mark key={`${from}-${to}`} className="rounded-[2px] bg-brand-soft px-px text-brand">
+        {match.snippet.slice(from, to)}
+      </mark>,
+    );
+    cursor = to;
+  }
+  if (cursor < match.snippet.length) pieces.push(match.snippet.slice(cursor));
+
+  return <>{pieces}</>;
 }
 
 function IconAction({

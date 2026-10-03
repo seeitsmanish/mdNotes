@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { applyBody } from "./write";
 import { deriveExcerpt, deriveTitle } from "@/lib/markdown/derive";
 import { linksTo, normaliseTitle } from "@/lib/markdown/wikilink";
+import { rank, terms } from "@/lib/search/rank";
 import type { NoteCounts, NoteDetail, NoteFilter, NoteListItem } from "@/lib/types";
 
 /**
@@ -59,20 +60,41 @@ export async function listNotes(options: {
   query?: string | null;
 }): Promise<NoteListItem[]> {
   const { filter = "all", query } = options;
-  const search = query?.trim();
+  const queryTerms = terms(query ?? "");
 
-  const rows = await prisma.note.findMany({
+  // No query: the plain, cheap path — ordered by pinned then recency.
+  if (queryTerms.length === 0) {
+    const rows = await prisma.note.findMany({
+      where: filterWhere(filter),
+      orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
+      select: LIST_FIELDS,
+    });
+    return rows.map(toListItem);
+  }
+
+  // Searching: narrow in SQL on the rarest term, then rank in one place so the
+  // editor and the server agree on what "matches" means (R11.5). Bodies are
+  // read here and deliberately not returned — the client never needs them to
+  // order a list.
+  const narrowest = queryTerms.reduce((a, b) => (a.length >= b.length ? a : b));
+  const candidates = await prisma.note.findMany({
     where: {
       ...filterWhere(filter),
-      // Case-insensitive contains over the body covers title and excerpt too,
-      // since both are derived from it.
-      ...(search ? { body: { contains: search, mode: "insensitive" as const } } : {}),
+      OR: [
+        { body: { contains: narrowest, mode: "insensitive" } },
+        { title: { contains: narrowest, mode: "insensitive" } },
+      ],
     },
-    orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
-    select: LIST_FIELDS,
+    select: { ...LIST_FIELDS, body: true },
+    take: 500,
   });
 
-  return rows.map(toListItem);
+  const byId = new Map(candidates.map((row) => [row.id, row]));
+  return rank(candidates, query ?? "").flatMap((hit) => {
+    const row = byId.get(hit.id);
+    if (!row) return [];
+    return [{ ...toListItem(row), match: { snippet: hit.snippet, marks: hit.marks } }];
+  });
 }
 
 export async function getNote(id: string): Promise<NoteDetail | null> {
