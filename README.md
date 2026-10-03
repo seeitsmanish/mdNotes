@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.11.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-146-6ee7a8)
+![version](https://img.shields.io/badge/version-1.11.1-6ee7a8) ![tests](https://img.shields.io/badge/tests-146-6ee7a8)
 
 ---
 
@@ -85,7 +85,7 @@ opening it.
 | Command | What it does |
 |---|---|
 | `pnpm dev` | Dev server |
-| `pnpm verify` | **typecheck + tests + build** — run before any deploy |
+| `pnpm verify` | **generate + typecheck + tests + build** — run before any deploy; CI runs it on every push |
 | `pnpm test` | 146 unit tests |
 | `pnpm backup` | Download a dated backup zip to `backups/` |
 | `pnpm db:push` / `db:migrate` / `db:studio` / `db:seed` | Prisma |
@@ -134,7 +134,6 @@ docs/              PRD, tech spec, deployment
 
 Honest list, for whoever picks this up next:
 
-- **No CI.** `pnpm verify` exists but nothing enforces it.
 - **No error monitoring**, no structured logging, no health check.
 - **Schema is managed by `prisma db push`**, not migrations — there is no
   `prisma/migrations/` history and no rollback path.

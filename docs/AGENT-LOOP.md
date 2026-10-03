@@ -236,8 +236,9 @@ Each of these cost real time in the originating session.
 Taken from a five-perspective product review. Re-verify before acting — these
 were accurate when written and the code moves.
 
-1. **CI.** Nothing enforces `pnpm verify`. A GitHub Action running it on push is
-   the highest-value missing safeguard.
+1. ~~**CI.**~~ Done in v1.11.1 — `.github/workflows/verify.yml` runs
+   `pnpm verify` on every push and PR (PRD §4.17). A red check means do not
+   deploy.
 2. **Optimistic concurrency on save.** `updateNote` writes unconditionally. Two
    devices on one note is last-write-wins. A `version` column and a 409 closes it.
 3. **Note history.** No revision table exists, and switching notes discards the
