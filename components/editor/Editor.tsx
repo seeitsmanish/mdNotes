@@ -12,6 +12,7 @@ import { ursaHighlightStyle } from "./highlightStyle";
 import { markdownStyling } from "./decorations";
 import { tableField } from "./tableField";
 import { smartPaste, ursaKeymap } from "./commands";
+import { calcField } from "./calcField";
 
 /**
  * The single-pane markdown editor.
@@ -117,6 +118,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       }),
       syntaxHighlighting(ursaHighlightStyle),
       tableField,
+      calcField,
       markdownStyling({
         onWikiLink: (title) => handlers.current.onWikiLink?.(title),
       }),

@@ -482,6 +482,23 @@ input[type="search"]::-webkit-search-cancel-button {
   padding: 0.06em 0.14em;
 }
 
+/* Live math (PRD §4.22): an answer, not text — quieter than the note, in the
+   accent so it reads as computed, and tabular so columns of sums line up. */
+.cm-editor .ursa-calc {
+  margin-left: 0.4em;
+  padding: 0.05em 0.4em;
+  border-radius: 5px;
+  color: var(--brand);
+  background: var(--brand-soft);
+  font-variant-numeric: tabular-nums;
+  font-weight: 560;
+  cursor: copy;
+  white-space: nowrap;
+}
+.cm-editor .ursa-calc-copied {
+  outline: 1.5px solid var(--brand);
+}
+
 .ursa-code {
   font-family: var(--font-mono);
   font-size: 0.87em;

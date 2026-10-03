@@ -475,6 +475,38 @@ Not done: the icon does not follow the chosen theme or accent colour. A
 favicon is cached aggressively and shown before any setting is read, so a
 dynamic one would flicker between colours.
 
+### 4.22 Live math
+
+Notes are where back-of-envelope numbers live — a trip budget, a salary
+comparison, a split bill — and today every one of them means switching to a
+calculator and copying the answer back, after which it is stale the moment a
+number above it changes.
+
+- R22.1 A line ending in `=` shows its answer after the `=`, in the accent
+  colour. The answer is drawn by the editor and **never written into the
+  note**: the stored text stays what was typed, and the answer is always
+  current.
+- R22.2 `name = expression` defines a name for the lines below it. Names may
+  contain spaces (`per person = total / 3`). A name is never used above the
+  line that defines it.
+- R22.3 `total =` (or `sum =`) adds up the answers and definitions above it,
+  back to the last blank line or heading.
+- R22.4 Written the way people write: thousands commas, `x`/`×`/`÷`, `%` and
+  `18% of 240`, a currency sign carried into the answer (money shown to the
+  cent), and a label before the math (`food: ₹900 * 4 =`).
+- R22.5 Prose is left alone: a line that does not parse as math, a bare
+  number, and anything inside a code block show nothing.
+- R22.6 Clicking an answer copies it, without thousands separators.
+- R22.7 Its own parser — never `eval`. The CSP forbids it, and note text
+  arriving from an import must never run as code. Function lookups are own-
+  property only, so `constructor(1)` reaches nothing.
+- R22.8 Re-reading a 50k-character note stays well inside one frame, because
+  it happens on every keystroke.
+
+Not done: units (`5 km in miles`), dates, and currency conversion — each needs
+data that changes or a much larger grammar. `x` always means multiply, so it
+cannot be a name.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

@@ -18,6 +18,18 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.13.0",
+    date: "2026-10-03",
+    title: "Your notes can do the math",
+    changes: [
+      "End a line with = and the answer appears beside it: 12 * 4.5 = shows 54. Change a number and every answer updates.",
+      "Give a number a name — rent = 1,450 — and use it in the lines below. Names can have spaces, like per person.",
+      "Write total = under a list of amounts to add them up.",
+      "It understands the way people write sums: 18% of 2,340, ₹1,200 x 3, or food: ₹900 * 4 with a label in front.",
+      "Answers are shown, never typed into your note, and clicking one copies it.",
+    ],
+  },
+  {
     version: "1.12.1",
     date: "2026-10-03",
     title: "Long list items line up",

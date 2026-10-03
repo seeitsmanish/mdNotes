@@ -59,6 +59,8 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: "```lang", label: "Code block, highlighted in that language" },
       { keys: "::text::", label: "Highlight" },
       { keys: "[[Title]]", label: "Link to another note" },
+      { keys: "12 * 4 =", label: "Live math — the answer appears after =" },
+      { keys: "rent = 1,450", label: "Name a number to use further down" },
       { keys: "- [ ]", label: "To-do" },
     ],
   },
