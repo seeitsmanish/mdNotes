@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { applyBody } from "./write";
 import { deriveExcerpt, deriveTitle } from "@/lib/markdown/derive";
+import { linksTo, normaliseTitle } from "@/lib/markdown/wikilink";
 import type { NoteCounts, NoteDetail, NoteFilter, NoteListItem } from "@/lib/types";
 
 /**
@@ -150,4 +151,59 @@ export async function createNotesFromBodies(bodies: string[]): Promise<number> {
 
   const result = await prisma.note.createMany({ data: rows });
   return result.count;
+}
+
+/**
+ * Resolve wiki-link targets to note ids (PRD R10.2).
+ *
+ * Normalisation happens in JS rather than SQL because the same function has to
+ * agree with the editor's rendering — two normalisers would drift.
+ */
+export async function resolveTitles(titles: string[]): Promise<Record<string, string>> {
+  if (titles.length === 0) return {};
+
+  const rows = await prisma.note.findMany({
+    where: { deletedAt: null },
+    select: { id: true, title: true, updatedAt: true },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const wanted = new Set(titles.map(normaliseTitle));
+  const resolved: Record<string, string> = {};
+
+  for (const row of rows) {
+    const key = normaliseTitle(row.title);
+    // Most recently edited wins when two notes share a title.
+    if (wanted.has(key) && !(key in resolved)) resolved[key] = row.id;
+  }
+
+  return resolved;
+}
+
+/**
+ * Notes that link to `title` (PRD R10.5). Resolved on read: a join table would
+ * be a second source of truth to keep in step with the text.
+ */
+export async function backlinksFor(
+  noteId: string,
+  title: string,
+): Promise<Array<{ id: string; title: string; excerpt: string }>> {
+  if (title.trim().length === 0) return [];
+
+  // `contains` narrows the scan; `linksTo` then applies the real rule, which
+  // knows about code spans and whitespace.
+  const candidates = await prisma.note.findMany({
+    where: {
+      deletedAt: null,
+      id: { not: noteId },
+      body: { contains: "[[", mode: "insensitive" },
+    },
+    select: { id: true, title: true, excerpt: true, body: true },
+    orderBy: { updatedAt: "desc" },
+    take: 200,
+  });
+
+  return candidates
+    .filter((note) => linksTo(note.body, title))
+    .map(({ id, title: noteTitle, excerpt }) => ({ id, title: noteTitle, excerpt }));
 }

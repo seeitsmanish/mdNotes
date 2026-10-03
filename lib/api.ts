@@ -54,3 +54,7 @@ export function deleteNoteForever(id: string): Promise<void> {
 export function restoreNote(id: string): Promise<{ note: NoteDetail }> {
   return request(`/api/notes/${id}/restore`, { method: "POST" });
 }
+
+export function resolveWikiLinks(titles: string[]): Promise<{ resolved: Record<string, string> }> {
+  return request("/api/resolve", { method: "POST", body: JSON.stringify({ titles }) });
+}

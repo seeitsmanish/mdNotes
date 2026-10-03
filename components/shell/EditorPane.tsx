@@ -21,6 +21,7 @@ import type { SaveStatus } from "@/components/editor/useAutosave";
 import { relativeTime } from "@/lib/time";
 import { EDITOR_PADDINGS, EDITOR_WIDTHS, useUiStore } from "@/lib/store/useUiStore";
 import type { NoteDetail } from "@/lib/types";
+import { Backlinks } from "./Backlinks";
 import { SettingsPanel } from "./SettingsPanel";
 import { useUnseenRelease } from "./WhatsNew";
 
@@ -42,6 +43,8 @@ interface EditorPaneProps {
   onTrash: () => void;
   onRestore: () => void;
   onBack: () => void;
+  onWikiLink: (title: string) => void;
+  onOpenNote: (id: string) => void;
 }
 
 export function EditorPane({
@@ -53,6 +56,8 @@ export function EditorPane({
   onTrash,
   onRestore,
   onBack,
+  onWikiLink,
+  onOpenNote,
 }: EditorPaneProps) {
   const [stats, setStats] = useState<EditorStats>(() => measure(note?.body ?? ""));
   const [view, setView] = useState<EditorView | null>(null);
@@ -173,6 +178,7 @@ export function EditorPane({
             onChange={onChange}
             onBlur={onBlur}
             onStats={setStats}
+            onWikiLink={onWikiLink}
             onReady={setView}
           />
         ) : (
@@ -186,6 +192,8 @@ export function EditorPane({
           </div>
         )}
       </div>
+
+      <Backlinks noteId={note?.id ?? null} onOpen={onOpenNote} />
 
       {note && !inTrash && <FormatBar view={view} />}
     </section>

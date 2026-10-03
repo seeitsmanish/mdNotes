@@ -23,18 +23,20 @@ export default async function Home() {
   let dbError: string | null = null;
 
   try {
-    const [notes, counts, settings] = await Promise.all([
-      listNotes({ filter: "all" }),
-      countNotes(),
-      getSettings(),
-    ]);
-    initialNotes = notes;
-    initialCounts = counts;
-    initialSettings = settings as SyncedSettings;
+    [initialNotes, initialCounts] = await Promise.all([listNotes({ filter: "all" }), countNotes()]);
   } catch (error) {
     // The overwhelmingly likely cause is that Postgres isn't up yet, so say so
     // rather than showing a stack trace.
     dbError = error instanceof Error ? error.message : "Unknown database error.";
+  }
+
+  // Settings are read separately and on purpose. They have defaults, so a
+  // failure here must degrade to the default appearance rather than take the
+  // whole app down with it — notes that read perfectly well are the point.
+  try {
+    initialSettings = (await getSettings()) as SyncedSettings;
+  } catch {
+    initialSettings = null;
   }
 
   if (dbError) return <DatabaseDown detail={dbError} />;

@@ -32,6 +32,7 @@ interface EditorProps {
   onChange: (noteId: string, body: string) => void;
   onBlur?: () => void;
   onStats?: (stats: EditorStats) => void;
+  onWikiLink?: (title: string) => void;
   /** Hands the live view out so the format bar can run commands against it. */
   onReady?: (view: EditorView | null) => void;
 }
@@ -43,14 +44,15 @@ export function Editor({
   onChange,
   onBlur,
   onStats,
+  onWikiLink,
   onReady,
 }: EditorProps) {
   const host = useRef<HTMLDivElement | null>(null);
   const view = useRef<EditorView | null>(null);
 
   // Callbacks live in a ref so changing one never rebuilds the editor state.
-  const handlers = useRef({ onChange, onBlur, onStats, noteId });
-  handlers.current = { onChange, onBlur, onStats, noteId };
+  const handlers = useRef({ onChange, onBlur, onStats, onWikiLink, noteId });
+  handlers.current = { onChange, onBlur, onStats, onWikiLink, noteId };
 
   useEffect(() => {
     if (!host.current) return;
@@ -88,6 +90,7 @@ type Handlers = {
     onChange: (noteId: string, body: string) => void;
     onBlur?: () => void;
     onStats?: (stats: EditorStats) => void;
+    onWikiLink?: (title: string) => void;
     noteId: string | null;
   };
 };
@@ -112,7 +115,9 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
         addKeymap: false,
       }),
       syntaxHighlighting(ursaHighlightStyle),
-      markdownStyling(),
+      markdownStyling({
+        onWikiLink: (title) => handlers.current.onWikiLink?.(title),
+      }),
       smartPaste,
       EditorView.lineWrapping,
       placeholder(readOnly ? "" : "Start writing."),

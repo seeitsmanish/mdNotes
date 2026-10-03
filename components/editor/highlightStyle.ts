@@ -22,6 +22,7 @@ export const ursaHighlightStyle = HighlightStyle.define([
   // itself is styled as a decoration instead — see decorations.ts, "ListMark".
   { tag: ursaTags.highlight, class: "ursa-highlight" },
   { tag: ursaTags.tag, class: "ursa-tag" },
+  { tag: ursaTags.wikiLink, class: "ursa-wikilink" },
 
   // --- code ---
   { tag: [t.keyword, t.controlKeyword, t.moduleKeyword], class: "tok-keyword" },

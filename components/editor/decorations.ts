@@ -34,6 +34,7 @@ const HIDDEN_MARKS = new Set([
   "URL",
   "LinkTitle",
   "CodeMark",
+  "WikiLinkMark",
 ]);
 
 const HEADING_LINE: Record<string, string> = {
@@ -239,6 +240,19 @@ function buildDecorations(view: EditorView): DecorationSet {
             return;
           }
 
+          case "WikiLink": {
+            // The target text carries the title so a click can resolve it
+            // without re-parsing from the DOM.
+            const inner = view.state.sliceDoc(node.from + 2, node.to - 2);
+            ranges.push(
+              Decoration.mark({
+                class: "ursa-wikilink-target",
+                attributes: { "data-ursa-wikilink": inner.trim() },
+              }).range(node.from + 2, node.to - 2),
+            );
+            return;
+          }
+
           case "BearTag": {
             ranges.push(
               Decoration.mark({
@@ -265,6 +279,8 @@ function buildDecorations(view: EditorView): DecorationSet {
 
 export interface MarkdownStyleOptions {
   onLinkClick?: (href: string) => void;
+  /** A wiki-link was clicked; the shell decides whether to open or create. */
+  onWikiLink?: (title: string) => void;
 }
 
 export function markdownStyling(options: MarkdownStyleOptions = {}) {
@@ -286,6 +302,20 @@ export function markdownStyling(options: MarkdownStyleOptions = {}) {
       decorations: (plugin) => plugin.decorations,
       eventHandlers: {
         mousedown(event: MouseEvent, view: EditorView) {
+          // Wiki-links are plain clicks: they go to another note in the same
+          // app, so requiring a modifier would just be friction.
+          const target = (event.target as HTMLElement | null)?.closest<HTMLElement>(
+            "[data-ursa-wikilink]",
+          );
+          if (target && options.onWikiLink) {
+            const title = target.dataset.ursaWikilink;
+            if (title) {
+              event.preventDefault();
+              options.onWikiLink(title);
+              return true;
+            }
+          }
+
           if (!event.metaKey && !event.ctrlKey) return false;
 
           const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });

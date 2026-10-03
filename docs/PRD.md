@@ -236,6 +236,27 @@ in §7 real: Bear exports markdown, and this reads markdown.
 - R9.6 Bounded: a cap on file count and total size, so a large or hostile upload
   cannot exhaust the server.
 
+### 4.10 Wiki-links and backlinks
+
+Notes become more useful when they can point at each other. `[[Title]]` is the
+convention Bear, Obsidian and Roam all share, so notes written elsewhere link
+correctly here without editing.
+
+- R10.1 `[[Note title]]` in a body renders as a link and opens that note.
+- R10.2 Matching is by title, case-insensitively and whitespace-insensitively,
+  because nobody retypes a title exactly.
+- R10.3 A link to a note that does not exist renders **differently** — unresolved,
+  not broken — and clicking it offers to create that note. A link that silently
+  does nothing is worse than no link.
+- R10.4 `[[` inside code spans and fenced blocks stays literal, like every other
+  construct.
+- R10.5 **Backlinks**: the note being read shows which notes link *to* it. This
+  is the half that makes linking worth doing — forward links you already know
+  about, because you typed them.
+- R10.6 Backlinks resolve on read rather than being stored in a join table.
+  There is no second source of truth to keep in step with the text, which is the
+  same reason tags were derived rather than stored in v1.0.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

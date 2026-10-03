@@ -5,6 +5,7 @@ import * as api from "@/lib/api";
 import { useAutosave } from "@/components/editor/useAutosave";
 import { displayTitle } from "@/lib/markdown/derive";
 import { safeStem } from "@/lib/export/filename";
+import { normaliseTitle } from "@/lib/markdown/wikilink";
 import { LIST_BOUNDS, THEMES, type SyncedSettings, useUiStore } from "@/lib/store/useUiStore";
 import { useSettingsSync } from "@/lib/store/useSettingsSync";
 import type { NoteCounts, NoteDetail, NoteListItem } from "@/lib/types";
@@ -267,6 +268,50 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
   }, [download, note]);
 
+  /**
+   * A wiki-link to a note that does not exist is an invitation, not an error
+   * (PRD R10.3): offer to create it rather than doing nothing.
+   */
+  const openWikiLink = useCallback(
+    async (title: string) => {
+      flush();
+      const key = normaliseTitle(title);
+      const existing = notes.find((row) => normaliseTitle(row.title) === key);
+      if (existing) {
+        selectNote(existing.id);
+        return;
+      }
+
+      try {
+        const { resolved } = (await api.resolveWikiLinks([title])) as {
+          resolved: Record<string, string>;
+        };
+        const id = resolved[key];
+        if (id) {
+          selectNote(id);
+          return;
+        }
+      } catch {
+        // Fall through to offering creation.
+      }
+
+      toast(`No note called “${title}”.`, {
+        action: {
+          label: "Create it",
+          onClick: () => {
+            void (async () => {
+              const { note: created } = await api.createNote();
+              await api.patchNote(created.id, { body: `# ${title}\n\n` });
+              await refreshList();
+              selectNote(created.id);
+            })();
+          },
+        },
+      });
+    },
+    [flush, notes, refreshList, selectNote],
+  );
+
   const commands = useMemo<Command[]>(() => {
     const themeCommands: Command[] = THEMES.map((option) => ({
       id: `theme:${option.value}`,
@@ -407,10 +452,12 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
               flush();
               void discardFreshIfEmpty();
             }}
+            onWikiLink={(title) => void openWikiLink(title)}
             onTogglePin={() => note && void togglePin(note)}
             onTrash={() => note && void trash(note)}
             onRestore={() => note && void restore(note)}
             onBack={() => setMobilePane("list")}
+            onOpenNote={onSelectNote}
           />
         </div>
       </div>

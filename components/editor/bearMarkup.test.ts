@@ -128,3 +128,29 @@ describe("performance", () => {
     expect(performance.now() - started).toBeLessThan(250);
   });
 });
+
+describe("wiki-links", () => {
+  it("reads [[Title]] as a link", () => {
+    expect(textOf("see [[Reading list]] here", "WikiLink")).toEqual(["[[Reading list]]"]);
+  });
+
+  it("does not treat a normal markdown link as a wiki-link", () => {
+    expect(nodeNames("[label](https://example.com)")).not.toContain("WikiLink");
+  });
+
+  it("leaves [[x]] inside inline code literal", () => {
+    expect(nodeNames("`[[x]]`")).not.toContain("WikiLink");
+  });
+
+  it("leaves [[x]] inside a fenced block literal", () => {
+    expect(nodeNames("```\n[[x]]\n```")).not.toContain("WikiLink");
+  });
+
+  it("does not match across a line break", () => {
+    expect(nodeNames("[[one\ntwo]]")).not.toContain("WikiLink");
+  });
+
+  it("marks the brackets so they can be hidden", () => {
+    expect(textOf("[[A]]", "WikiLinkMark")).toEqual(["[[", "]]"]);
+  });
+});

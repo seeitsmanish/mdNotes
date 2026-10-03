@@ -18,6 +18,18 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.5.0",
+    date: "2026-10-03",
+    title: "Notes that point at each other",
+    changes: [
+      "Write [[Note title]] to link to another note — the same syntax Bear, Obsidian and Roam use, so notes written elsewhere link correctly here.",
+      "Links match titles loosely, ignoring case and extra spaces, because nobody retypes a title exactly.",
+      "A link to a note that does not exist is shown as unresolved rather than broken, and offers to create it.",
+      "Each note now shows which other notes link to it, along the bottom.",
+      "Fixed: a problem reading appearance settings could blank the whole app; notes now load even if settings do not.",
+    ],
+  },
+  {
     version: "1.4.0",
     date: "2026-10-03",
     title: "Import",

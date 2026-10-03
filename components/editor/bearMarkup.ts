@@ -12,11 +12,14 @@ import { Tag, tags as t } from "@lezer/highlight";
 export const ursaTags = {
   highlight: Tag.define(),
   tag: Tag.define(),
+  wikiLink: Tag.define(),
 };
 
 const COLON = 58;
 const SLASH = 47;
 const HASH = 35;
+const OPEN_BRACKET = 91;
+const CLOSE_BRACKET = 93;
 
 function isSpace(code: number): boolean {
   return code === 32 || code === 9 || code === 10 || code === 13;
@@ -175,4 +178,46 @@ function findCloser(cx: InlineContext, start: number): number {
   return -1;
 }
 
-export const BearMarkup: MarkdownConfig[] = [Highlight, SlashEmphasis, BearTag];
+/**
+ * `[[Note title]]` — the convention Bear, Obsidian and Roam share, so notes
+ * written in any of them link correctly here without editing (PRD R10.1).
+ *
+ * Registered before Link so `[[x]]` is not first claimed as a `[x]` label.
+ */
+const WikiLink: MarkdownConfig = {
+  defineNodes: [
+    { name: "WikiLink", style: { "WikiLink/...": ursaTags.wikiLink } },
+    { name: "WikiLinkMark", style: t.processingInstruction },
+  ],
+  parseInline: [
+    {
+      name: "WikiLink",
+      before: "Link",
+      parse(cx, next, pos) {
+        if (next !== OPEN_BRACKET || cx.char(pos + 1) !== OPEN_BRACKET) return -1;
+
+        const start = pos + 2;
+        let end = start;
+        while (end < cx.end) {
+          const code = cx.char(end);
+          if (code === 10) return -1; // a title never spans lines
+          if (code === CLOSE_BRACKET && cx.char(end + 1) === CLOSE_BRACKET) break;
+          end += 1;
+        }
+        if (end >= cx.end || end === start) return -1;
+
+        const title = cx.slice(start, end);
+        if (title.trim().length === 0) return -1;
+
+        return cx.addElement(
+          cx.elt("WikiLink", pos, end + 2, [
+            cx.elt("WikiLinkMark", pos, start),
+            cx.elt("WikiLinkMark", end, end + 2),
+          ]),
+        );
+      },
+    },
+  ],
+};
+
+export const BearMarkup: MarkdownConfig[] = [Highlight, SlashEmphasis, BearTag, WikiLink];

@@ -722,3 +722,21 @@ input[type="search"]::-webkit-search-cancel-button {
     @apply font-sans;
   }
 }
+/* Wiki-links. An unresolved target is styled as *unresolved*, not broken: it is
+   an invitation to create that note, not an error (PRD R10.3). */
+.ursa-wikilink {
+  color: var(--brand);
+}
+.ursa-wikilink-target {
+  cursor: pointer;
+  border-bottom: 1px solid color-mix(in srgb, var(--brand) 40%, transparent);
+}
+.ursa-wikilink-target:hover {
+  background: var(--brand-soft);
+  border-radius: 3px;
+}
+.ursa-wikilink-missing .ursa-wikilink-target {
+  color: var(--ink-soft);
+  border-bottom-style: dashed;
+  border-bottom-color: var(--border-strong);
+}
