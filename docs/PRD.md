@@ -297,6 +297,22 @@ can find is a shortcut nobody uses.
 - R13.3 The list is derived from one definition shared with the keymap, so a
   shortcut cannot be renamed in one place and stale in the other.
 
+### 4.14 Outline
+
+A long note is currently a scroll. Notes that are structured — a list of
+questions, a set of topics — are exactly the ones worth navigating, and their
+headings already describe that structure.
+
+- R14.1 A panel lists the note's headings, nested by level, and clicking one
+  scrolls to it.
+- R14.2 The heading containing the caret is marked, so the panel says where you
+  are as well as what exists.
+- R14.3 It appears only when a note has enough headings to be worth navigating —
+  an outline of one item is furniture, not a feature.
+- R14.4 It is derived from the same syntax tree the editor renders, not a second
+  markdown parse, so the outline cannot disagree with the document.
+- R14.5 Toggled with ⌘⇧O, and the choice persists per device.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

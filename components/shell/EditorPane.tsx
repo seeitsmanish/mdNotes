@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import {
   ChevronLeftIcon,
+  ListTreeIcon,
   type LucideIcon,
   PaletteIcon,
   PanelLeftIcon,
@@ -22,6 +23,7 @@ import { relativeTime } from "@/lib/time";
 import { EDITOR_PADDINGS, EDITOR_WIDTHS, useUiStore } from "@/lib/store/useUiStore";
 import type { NoteDetail } from "@/lib/types";
 import { Backlinks } from "./Backlinks";
+import { Outline } from "./Outline";
 import { SettingsPanel } from "./SettingsPanel";
 import { useUnseenRelease } from "./WhatsNew";
 
@@ -64,6 +66,8 @@ export function EditorPane({
   const { unseen } = useUnseenRelease();
 
   const focusMode = useUiStore((s) => s.focusMode);
+  const outlineOpen = useUiStore((s) => s.outlineOpen);
+  const toggleOutline = useUiStore((s) => s.toggleOutline);
   const toggleFocusMode = useUiStore((s) => s.toggleFocusMode);
   const settingsOpen = useUiStore((s) => s.settingsOpen);
   const setSettingsOpen = useUiStore((s) => s.setSettingsOpen);
@@ -123,6 +127,13 @@ export function EditorPane({
         )}
 
         <IconAction
+          icon={ListTreeIcon}
+          label={outlineOpen ? "Hide outline (⌘⇧O)" : "Show outline (⌘⇧O)"}
+          active={outlineOpen}
+          onClick={toggleOutline}
+        />
+
+        <IconAction
           icon={PanelLeftIcon}
           label={focusMode ? "Exit focus mode (⌘.)" : "Focus mode (⌘.)"}
           active={focusMode}
@@ -154,6 +165,7 @@ export function EditorPane({
         </Popover>
       </header>
 
+      <div className="flex min-h-0 flex-1">
       <div
         className="ursa-editor-host min-h-0 flex-1"
         style={
@@ -191,6 +203,8 @@ export function EditorPane({
             </dl>
           </div>
         )}
+      </div>
+      <Outline view={view} open={outlineOpen && note !== null} />
       </div>
 
       <Backlinks noteId={note?.id ?? null} onOpen={onOpenNote} />

@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.8.0",
+    date: "2026-10-03",
+    title: "Find your way around a long note",
+    changes: [
+      "An outline panel lists the headings in the note you are reading; click one to jump to it.",
+      "The section you are editing is highlighted, so the outline shows where you are, not just what exists.",
+      "Toggle it with ⌘⇧O. Headings inside code blocks are correctly left out.",
+    ],
+  },
+  {
     version: "1.7.0",
     date: "2026-10-03",
     title: "Emptying the trash, and finding the shortcuts",

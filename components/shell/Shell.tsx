@@ -48,6 +48,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
   const setPaletteOpen = useUiStore((state) => state.setPaletteOpen);
   const setSettingsOpen = useUiStore((state) => state.setSettingsOpen);
   const shortcutsOpen = useUiStore((state) => state.shortcutsOpen);
+  const toggleOutline = useUiStore((state) => state.toggleOutline);
   const setShortcutsOpen = useUiStore((state) => state.setShortcutsOpen);
   const theme = useUiStore((state) => state.theme);
   const setTheme = useUiStore((state) => state.setTheme);
@@ -349,6 +350,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
       { id: "appearance", label: "Appearance…", run: () => setSettingsOpen(true) },
       { id: "export-all", label: "Export all notes (.zip)", run: exportAll },
       { id: "shortcuts", label: "Keyboard shortcuts", hint: "⌘/", run: () => setShortcutsOpen(true) },
+      { id: "outline", label: "Toggle outline", hint: "⌘⇧O", run: toggleOutline },
       ...(counts.trash > 0
         ? [{ id: "empty-trash", label: `Empty trash (${counts.trash})`, run: confirmEmptyTrash }]
         : []),
@@ -366,7 +368,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         : []),
       ...themeCommands,
     ];
-  }, [confirmEmptyTrash, counts.trash, createNote, exportAll, exportCurrent, focusMode, note, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, togglePin, trash]);
+  }, [confirmEmptyTrash, counts.trash, createNote, exportAll, exportCurrent, focusMode, note, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -377,6 +379,17 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         case "k":
           event.preventDefault();
           setPaletteOpen(!useUiStore.getState().paletteOpen);
+          return;
+        case "o":
+          if (event.shiftKey) {
+            event.preventDefault();
+            toggleOutline();
+            return;
+          }
+          return;
+        case "O":
+          event.preventDefault();
+          toggleOutline();
           return;
         case "/":
           event.preventDefault();
@@ -417,7 +430,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [createNote, focusPane, note, setPaletteOpen, setShortcutsOpen, toggleFocusMode, togglePin, trash]);
+  }, [createNote, focusPane, note, setPaletteOpen, setShortcutsOpen, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   // --- layout --------------------------------------------------------------
   // Container queries, not viewport media queries, so the shell stays correct

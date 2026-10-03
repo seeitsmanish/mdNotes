@@ -81,6 +81,7 @@ interface UiState {
   /** Release notes the user has not opened yet (PRD R7.3). */
   unseenRelease: boolean;
   shortcutsOpen: boolean;
+  outlineOpen: boolean;
 
   theme: ThemeChoice;
   editorWidth: EditorWidth;
@@ -102,6 +103,7 @@ interface UiState {
   setPaletteOpen: (open: boolean) => void;
   setUnseenRelease: (unseen: boolean) => void;
   setShortcutsOpen: (open: boolean) => void;
+  toggleOutline: () => void;
   setSettingsOpen: (open: boolean) => void;
   setTheme: (theme: ThemeChoice) => void;
   setEditorWidth: (width: EditorWidth) => void;
@@ -133,6 +135,7 @@ export const useUiStore = create<UiState>()(
       settingsOpen: false,
       unseenRelease: false,
       shortcutsOpen: false,
+      outlineOpen: true,
 
       theme: "forest",
       editorWidth: "regular",
@@ -153,6 +156,7 @@ export const useUiStore = create<UiState>()(
       setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
       setUnseenRelease: (unseenRelease) => set({ unseenRelease }),
       setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
+      toggleOutline: () => set((state) => ({ outlineOpen: !state.outlineOpen })),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
       setTheme: (theme) => set({ theme }),
       setEditorWidth: (editorWidth) => set({ editorWidth }),
@@ -184,6 +188,7 @@ export const useUiStore = create<UiState>()(
         fontSize: state.fontSize,
         editorFont: state.editorFont,
         focusMode: state.focusMode,
+        outlineOpen: state.outlineOpen,
       }),
     },
   ),

@@ -1,6 +1,6 @@
 {
   "name": "ursa",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "private": true,
   "description": "A web clone of Bear — tag-organised, single-pane markdown notes",
   "scripts": {
