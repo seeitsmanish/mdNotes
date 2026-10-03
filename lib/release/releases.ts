@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.12.1",
+    date: "2026-10-03",
+    title: "Long list items line up",
+    changes: [
+      "When a numbered item, bullet or to-do runs onto a second line, the second line now starts under the item's text instead of back at the left edge under the number.",
+    ],
+  },
+  {
     version: "1.12.0",
     date: "2026-10-03",
     title: "Editing on two devices no longer loses text",

@@ -132,6 +132,10 @@ entirely on whether the editor feels right.
 - R2.8 Pasting a URL over a selection makes a link of it rather than replacing
   the words.
 - R2.9 A live word count sits in the toolbar.
+- R2.10 *(v1.12.1)* A list item that wraps continues under its own text, not
+  under its number or bullet. The indent is the measured width of the visible
+  prefix in the editor's font — `14. `, `- `, or the checkbox of a to-do — so
+  it holds for any typeface, size and nesting depth.
 
 ### 4.3 Appearance
 

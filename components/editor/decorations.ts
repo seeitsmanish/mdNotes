@@ -9,6 +9,23 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import { safeExternalUrl } from "@/lib/security/urls";
+import { hangingPrefix } from "./hangingIndent";
+
+let measureCanvas: CanvasRenderingContext2D | null = null;
+
+/**
+ * Pixel width of a list item's prefix in the editor's own font, so wrapped
+ * lines hang exactly under the text (PRD R2.10). Measured rather than guessed
+ * in `ch`: in a proportional face "14. " is nowhere near four zeros wide.
+ */
+function prefixWidth(view: EditorView, text: string, extraEm: number): number {
+  const style = getComputedStyle(view.contentDOM);
+  measureCanvas ??= document.createElement("canvas").getContext("2d");
+  const fontSize = parseFloat(style.fontSize) || 16;
+  if (!measureCanvas) return text.length * fontSize * 0.5 + extraEm * fontSize;
+  measureCanvas.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  return measureCanvas.measureText(text).width + extraEm * fontSize;
+}
 
 /**
  * Live markdown styling, driven by the Lezer syntax tree.
@@ -167,6 +184,24 @@ function buildDecorations(view: EditorView): DecorationSet {
         }
 
         switch (name) {
+          case "ListItem": {
+            // Wrapped lines continue under the item's text, not under its
+            // number. Descends afterwards so the marker is still styled.
+            const line = doc.lineAt(node.from);
+            const prefix = hangingPrefix(line.text);
+            if (prefix) {
+              const px = prefixWidth(view, prefix.text, prefix.extraEm).toFixed(2);
+              ranges.push(
+                Decoration.line({
+                  attributes: {
+                    style: `padding-left: calc(1rem + ${px}px); text-indent: -${px}px`,
+                  },
+                }).range(line.from),
+              );
+            }
+            break;
+          }
+
           case "Blockquote":
             lineClass(node.from, node.to, "ursa-quote");
             return;
