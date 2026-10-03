@@ -766,6 +766,23 @@ needed `'unsafe-inline'` (audit A3).
   the editor sets style attributes, which nonces cannot cover, and a style
   cannot run code.
 
+### 4.35 Clean up unused images
+
+Deleting a note leaves its images stored, because an image may appear in
+several notes (§4.24). On a 512 MB database they would eventually crowd out
+the notes.
+
+- R35.1 The Appearance panel shows "Clean up N unused images (size)" when
+  there are any, and nothing when there are none.
+- R35.2 An image is in use if any note — trashed ones included — or any kept
+  version (§4.28) refers to it, so restoring an old version never brings back
+  a broken image.
+- R35.3 Images uploaded in the last hour are never counted: one being pasted
+  is uploaded before its note is saved.
+- R35.4 It runs only when the owner presses it, after a confirmation that
+  states the count and size, and works out the set again inside the delete's
+  transaction rather than trusting the count shown.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

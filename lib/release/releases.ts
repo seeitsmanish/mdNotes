@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.23.0",
+    date: "2026-10-03",
+    title: "Clean up images you no longer use",
+    changes: [
+      "Images left behind by deleted notes can now be cleared from Appearance, which shows how many there are and how much space they take.",
+      "Anything still shown in a note — or in an earlier version of one — is always kept.",
+    ],
+  },
+  {
     version: "1.22.0",
     date: "2026-10-03",
     title: "A tighter lock on the page",

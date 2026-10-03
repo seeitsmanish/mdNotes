@@ -1,7 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { DownloadIcon, LogOutIcon, MonitorSmartphoneIcon, RotateCcwIcon, SmartphoneIcon, UploadIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  DownloadIcon,
+  ImageOffIcon,
+  LogOutIcon,
+  MonitorSmartphoneIcon,
+  RotateCcwIcon,
+  SmartphoneIcon,
+  UploadIcon,
+} from "lucide-react";
 import { installApp, useInstallMode } from "@/lib/pwa/install";
 import { toast } from "sonner";
 import { useUnseenRelease, WhatsNew } from "./WhatsNew";
@@ -41,6 +49,11 @@ const HEADINGS: Array<{ value: HeadingMode; label: string }> = [
   { value: "text", label: "Text" },
 ];
 
+function formatSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 /** PRD §4.30. A failed request still leaves this device signed out locally. */
 async function signOut(everywhere: boolean): Promise<void> {
   try {
@@ -59,6 +72,40 @@ async function signOut(everywhere: boolean): Promise<void> {
 
 export function SettingsPanel() {
   const { unseen, markSeen } = useUnseenRelease();
+  // Unused images (PRD §4.35): counted when the panel opens; the button only
+  // appears when there is something to clean up.
+  const [unused, setUnused] = useState<{ count: number; bytes: number } | null>(null);
+  const [cleaning, setCleaning] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/attachments/unused")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((value: { count: number; bytes: number } | null) => !cancelled && setUnused(value))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const cleanUp = async () => {
+    if (!unused || cleaning) return;
+    const size = formatSize(unused.bytes);
+    const noun = unused.count === 1 ? "image" : "images";
+    if (!window.confirm(`Permanently delete ${unused.count} ${noun} (${size}) that no note or saved version uses? This cannot be undone.`)) {
+      return;
+    }
+    setCleaning(true);
+    try {
+      const response = await fetch("/api/attachments/unused", { method: "DELETE" });
+      if (!response.ok) throw new Error(`Clean-up failed (${response.status}).`);
+      const { deleted, bytes } = (await response.json()) as { deleted: number; bytes: number };
+      toast(`Deleted ${deleted} unused ${deleted === 1 ? "image" : "images"}, freeing ${formatSize(bytes)}.`);
+      setUnused({ count: 0, bytes: 0 });
+    } catch (error) {
+      toast.error("Couldn’t clean up images.", { description: error instanceof Error ? error.message : undefined });
+    } finally {
+      setCleaning(false);
+    }
+  };
   const installMode = useInstallMode();
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [importing, setImporting] = useState(false);
@@ -278,6 +325,21 @@ export function SettingsPanel() {
         <UploadIcon />
         {importing ? "Importing…" : "Import notes"}
       </Button>
+
+      {unused && unused.count > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="justify-start px-2"
+          disabled={cleaning}
+          onClick={() => void cleanUp()}
+        >
+          <ImageOffIcon />
+          {cleaning
+            ? "Cleaning up…"
+            : `Clean up ${unused.count} unused ${unused.count === 1 ? "image" : "images"} (${formatSize(unused.bytes)})`}
+        </Button>
+      )}
 
       {installMode !== "installed" && (
         <Button variant="ghost" size="sm" className="justify-start px-2" onClick={() => void installApp()}>
