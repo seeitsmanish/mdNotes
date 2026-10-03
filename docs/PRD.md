@@ -407,6 +407,25 @@ names the finding it closes.
 Not done here: revocable sessions (A5) need a schema change, and a nonce-based
 CSP needs per-request rendering. Both are listed as follow-ups in the audit.
 
+### 4.20 App icon
+
+The tab showed the browser's blank page icon, which makes Ursa hard to find
+among a row of tabs and looks unfinished on a phone's home screen.
+
+- R20.1 A distinctive icon: Ursa Major's Big Dipper, in the forest theme's
+  brand mint on its canvas colour — the name, drawn.
+- R20.2 It stays legible at 16px: few shapes, heavy strokes, no text.
+- R20.3 Served as `app/icon.svg` for current browsers, `app/favicon.ico`
+  (16 and 32px) for anything that asks for `/favicon.ico`, and a full-bleed
+  `app/apple-icon.png` at 180px, because iOS rounds the corners itself and
+  fills transparent ones with black.
+- R20.4 Icons load on the sign-in page too: the edge gate must not redirect
+  them to `/login`.
+
+Not done: the icon does not follow the chosen theme or accent colour. A
+favicon is cached aggressively and shown before any setting is read, so a
+dynamic one would flicker between colours.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.11.2-6ee7a8) ![tests](https://img.shields.io/badge/tests-174-6ee7a8)
+![version](https://img.shields.io/badge/version-1.11.3-6ee7a8) ![tests](https://img.shields.io/badge/tests-174-6ee7a8)
 
 ---
 

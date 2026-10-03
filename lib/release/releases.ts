@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.11.3",
+    date: "2026-10-03",
+    title: "An icon of its own",
+    changes: [
+      "Ursa now has an icon — the Big Dipper, from the constellation Ursa Major — so it is easy to spot among your browser tabs and looks right when added to a phone's home screen.",
+    ],
+  },
+  {
     version: "1.11.2",
     date: "2026-10-03",
     title: "Security fixes",
