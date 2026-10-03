@@ -36,6 +36,7 @@ const HIDDEN_MARKS = new Set([
   "LinkTitle",
   "CodeMark",
   "WikiLinkMark",
+  "SpoilerMark",
 ]);
 
 const HEADING_LINE: Record<string, string> = {
@@ -254,6 +255,20 @@ function buildDecorations(view: EditorView): DecorationSet {
                 attributes: { "data-ursa-wikilink": inner.trim() },
               }).range(node.from + 2, node.to - 2),
             );
+            return;
+          }
+
+          case "Spoiler": {
+            // Hidden until its line is being edited — the same bargain as
+            // every other marker, so clicking the line is how you peek.
+            if (!isRevealed(node.from, node.to)) {
+              ranges.push(
+                Decoration.mark({
+                  class: "ursa-spoiler",
+                  attributes: { title: "Click to reveal" },
+                }).range(node.from, node.to),
+              );
+            }
             return;
           }
 

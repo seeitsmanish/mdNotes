@@ -46,6 +46,7 @@ function wrap(delim: string): Command {
 export const toggleBold = wrap("**");
 export const toggleItalic = wrap("*");
 export const toggleHighlight = wrap("::");
+export const toggleSpoiler = wrap("||");
 export const toggleInlineCode = wrap("`");
 export const toggleStrike = wrap("~~");
 
@@ -202,6 +203,7 @@ export const ursaKeymap: KeyBinding[] = [
   { key: "Mod-b", run: toggleBold, preventDefault: true },
   { key: "Mod-i", run: toggleItalic, preventDefault: true },
   { key: "Mod-Shift-h", run: toggleHighlight, preventDefault: true },
+  { key: "Mod-Shift-e", run: toggleSpoiler, preventDefault: true },
   { key: "Mod-Shift-c", run: toggleInlineCode, preventDefault: true },
   { key: "Mod-Shift-x", run: toggleStrike, preventDefault: true },
   // ⌘K belongs to the command palette; the editor must not also claim it.

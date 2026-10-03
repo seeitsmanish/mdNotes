@@ -22,6 +22,8 @@ function plain(line: string): string {
     .replace(/\*\*([^*]*)\*\*/g, "$1")
     .replace(/~~([^~]*)~~/g, "$1")
     .replace(/::([^:]*)::/g, "$1")
+    // A spoiler's point is that it is hidden; the note list must not leak it.
+    .replace(/\|\|[^|\n]+\|\|/g, "▒▒▒")
     .replace(/\*([^*]*)\*/g, "$1")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\s+/g, " ")

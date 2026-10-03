@@ -436,6 +436,27 @@ Not done: the icon does not follow the chosen theme or accent colour. A
 favicon is cached aggressively and shown before any setting is read, so a
 dynamic one would flicker between colours.
 
+### 4.21 Spoilers
+
+The library is mostly question banks. A notes app can store a question and its
+answer but not *ask* it: the answer sits in plain sight the moment the note
+opens. Hiding it is the first step towards notes that test you (§4.22).
+
+- R21.1 `||text||` hides its text until the line is being edited. Clicking the
+  line reveals it; moving the caret away hides it again — the same reveal-on-
+  edit bargain as every other marker, so there is no extra state to learn.
+- R21.2 Hidden text is blurred, not blanked, so the shape of the answer — where
+  it sits, roughly how long it is — still shows.
+- R21.3 `⌘⇧E` wraps the selection in a spoiler, or unwraps it.
+- R21.4 The note list never leaks a spoiler: titles and excerpts show `▒▒▒`
+  in its place.
+- R21.5 Spoilers do not open on a spaced `a || b`, need a closer, and stay
+  literal in code, so existing notes do not suddenly hide text.
+
+Not done: spoilers inside table cells (GFM splits cells on `|` first), and
+search results still show matched text from inside a spoiler — finding a note
+by its answer is useful, and search is something you do on purpose.
+
 ## 5. Success criteria
 
 | Criterion | Measure |
