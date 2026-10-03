@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.4.0",
+    date: "2026-10-03",
+    title: "Import",
+    changes: [
+      "Import notes from a .zip of markdown files, or from loose .md files, via Appearance → Import notes.",
+      "Works with anything that exports markdown, including Bear and Obsidian, and with Ursa's own export.",
+      "Import only ever adds notes — it never overwrites an existing one, so a bad import cannot destroy your work.",
+      "You are told exactly how many notes were created and which files were skipped and why.",
+    ],
+  },
+  {
     version: "1.3.0",
     date: "2026-10-03",
     title: "Your notes, in your hands",

@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { applyBody } from "./write";
+import { deriveExcerpt, deriveTitle } from "@/lib/markdown/derive";
 import type { NoteCounts, NoteDetail, NoteFilter, NoteListItem } from "@/lib/types";
 
 /**
@@ -132,4 +133,21 @@ export async function listNotesForExport(options: { includeTrashed?: boolean } =
     orderBy: [{ updatedAt: "desc" }],
     select: { title: true, body: true, updatedAt: true },
   });
+}
+
+/**
+ * Create many notes in one transaction (PRD §4.9). Import never overwrites, so
+ * this only ever inserts — there is no merge to get wrong.
+ */
+export async function createNotesFromBodies(bodies: string[]): Promise<number> {
+  if (bodies.length === 0) return 0;
+
+  const rows = bodies.map((body) => ({
+    body,
+    title: deriveTitle(body),
+    excerpt: deriveExcerpt(body),
+  }));
+
+  const result = await prisma.note.createMany({ data: rows });
+  return result.count;
 }

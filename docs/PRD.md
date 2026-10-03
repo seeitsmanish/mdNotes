@@ -216,6 +216,26 @@ the hosted database, so export is the only recovery path that exists.
 - R8.6 Export is streamed and authenticated like every other route. An export
   endpoint that skipped the gate would hand the whole library to anyone.
 
+### 4.9 Import
+
+Export without import is a one-way door. Import also makes the Bear migration
+in §7 real: Bear exports markdown, and this reads markdown.
+
+- R9.1 Accept a `.zip` of markdown files, or loose `.md`/`.markdown`/`.txt`
+  files, in one drop.
+- R9.2 Each file becomes one note, body byte-for-byte as in the file. Title and
+  excerpt are derived on write like any other note — the filename is not the
+  title, because the heading inside the file is more reliable.
+- R9.3 **Import never overwrites.** Every file creates a new note. A merge that
+  guesses which existing note a file corresponds to will eventually guess wrong,
+  and the cost of guessing wrong is a destroyed note.
+- R9.4 Report what happened: how many notes were created, and which files were
+  skipped and why. A silent import is indistinguishable from a broken one.
+- R9.5 Non-markdown entries, directories, macOS `__MACOSX` metadata and empty
+  files are skipped rather than imported as empty notes.
+- R9.6 Bounded: a cap on file count and total size, so a large or hostile upload
+  cannot exhaust the server.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

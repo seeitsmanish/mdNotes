@@ -1,6 +1,8 @@
 "use client";
 
-import { DownloadIcon, RotateCcwIcon } from "lucide-react";
+import { useRef, useState } from "react";
+import { DownloadIcon, RotateCcwIcon, UploadIcon } from "lucide-react";
+import { toast } from "sonner";
 import { useUnseenRelease, WhatsNew } from "./WhatsNew";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -40,6 +42,48 @@ const HEADINGS: Array<{ value: HeadingMode; label: string }> = [
 
 export function SettingsPanel() {
   const { unseen, markSeen } = useUnseenRelease();
+  const fileInput = useRef<HTMLInputElement | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  async function runImport(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setImporting(true);
+
+    const body = new FormData();
+    for (const file of Array.from(files)) body.append("files", file);
+
+    try {
+      const response = await fetch("/api/import", { method: "POST", body });
+      const result = (await response.json()) as {
+        imported?: number;
+        skipped?: Array<{ path: string; reason: string }>;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        toast.error(result.error ?? "Import failed.");
+        return;
+      }
+
+      const skipped = result.skipped?.length ?? 0;
+      // A silent import is indistinguishable from a broken one (R9.4).
+      toast.success(
+        `Imported ${result.imported} ${result.imported === 1 ? "note" : "notes"}.` +
+          (skipped > 0 ? ` Skipped ${skipped}.` : ""),
+        skipped > 0
+          ? { description: result.skipped!.slice(0, 5).map((s) => `${s.path} — ${s.reason}`).join("\n") }
+          : undefined,
+      );
+      // The list is server-rendered, so it needs a reload to show the new notes.
+      setTimeout(() => window.location.reload(), 1200);
+    } catch {
+      toast.error("Could not reach the server.");
+    } finally {
+      setImporting(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
+  }
+
   const theme = useUiStore((s) => s.theme);
   const setTheme = useUiStore((s) => s.setTheme);
   const editorWidth = useUiStore((s) => s.editorWidth);
@@ -194,6 +238,25 @@ export function SettingsPanel() {
       >
         <DownloadIcon />
         Export all notes
+      </Button>
+
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".zip,.md,.markdown,.mdown,.txt"
+        multiple
+        hidden
+        onChange={(event) => void runImport(event.target.files)}
+      />
+      <Button
+        variant="ghost"
+        size="sm"
+        className="justify-start px-2"
+        disabled={importing}
+        onClick={() => fileInput.current?.click()}
+      >
+        <UploadIcon />
+        {importing ? "Importing…" : "Import notes"}
       </Button>
 
       <WhatsNew unseen={unseen} onOpen={markSeen} />
