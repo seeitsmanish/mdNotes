@@ -6,7 +6,7 @@ the caret is on.
 
 Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
-![version](https://img.shields.io/badge/version-1.15.0-6ee7a8) ![tests](https://img.shields.io/badge/tests-299-6ee7a8)
+![version](https://img.shields.io/badge/version-1.15.1-6ee7a8) ![tests](https://img.shields.io/badge/tests-304-6ee7a8)
 
 ---
 
@@ -93,7 +93,7 @@ opening it.
 |---|---|
 | `pnpm dev` | Dev server |
 | `pnpm verify` | **generate + typecheck + tests + build** — run before any deploy; CI runs it on every push |
-| `pnpm test` | 299 unit tests |
+| `pnpm test` | 304 unit tests |
 | `pnpm backup` | Download a dated backup zip to `backups/` |
 | `pnpm db:push` / `db:migrate` / `db:studio` / `db:seed` | Prisma |
 | `pnpm db:up` / `db:down` | Docker Postgres |

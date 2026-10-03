@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  Loader2Icon,
   ChevronDownIcon,
   type LucideIcon,
   PinIcon,
@@ -55,6 +56,8 @@ interface NoteListProps {
   onTrash: (note: NoteListItem) => void;
   onRestore: (note: NoteListItem) => void;
   onDeleteForever: (note: NoteListItem) => void;
+  /** Gated actions in flight, by key (PRD §4.25). */
+  pending: ReadonlySet<string>;
   onCreate: () => void;
   onEmptyTrash: () => void;
 }
@@ -73,6 +76,7 @@ export function NoteList({
   onTrash,
   onRestore,
   onDeleteForever,
+  pending,
   onCreate,
   onEmptyTrash,
 }: NoteListProps) {
@@ -127,7 +131,12 @@ export function NoteList({
           </DropdownMenu>
 
           <div className="flex items-center gap-0.5">
-            <IconAction icon={SquarePenIcon} label="New note (⌘N)" onClick={onCreate} />
+            <IconAction
+              icon={SquarePenIcon}
+              label={pending.has("create") ? "Creating a note…" : "New note (⌘N)"}
+              onClick={onCreate}
+              pending={pending.has("create")}
+            />
             <IconAction
               icon={SearchIcon}
               label="Search (⌘F)"
@@ -231,15 +240,27 @@ export function NoteList({
                   </span>
                 </button>
 
-                <span className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                <span
+                  className={`absolute right-2 top-2 flex items-center gap-0.5 transition-opacity focus-within:opacity-100 group-hover:opacity-100 ${
+                    ["pin", "trash", "restore", "delete"].some((k) => pending.has(`${k}:${note.id}`))
+                      ? "opacity-100"
+                      : "opacity-0"
+                  }`}
+                >
                   {inTrash ? (
                     <>
-                      <RowAction icon={RotateCcwIcon} label="Restore" onClick={() => onRestore(note)} />
+                      <RowAction
+                        icon={RotateCcwIcon}
+                        label="Restore"
+                        onClick={() => onRestore(note)}
+                        pending={pending.has(`restore:${note.id}`)}
+                      />
                       <RowAction
                         icon={XIcon}
                         label="Delete permanently"
                         danger
                         onClick={() => onDeleteForever(note)}
+                        pending={pending.has(`delete:${note.id}`)}
                       />
                     </>
                   ) : (
@@ -248,8 +269,15 @@ export function NoteList({
                         icon={note.pinned ? PinOffIcon : PinIcon}
                         label={note.pinned ? "Unpin" : "Pin"}
                         onClick={() => onTogglePin(note)}
+                        pending={pending.has(`pin:${note.id}`)}
                       />
-                      <RowAction icon={Trash2Icon} label="Move to trash" danger onClick={() => onTrash(note)} />
+                      <RowAction
+                        icon={Trash2Icon}
+                        label="Move to trash"
+                        danger
+                        onClick={() => onTrash(note)}
+                        pending={pending.has(`trash:${note.id}`)}
+                      />
                     </>
                   )}
                 </span>
@@ -301,11 +329,13 @@ function IconAction({
   label,
   onClick,
   active = false,
+  pending = false,
 }: {
   icon: LucideIcon;
   label: string;
   onClick: () => void;
   active?: boolean;
+  pending?: boolean;
 }) {
   return (
     <Tooltip>
@@ -316,10 +346,12 @@ function IconAction({
             size="icon-sm"
             aria-label={label}
             aria-pressed={active}
+            aria-busy={pending}
+            disabled={pending}
             onClick={onClick}
             className={active ? "bg-brand-soft text-brand" : "text-ink-soft"}
           >
-            <Icon />
+            {pending ? <Loader2Icon className="animate-spin" /> : <Icon />}
           </Button>
         }
       />
@@ -333,11 +365,13 @@ function RowAction({
   label,
   onClick,
   danger = false,
+  pending = false,
 }: {
   icon: LucideIcon;
   label: string;
   onClick: () => void;
   danger?: boolean;
+  pending?: boolean;
 }) {
   return (
     <Tooltip>
@@ -347,10 +381,12 @@ function RowAction({
             variant="outline"
             size="icon-xs"
             aria-label={label}
+            aria-busy={pending}
+            disabled={pending}
             onClick={onClick}
             className={`bg-raised shadow-sm ${danger ? "hover:text-brand" : ""}`}
           >
-            <Icon />
+            {pending ? <Loader2Icon className="animate-spin" /> : <Icon />}
           </Button>
         }
       />

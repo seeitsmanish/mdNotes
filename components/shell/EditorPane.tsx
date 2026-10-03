@@ -5,6 +5,7 @@ import type { EditorView } from "@codemirror/view";
 import {
   ChevronLeftIcon,
   GraduationCapIcon,
+  Loader2Icon,
   ListTreeIcon,
   type LucideIcon,
   PaletteIcon,
@@ -51,6 +52,9 @@ interface EditorPaneProps {
   /** Questions found in this note; the drill button shows when there are some. */
   drillCount: number;
   onDrill: () => void;
+  /** Gated actions in flight, by key, and whether the note is still loading (PRD §4.25). */
+  pending: ReadonlySet<string>;
+  loading: boolean;
 }
 
 export function EditorPane({
@@ -66,6 +70,8 @@ export function EditorPane({
   onOpenNote,
   drillCount,
   onDrill,
+  pending,
+  loading,
 }: EditorPaneProps) {
   const [stats, setStats] = useState<EditorStats>(() => measure(note?.body ?? ""));
   const [view, setView] = useState<EditorView | null>(null);
@@ -116,7 +122,12 @@ export function EditorPane({
         {note && (
           <>
             {inTrash ? (
-              <IconAction icon={RotateCcwIcon} label="Restore note" onClick={onRestore} />
+              <IconAction
+                icon={RotateCcwIcon}
+                label="Restore note"
+                onClick={onRestore}
+                pending={pending.has(`restore:${note.id}`)}
+              />
             ) : (
               <>
                 <IconAction
@@ -124,8 +135,14 @@ export function EditorPane({
                   label={note.pinned ? "Unpin note (⌘P)" : "Pin note (⌘P)"}
                   active={note.pinned}
                   onClick={onTogglePin}
+                  pending={pending.has(`pin:${note.id}`)}
                 />
-                <IconAction icon={Trash2Icon} label="Move to trash (⌘⌫)" onClick={onTrash} />
+                <IconAction
+                  icon={Trash2Icon}
+                  label="Move to trash (⌘⌫)"
+                  onClick={onTrash}
+                  pending={pending.has(`trash:${note.id}`)}
+                />
               </>
             )}
             <Separator orientation="vertical" className="mx-1 !h-4" />
@@ -181,7 +198,8 @@ export function EditorPane({
 
       <div className="flex min-h-0 flex-1">
       <div
-        className="ursa-editor-host min-h-0 flex-1"
+        className={`ursa-editor-host min-h-0 flex-1 transition-opacity duration-150 ${loading ? "opacity-55" : ""}`}
+        aria-busy={loading}
         style={
           {
             "--editor-measure": measureRem === 0 ? "none" : `${measureRem}rem`,
@@ -240,11 +258,13 @@ function IconAction({
   label,
   onClick,
   active = false,
+  pending = false,
 }: {
   icon: LucideIcon;
   label: string;
   onClick: () => void;
   active?: boolean;
+  pending?: boolean;
 }) {
   return (
     <Tooltip>
@@ -255,10 +275,12 @@ function IconAction({
             size="icon-sm"
             aria-label={label}
             aria-pressed={active}
+            aria-busy={pending}
+            disabled={pending}
             onClick={onClick}
             className={active ? "bg-brand-soft text-brand" : "text-ink-faint"}
           >
-            <Icon />
+            {pending ? <Loader2Icon className="animate-spin" /> : <Icon />}
           </Button>
         }
       />

@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.15.1",
+    date: "2026-10-03",
+    title: "Buttons that show they are working",
+    changes: [
+      "Clicking New note several times while it loads no longer creates several notes.",
+      "New note, pin, trash, restore and delete show a spinner while they work and cannot be pressed twice.",
+      "Opening a note dims the editor until it has loaded.",
+      "If one of these fails, you are told why instead of nothing happening.",
+    ],
+  },
+  {
     version: "1.15.0",
     date: "2026-10-03",
     title: "Images in your notes",

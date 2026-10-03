@@ -17,6 +17,7 @@ import { CommandPalette, type Command } from "./CommandPalette";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { DrillDialog } from "./DrillDialog";
 import { extractQuestions, type Question } from "@/lib/drill/questions";
+import { createGate } from "@/lib/async/gate";
 import { EditorPane } from "./EditorPane";
 import { NoteList } from "./NoteList";
 import { PaneDivider } from "./PaneDivider";
@@ -34,6 +35,17 @@ interface ShellProps {
 
 const SEARCH_DEBOUNCE_MS = 220;
 const NO_QUESTIONS: Question[] = [];
+
+/** What to say when a gated action fails, by the first part of its key. */
+const FAILURE: Record<string, string> = {
+  create: "Couldn’t create a note.",
+  pin: "Couldn’t change the pin.",
+  trash: "Couldn’t move the note to trash.",
+  restore: "Couldn’t restore the note.",
+  delete: "Couldn’t delete the note.",
+  "empty-trash": "Couldn’t empty the trash.",
+  link: "Couldn’t create the linked note.",
+};
 
 export function Shell({ initialNotes, initialCounts, initialSettings }: ShellProps) {
   const filter = useUiStore((state) => state.filter);
@@ -63,6 +75,24 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
   /** Questions captured when a drill starts, so the session is stable while it runs. */
   const [drill, setDrill] = useState<{ title: string; questions: Question[] } | null>(null);
   const [loading, setLoading] = useState(false);
+  /** A note is being fetched after a switch (PRD §4.25). */
+  const [noteLoading, setNoteLoading] = useState(false);
+
+  // Network actions run one at a time per key, show while they run, and say
+  // when they fail (PRD §4.25).
+  const [pending, setPending] = useState<ReadonlySet<string>>(() => new Set());
+  const gate = useMemo(
+    () =>
+      createGate({
+        onChange: (keys) => setPending(new Set(keys)),
+        onError: (key, error) => {
+          toast.error(FAILURE[key.split(":")[0] ?? ""] ?? "Something went wrong.", {
+            description: error instanceof Error ? error.message : undefined,
+          });
+        },
+      }),
+    [],
+  );
   const [debouncedQuery, setDebouncedQuery] = useState(query);
 
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -132,6 +162,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     // A superseded request must not land after the one that replaced it.
     const controller = new AbortController();
     let cancelled = false;
+    setNoteLoading(true);
 
     api
       .fetchNote(selectedNoteId, controller.signal)
@@ -152,6 +183,9 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
       })
       .catch(() => {
         if (!cancelled) setNote(null);
+      })
+      .finally(() => {
+        if (!cancelled) setNoteLoading(false);
       });
 
     return () => {
@@ -264,57 +298,67 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
 
   // --- actions -------------------------------------------------------------
 
-  const createNote = useCallback(async () => {
-    flush();
-    await discardFreshIfEmpty();
-    const { note: created } = await api.createNote();
-    freshNoteId.current = created.id;
-    versions.current.set(created.id, created.version);
+  const createNote = useCallback(
+    () =>
+      // Gated: pressing New again while the first is on its way made a note
+      // per press.
+      gate.run("create", async () => {
+        flush();
+        await discardFreshIfEmpty();
+        const { note: created } = await api.createNote();
+        freshNoteId.current = created.id;
+        versions.current.set(created.id, created.version);
 
-    if (filter === "trash") setFilter("all");
-    setNotes((prev) => [toListItem(created), ...prev]);
-    setNote(created);
-    selectNote(created.id);
-  }, [discardFreshIfEmpty, filter, flush, selectNote, setFilter]);
+        if (filter === "trash") setFilter("all");
+        setNotes((prev) => [toListItem(created), ...prev]);
+        setNote(created);
+        selectNote(created.id);
+      }),
+    [discardFreshIfEmpty, filter, flush, gate, selectNote, setFilter],
+  );
 
   const togglePin = useCallback(
-    async (target: NoteListItem | NoteDetail) => {
-      const { note: saved } = await api.patchNote(target.id, { pinned: !target.pinned });
-      setNote((prev) => (prev && prev.id === saved.id ? { ...saved, body: prev.body } : prev));
-      await refreshList();
-    },
-    [refreshList],
+    (target: NoteListItem | NoteDetail) =>
+      gate.run(`pin:${target.id}`, async () => {
+        const { note: saved } = await api.patchNote(target.id, { pinned: !target.pinned });
+        setNote((prev) => (prev && prev.id === saved.id ? { ...saved, body: prev.body } : prev));
+        await refreshList();
+      }),
+    [gate, refreshList],
   );
 
   const restore = useCallback(
-    async (target: NoteListItem | NoteDetail) => {
-      await api.restoreNote(target.id);
-      await refreshList();
-    },
-    [refreshList],
+    (target: NoteListItem | NoteDetail) =>
+      gate.run(`restore:${target.id}`, async () => {
+        await api.restoreNote(target.id);
+        await refreshList();
+      }),
+    [gate, refreshList],
   );
 
   const trash = useCallback(
-    async (target: NoteListItem | NoteDetail) => {
-      flush();
-      await api.trashNote(target.id);
-      if (selectedNoteId === target.id) selectNote(null);
-      await refreshList();
-      toast(`“${displayTitle(target.title)}” moved to trash.`, {
-        action: { label: "Undo", onClick: () => void restore(target) },
-      });
-    },
-    [flush, refreshList, restore, selectNote, selectedNoteId],
+    (target: NoteListItem | NoteDetail) =>
+      gate.run(`trash:${target.id}`, async () => {
+        flush();
+        await api.trashNote(target.id);
+        if (useUiStore.getState().selectedNoteId === target.id) selectNote(null);
+        await refreshList();
+        toast(`“${displayTitle(target.title)}” moved to trash.`, {
+          action: { label: "Undo", onClick: () => void restore(target) },
+        });
+      }),
+    [flush, gate, refreshList, restore, selectNote],
   );
 
   const deleteForever = useCallback(
-    async (target: NoteListItem | NoteDetail) => {
-      await api.deleteNoteForever(target.id);
-      if (selectedNoteId === target.id) selectNote(null);
-      await refreshList();
-      toast(`“${displayTitle(target.title)}” deleted permanently.`);
-    },
-    [refreshList, selectNote, selectedNoteId],
+    (target: NoteListItem | NoteDetail) =>
+      gate.run(`delete:${target.id}`, async () => {
+        await api.deleteNoteForever(target.id);
+        if (useUiStore.getState().selectedNoteId === target.id) selectNote(null);
+        await refreshList();
+        toast(`“${displayTitle(target.title)}” deleted permanently.`);
+      }),
+    [gate, refreshList, selectNote],
   );
 
   const onSelectNote = useCallback(
@@ -397,18 +441,18 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
         action: {
           label: "Create it",
           onClick: () => {
-            void (async () => {
+            void gate.run(`link:${normaliseTitle(title)}`, async () => {
               const { note: created } = await api.createNote();
               const result = await api.saveBody(created.id, `# ${title}\n\n`, created.version);
               versions.current.set(created.id, result.note.version);
               await refreshList();
               selectNote(created.id);
-            })();
+            });
           },
         },
       });
     },
-    [flush, notes, refreshList, selectNote],
+    [flush, gate, notes, refreshList, selectNote],
   );
 
   /** Permanent and irreversible, so it states the number first (PRD R12.2). */
@@ -419,13 +463,13 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
     if (!window.confirm(`Permanently delete ${count} ${noun} in Trash? This cannot be undone.`)) {
       return;
     }
-    void (async () => {
+    void gate.run("empty-trash", async () => {
       const { deleted } = await api.emptyTrash();
       if (selectedNoteId) selectNote(null);
       await refreshList();
       toast(`Deleted ${deleted} ${deleted === 1 ? "note" : "notes"}.`);
-    })();
-  }, [counts.trash, refreshList, selectNote, selectedNoteId]);
+    });
+  }, [counts.trash, gate, refreshList, selectNote, selectedNoteId]);
 
   // --- drill (PRD §4.23) ----------------------------------------------------
 
@@ -596,6 +640,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
           onDeleteForever={(target) => void deleteForever(target)}
           onCreate={() => void createNote()}
           onEmptyTrash={confirmEmptyTrash}
+          pending={pending}
         />
       </div>
 
@@ -634,6 +679,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
             onOpenNote={onSelectNote}
             drillCount={noteQuestionCount}
             onDrill={startDrill}
+            pending={pending}
+            loading={noteLoading}
           />
         </div>
       </div>

@@ -568,6 +568,22 @@ are, so an export references them but does not contain them); deleting a
 note does not delete its images, because one image can appear in several
 notes — orphan cleanup is a later job; no resizing handles in the editor.
 
+### 4.25 Actions that wait
+
+Every button that called the server acted instantly in the UI and then did
+nothing visible while it waited. "New note" pressed three times while a cold
+server woke up made three notes; a failure was swallowed without a word.
+
+- R25.1 Every action that waits on the network — new note, pin, trash,
+  restore, delete forever, empty trash, creating a note from a link — runs
+  one at a time per target. Pressing again while it runs does nothing; it is
+  not queued.
+- R25.2 While it runs, its button shows a spinner and is disabled; a row's
+  buttons stay visible while one of them is working.
+- R25.3 A note being opened dims the editor until it arrives.
+- R25.4 A failure says so — what failed and the server's reason — instead of
+  disappearing into the console.
+
 ## 5. Success criteria
 
 | Criterion | Measure |
