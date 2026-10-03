@@ -22,6 +22,7 @@ import { relativeTime } from "@/lib/time";
 import { EDITOR_PADDINGS, EDITOR_WIDTHS, useUiStore } from "@/lib/store/useUiStore";
 import type { NoteDetail } from "@/lib/types";
 import { SettingsPanel } from "./SettingsPanel";
+import { useUnseenRelease } from "./WhatsNew";
 
 /**
  * The right pane: a status strip above the editor, and the floating format bar
@@ -55,6 +56,7 @@ export function EditorPane({
 }: EditorPaneProps) {
   const [stats, setStats] = useState<EditorStats>(() => measure(note?.body ?? ""));
   const [view, setView] = useState<EditorView | null>(null);
+  const { unseen } = useUnseenRelease();
 
   const focusMode = useUiStore((s) => s.focusMode);
   const toggleFocusMode = useUiStore((s) => s.toggleFocusMode);
@@ -128,10 +130,16 @@ export function EditorPane({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Appearance"
-                className={settingsOpen ? "bg-brand-soft text-brand" : "text-ink-faint"}
+                aria-label={unseen ? "Appearance — new release notes" : "Appearance"}
+                className={`relative ${settingsOpen ? "bg-brand-soft text-brand" : "text-ink-faint"}`}
               >
                 <PaletteIcon />
+                {unseen && (
+                  <span
+                    aria-hidden
+                    className="absolute right-1 top-1 size-1.5 rounded-full bg-brand ring-2 ring-canvas"
+                  />
+                )}
               </Button>
             }
           />

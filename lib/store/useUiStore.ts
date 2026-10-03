@@ -78,6 +78,8 @@ interface UiState {
   focusMode: boolean;
   paletteOpen: boolean;
   settingsOpen: boolean;
+  /** Release notes the user has not opened yet (PRD R7.3). */
+  unseenRelease: boolean;
 
   theme: ThemeChoice;
   editorWidth: EditorWidth;
@@ -97,6 +99,7 @@ interface UiState {
   setListWidth: (width: number) => void;
   toggleFocusMode: () => void;
   setPaletteOpen: (open: boolean) => void;
+  setUnseenRelease: (unseen: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
   setTheme: (theme: ThemeChoice) => void;
   setEditorWidth: (width: EditorWidth) => void;
@@ -126,6 +129,7 @@ export const useUiStore = create<UiState>()(
       focusMode: false,
       paletteOpen: false,
       settingsOpen: false,
+      unseenRelease: false,
 
       theme: "forest",
       editorWidth: "regular",
@@ -144,6 +148,7 @@ export const useUiStore = create<UiState>()(
       setListWidth: (width) => set({ listWidth: clamp(width, LIST_BOUNDS.min, LIST_BOUNDS.max) }),
       toggleFocusMode: () => set((state) => ({ focusMode: !state.focusMode })),
       setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+      setUnseenRelease: (unseenRelease) => set({ unseenRelease }),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
       setTheme: (theme) => set({ theme }),
       setEditorWidth: (editorWidth) => set({ editorWidth }),

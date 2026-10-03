@@ -1,0 +1,62 @@
+/**
+ * The changelog the app shows (PRD R7.4).
+ *
+ * Deliberately hand-written and committed rather than generated from git log:
+ * commit messages are written for the repository, release notes are written for
+ * the person using the app, and conflating the two produces notes nobody reads.
+ *
+ * Newest first. The first entry's version is what "unseen" is measured against.
+ */
+
+export interface Release {
+  version: string;
+  /** ISO date, YYYY-MM-DD. */
+  date: string;
+  title: string;
+  changes: string[];
+}
+
+export const RELEASES: Release[] = [
+  {
+    version: "1.2.0",
+    date: "2026-10-03",
+    title: "Accounts of one, and a changelog",
+    changes: [
+      "The app is now password-protected and deployed, so your notes are reachable from any device.",
+      "Appearance follows you between devices — theme, accent, radius and typeface are stored server-side rather than per-browser.",
+      "Pane width, focus mode and text size stay per-device on purpose, since the right value differs between a laptop and a phone.",
+      "This dialog: see the running version and what changed in each release.",
+    ],
+  },
+  {
+    version: "1.1.0",
+    date: "2026-10-03",
+    title: "A real editor",
+    changes: [
+      "Fenced code blocks are parsed in the language they declare, so ```json is genuinely highlighted as JSON — about thirty languages, loaded on demand.",
+      "Rebuilt the editor on CodeMirror's Lezer parser: parsing is now incremental, so large notes stay responsive.",
+      "Added tables, list continuation on Enter, smart paste of links, and a floating format bar.",
+      "Search, a ⌘K command palette, focus mode, and undo when a note is trashed.",
+      "Five themes plus an accent colour picker, adjustable width, padding, text size and typeface.",
+      "Tagging was removed as a way of organising notes; #tags still style themselves but no longer file anything.",
+    ],
+  },
+  {
+    version: "1.0.0",
+    date: "2026-10-03",
+    title: "First version",
+    changes: [
+      "Single-pane markdown editing: markdown styles itself as you type, with syntax markers shown only on the line you are editing.",
+      "Notes autosave as you write — there is no save button.",
+      "Pin, trash and restore, with trash kept until you empty it.",
+    ],
+  },
+];
+
+export const CURRENT_RELEASE = RELEASES[0]!;
+
+/** Build identity, injected at build time by next.config.ts. */
+export const BUILD = {
+  version: process.env.NEXT_PUBLIC_APP_VERSION ?? CURRENT_RELEASE.version,
+  commit: process.env.NEXT_PUBLIC_COMMIT_SHA ?? "dev",
+};

@@ -182,6 +182,23 @@ the theme chosen on a laptop. v1.2 splits it by what the setting actually is.
 - R6.5 Settings live in a single row. There are no accounts (PRD §2), so a
   `userId` column would be a column of one value.
 
+### 4.7 Release notes in the app
+
+Shipping continuously is only useful if you can tell what changed. v1.2 adds a
+visible version and a changelog you read without leaving the app.
+
+- R7.1 The running version is visible in the UI, together with the commit it was
+  built from, so a bug report can name an exact build.
+- R7.2 A **What's new** dialog lists releases newest-first: version, date, and
+  what changed in plain language.
+- R7.3 A release the user has not seen is marked. The marker clears on open and
+  never nags — no modal on load.
+- R7.4 Releases are a committed, typed array, not free text scraped from git.
+  Commit messages are written for the repo; release notes are written for the
+  person using the app, and conflating them produces notes nobody can read.
+- R7.5 Every release is tagged in git, so the tag, the version in the UI and the
+  changelog entry cannot drift apart.
+
 ## 5. Success criteria
 
 | Criterion | Measure |

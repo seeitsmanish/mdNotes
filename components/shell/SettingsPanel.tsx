@@ -1,6 +1,7 @@
 "use client";
 
 import { RotateCcwIcon } from "lucide-react";
+import { useUnseenRelease, WhatsNew } from "./WhatsNew";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -38,6 +39,7 @@ const HEADINGS: Array<{ value: HeadingMode; label: string }> = [
 ];
 
 export function SettingsPanel() {
+  const { unseen, markSeen } = useUnseenRelease();
   const theme = useUiStore((s) => s.theme);
   const setTheme = useUiStore((s) => s.setTheme);
   const editorWidth = useUiStore((s) => s.editorWidth);
@@ -172,10 +174,12 @@ export function SettingsPanel() {
 
       <Separator />
 
-      <Button variant="ghost" size="sm" onClick={resetAppearance} className="justify-start">
+      <Button variant="ghost" size="sm" onClick={resetAppearance} className="justify-start px-2">
         <RotateCcwIcon />
         Reset appearance
       </Button>
+
+      <WhatsNew unseen={unseen} onOpen={markSeen} />
     </div>
   );
 }
