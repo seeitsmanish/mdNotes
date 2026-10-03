@@ -35,36 +35,44 @@ type Token =
   | { kind: "name"; value: string }
   | { kind: "op"; value: string };
 
+// Sticky (`y`) patterns match at `lastIndex` without copying the rest of the
+// string for every token — this runs on every keystroke for the whole note.
+const SPACE_Y = /\s+/y;
+const NUMBER_Y = /([$€£₹¥])?(\d{1,3}(?:,\d{3})+|\d+)?(\.\d+)?/y;
+const NAME_Y = /[A-Za-z_][A-Za-z0-9_]*/y;
+const OPERATORS = "-+*/^%(),×÷";
+
 function tokenize(source: string): Token[] | null {
   const tokens: Token[] = [];
   let i = 0;
   while (i < source.length) {
-    const rest = source.slice(i);
-    const space = /^\s+/.exec(rest);
-    if (space) {
-      i += space[0].length;
+    SPACE_Y.lastIndex = i;
+    if (SPACE_Y.test(source)) {
+      i = SPACE_Y.lastIndex;
       continue;
     }
     // A number: optional currency, digits with thousands commas, decimals.
-    const num = /^([$€£₹¥])?(\d{1,3}(?:,\d{3})+|\d+)?(\.\d+)?/.exec(rest);
+    NUMBER_Y.lastIndex = i;
+    const num = NUMBER_Y.exec(source);
     if (num && (num[2] || num[3])) {
       const digits = `${(num[2] ?? "0").replace(/,/g, "")}${num[3] ?? ""}`;
       tokens.push({ kind: "num", value: Number(digits), currency: num[1] ?? null });
-      i += num[0].length;
+      i = NUMBER_Y.lastIndex;
       continue;
     }
-    const name = /^[A-Za-z_][A-Za-z0-9_]*/.exec(rest);
+    NAME_Y.lastIndex = i;
+    const name = NAME_Y.exec(source);
     if (name) {
       // A lone `x` between numbers is multiplication: `3 x 4`.
       tokens.push(
         name[0] === "x" ? { kind: "op", value: "*" } : { kind: "name", value: name[0].toLowerCase() },
       );
-      i += name[0].length;
+      i = NAME_Y.lastIndex;
       continue;
     }
-    const op = /^[-+*/^%(),×÷]/.exec(rest);
-    if (op) {
-      const value = op[0] === "×" ? "*" : op[0] === "÷" ? "/" : op[0];
+    const ch = source[i] ?? "";
+    if (OPERATORS.includes(ch)) {
+      const value = ch === "×" ? "*" : ch === "÷" ? "/" : ch;
       tokens.push({ kind: "op", value });
       i += 1;
       continue;
