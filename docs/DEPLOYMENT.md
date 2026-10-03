@@ -82,6 +82,12 @@ rm /tmp/neon.env
 The app's runtime connection uses the **pooled** URL, which is correct — only
 schema changes need the direct one.
 
+**On every release that changes `prisma/schema.prisma`, run this step before
+deploying.** New code selecting a column the database lacks fails every note
+query. Ursa's schema changes so far are additive (a new column with a default),
+which the previous release ignores, so pushing the schema first is always safe;
+deploying first is not.
+
 ---
 
 ## 6. Deploy

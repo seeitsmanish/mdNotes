@@ -53,6 +53,7 @@ model Note {
   title     String    @default("")   // derived on write, denormalised for list queries
   excerpt   String    @default("")   // derived on write
   pinned    Boolean   @default(false)
+  version   Int       @default(0)    // body revision, conflict check on save (PRD §4.18)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt     // sync hook, PRD §7
   deletedAt DateTime?                // soft delete → Trash, also a sync hook
@@ -159,7 +160,7 @@ All JSON. Every handler is wrapped in `guarded()` from `lib/auth/session.ts` and
 | `GET` | `/api/notes` | `?filter=all\|pinned\|trash&q=` | `{ notes, counts }` — no bodies |
 | `POST` | `/api/notes` | — | created note |
 | `GET` | `/api/notes/:id` | — | full note with `body` |
-| `PATCH` | `/api/notes/:id` | `{ body?, pinned? }` | updated note; re-derives title/excerpt |
+| `PATCH` | `/api/notes/:id` | `{ body?, pinned?, baseVersion? }` | updated note; re-derives title/excerpt. **409** `{ note, copy }` when `baseVersion` is stale — the body was stored as a conflicted copy (PRD §4.18) |
 | `DELETE` | `/api/notes/:id` | `?permanent=true` | soft delete, or hard when permanent |
 | `POST` | `/api/notes/:id/restore` | — | clears `deletedAt` |
 

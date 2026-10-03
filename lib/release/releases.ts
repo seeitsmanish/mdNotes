@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.12.0",
+    date: "2026-10-03",
+    title: "Editing on two devices no longer loses text",
+    changes: [
+      "If a note was open on two devices, saving on one could silently erase what you had just written on the other. That can no longer happen.",
+      "When a device tries to save over a newer version of a note, the newer version stays and your edits are kept as a separate note named “Conflicted copy: …”, so you can compare the two and keep what you want.",
+      "The device that fell behind switches to the latest text and tells you, with a button to open your copy.",
+    ],
+  },
+  {
     version: "1.11.4",
     date: "2026-10-03",
     title: "Search finds what it was missing",

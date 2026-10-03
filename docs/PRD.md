@@ -387,14 +387,49 @@ Not done, deliberately: CI does not deploy. Deploying stays a manual step after
 a green run (AGENT-LOOP §1 ⑥), because a deploy also needs the build SHA set in
 Vercel and a read-only production check that a workflow cannot judge.
 
-### 4.18 Two devices, one note — *reverted, waiting on a schema push*
+### 4.18 Two devices, one note
 
-Built and shipped as v1.12.0 (commit `818878a`), then reverted in `7cec042`:
-it adds a `Note.version` column, `main` deploys to production on push, and the
-production schema had not been pushed, so opening and saving notes returned
-500. The full spec and code are in `818878a`. To re-land: push the schema to
-Neon (DEPLOYMENT.md §5), confirm the column exists, then
-`git revert 7cec042`, bump the version, and ship.
+*Shipped in v1.12.0, reverted within the hour because `main` deploys on push
+and production lacked the `version` column, then re-landed after the column
+was added to Neon (a tested `ALTER TABLE ... ADD COLUMN`, applied through a
+temporary branch first).*
+
+Saving was unconditional: the last request to arrive replaced the body. With
+the app open on a laptop and a phone, typing on one silently erased what the
+other had saved — the user sees no error, and the overwritten text is gone.
+The single-writer and stale-read fixes (v1.10) protect one device from itself;
+they do nothing about a second device.
+
+- R18.1 Every note carries a **version** that increases by one each time its
+  body is saved. Pinning, trashing and restoring do not change it — they cannot
+  conflict with text.
+- R18.2 A body save names the version it was edited from. The server applies it
+  only if that is still the current version, in one conditional `UPDATE`, so two
+  saves cannot both pass the check.
+- R18.3 **A stale save is never discarded.** The server keeps the newer text in
+  the note and stores the stale text as a new note headed
+  `# Conflicted copy: <title>`, in the same transaction. The response is a 409
+  carrying both. This holds even for the last save of a closing tab, whose
+  response nobody reads — which is why the copy is made on the server and not
+  by the client.
+- R18.4 The device that lost the race switches its editor to the current text
+  and says so, with a way to open its own copy. Text typed while the losing save
+  was in flight goes to the copy, not the note.
+- R18.5 The copy's heading keeps its title distinct, so it never captures
+  `[[wiki-links]]` meant for the original.
+- R18.6 A save that names no version is applied unconditionally, as before.
+  This keeps a tab opened before the upgrade working until it reloads.
+
+Deliberately not done:
+
+- **Merging.** A three-way merge of prose that guesses wrong corrupts both
+  versions, and the cost of guessing wrong is the note. Keeping both and letting
+  the person choose is slower and never destructive.
+- **Live sync.** The other device does not learn about a change until it saves
+  or reloads the note. Push updates are a larger change; this one closes the
+  data loss.
+- **Locking.** A lock held by a phone in someone's pocket would block the
+  laptop, and nothing would release it.
 
 ### 4.19 Security hardening
 

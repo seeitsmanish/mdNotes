@@ -240,9 +240,10 @@ were accurate when written and the code moves.
 1. ~~**CI.**~~ Done in v1.11.1 — `.github/workflows/verify.yml` runs
    `pnpm verify` on every push and PR (PRD §4.17). A red check means do not
    deploy.
-2. **Optimistic concurrency on save.** Built (PRD §4.18, commit `818878a`) and
-   reverted because production lacked the `version` column. Re-land per §4.18
-   once the user has pushed the schema.
+2. ~~**Optimistic concurrency on save.**~~ Done in v1.12.0 (PRD §4.18): a
+   `version` column, a conditional UPDATE, a 409, and the stale text kept as a
+   conflicted copy server-side. First shipped before the production schema had
+   the column and reverted; re-landed after the column was added on Neon.
 3. **Note history.** No revision table exists, and switching notes discards the
    editor's undo stack, so a bad paste is unrecoverable.
 4. **Postgres FTS.** Search is `ILIKE` with a 500-row cap and no `ORDER BY`;
