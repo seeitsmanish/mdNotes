@@ -152,7 +152,7 @@ those keystrokes.
 
 ## 5. API
 
-All JSON. No auth in v1 (PRD §2); every handler is a thin shell over `lib/db`.
+All JSON. Every handler is wrapped in `guarded()` from `lib/auth/session.ts` and is a thin shell over `lib/db`. See §10.
 
 | Method | Path | Body / query | Returns |
 |---|---|---|---|

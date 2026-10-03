@@ -43,7 +43,8 @@ Built with Next.js 16, CodeMirror 6 + Lezer, Postgres via Prisma, and shadcn/ui.
 
 Full requirements live in [docs/PRD.md](docs/PRD.md); architecture in
 [docs/TECH-SPEC.md](docs/TECH-SPEC.md); deploying it in
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). If you are an AI agent continuing this
+work, start with [docs/AGENT-LOOP.md](docs/AGENT-LOOP.md).
 
 ---
 
