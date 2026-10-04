@@ -30,7 +30,9 @@ const SECURITY_HEADERS = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+  // The microphone is this site's own, for voice typing and voice memos
+  // (PRD §4.72); nothing embedded may ask for it.
+  { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), payment=()" },
   // HTTPS only, for two years, on every subdomain (PRD §4.46). Vercel may add
   // its own; the app does not rely on that. Ignored by browsers over plain
   // http, so local development is unaffected.

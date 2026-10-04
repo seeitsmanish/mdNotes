@@ -1607,3 +1607,28 @@ Owner picks 3, 23, 24 and 26 from round 2.
   Ones already present by title are skipped. Daily note is what today's note
   starts from (§4.65).
 
+### 4.72 Voice typing and table tools
+
+Owner picks 4 and 6 from round 2.
+
+- R72.1 Voice typing: a microphone button in the format bar, where the browser
+  has speech recognition (Chrome, Edge, Safari incl. iPhone; not Firefox,
+  where it is hidden). Finished phrases are typed at the caret with a space
+  before them; the phrase still being heard shows in a bubble above the bar.
+  Phones end a session after a pause, so it restarts until stopped; leaving
+  the note stops it. Language follows the browser's. Blocked or missing
+  microphones say so.
+- R72.2 `Permissions-Policy` now allows the microphone for this site itself
+  (`microphone=(self)`); nothing embedded can ask for it. Camera, location
+  and payment stay off.
+- R72.3 Table tools: the format bar's table button is a menu — Insert table,
+  and with the caret in a table: add row below, add column right, delete
+  row, delete column, sort by the caret's column either way (numbers as
+  numbers, text alphabetically). The header row and a table's last column
+  cannot be deleted. The table is written back with padded, aligned columns,
+  keeping each column's alignment; the caret lands in the affected cell. One
+  undo reverts.
+- R72.4 Found while testing: closing any format-bar menu (headings, lists,
+  table) returned focus to the menu button, so the next keystroke or ⌘Z
+  missed the note. Focus now goes back to the note.
+

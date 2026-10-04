@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.59.0",
+    date: "2026-10-04",
+    title: "Voice typing and table tools",
+    changes: [
+      "Tap the microphone in the formatting bar and speak — your words are typed into the note.",
+      "The table button now edits tables too: add or delete rows and columns, and sort by a column.",
+    ],
+  },
+  {
     version: "1.58.0",
     date: "2026-10-04",
     title: "Copy code, typewriter scrolling, Vim keys, starter templates",

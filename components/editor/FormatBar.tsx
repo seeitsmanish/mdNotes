@@ -13,6 +13,8 @@ import {
   LinkIcon,
   ListIcon,
   type LucideIcon,
+  MicIcon,
+  MicOffIcon,
   SmileIcon,
   SquareCheckIcon,
   TableIcon,
@@ -22,8 +24,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import type { TableOp } from "@/lib/markdown/tableEdit";
+import { runTableOp, tableAt } from "./tableCommands";
+import { type DictationState, dictationSupported, startDictation } from "./dictation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { EMOJI_GROUPS } from "@/lib/emoji/emoji";
@@ -113,6 +120,12 @@ export function FormatBar({ view }: FormatBarProps) {
   const filePicker = useRef<HTMLInputElement | null>(null);
   const keyboardInset = useKeyboardInset();
   const strip = useScrollEdges(view);
+  const [dictation, setDictation] = useState(false);
+  const [listening, setListening] = useState<DictationState>({ listening: false, interim: "" });
+  const stopRef = useRef<(() => void) | null>(null);
+  useEffect(() => setDictation(dictationSupported()), []);
+  // Leaving the note (the bar unmounts) stops listening.
+  useEffect(() => () => stopRef.current?.(), []);
   if (!view) return null;
 
   const run = (command: (view: EditorView) => boolean) => {
@@ -125,12 +138,18 @@ export function FormatBar({ view }: FormatBarProps) {
       className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4"
       style={keyboardInset ? { bottom: `calc(0.5rem + ${keyboardInset}px)` } : undefined}
     >
+      {listening.listening && (
+        <div className="pointer-events-none absolute -top-9 left-1/2 flex max-w-[90%] -translate-x-1/2 items-center gap-2 truncate rounded-full bg-raised px-3 py-1 text-[0.8rem] text-ink-soft shadow-[var(--shadow)]">
+          <span className="size-2 flex-none animate-pulse rounded-full bg-[#e5484d]" />
+          <span className="truncate">{listening.interim || "Listening…"}</span>
+        </div>
+      )}
       <div
         ref={strip.ref}
         data-more-start={strip.edges.start ? "" : undefined}
         data-more-end={strip.edges.end ? "" : undefined}
         className="ursa-format-bar pointer-events-auto flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-raised/95 px-1.5 py-1.5 shadow-[var(--shadow)] backdrop-blur">
-        <Menu icon={HeadingIcon} label="Headings">
+        <Menu icon={HeadingIcon} label="Headings" view={view}>
           {[1, 2, 3].map((level) => (
             <DropdownMenuItem key={level} onClick={() => run(setHeading(level))}>
               <span
@@ -146,7 +165,7 @@ export function FormatBar({ view }: FormatBarProps) {
 
         <Action icon={SquareCheckIcon} label="To-do (⌘⇧7)" onClick={() => run(toggleTodo)} />
 
-        <Menu icon={ListIcon} label="Lists">
+        <Menu icon={ListIcon} label="Lists" view={view}>
           <DropdownMenuItem onClick={() => run(toggleBullet)}>Bulleted list</DropdownMenuItem>
           <DropdownMenuItem onClick={() => run(toggleTodo)}>To-do</DropdownMenuItem>
         </Menu>
@@ -180,7 +199,28 @@ export function FormatBar({ view }: FormatBarProps) {
             view.focus();
           }}
         />
-        <Action icon={TableIcon} label="Table" onClick={() => run(insertTable)} />
+        {/* Table tools (PRD §4.72): insert, or edit the table the caret is in. */}
+        <TableMenu view={view} run={run} />
+        {dictation && (
+          <Action
+            icon={listening.listening ? MicOffIcon : MicIcon}
+            label={listening.listening ? "Stop voice typing" : "Voice typing"}
+            active={listening.listening}
+            onClick={() => {
+              if (stopRef.current) {
+                stopRef.current();
+                stopRef.current = null;
+                return;
+              }
+              view.focus();
+              stopRef.current = startDictation(view, (state) => {
+                setListening(state);
+                if (!state.listening) stopRef.current = null;
+                if (state.error) toast.error(state.error);
+              });
+            }}
+          />
+        )}
         <Action icon={CodeIcon} label="Code block" onClick={() => run(insertCodeBlock)} />
       </div>
     </div>
@@ -191,10 +231,12 @@ function Action({
   icon: Icon,
   label,
   onClick,
+  active = false,
 }: {
   icon: LucideIcon;
   label: string;
   onClick: () => void;
+  active?: boolean;
 }) {
   return (
     <Tooltip>
@@ -207,7 +249,8 @@ function Action({
             // Keep focus in the document so commands apply to a live selection.
             onMouseDown={(event) => event.preventDefault()}
             onClick={onClick}
-            className="text-ink-soft"
+            aria-pressed={active || undefined}
+            className={active ? "bg-brand-soft text-brand" : "text-ink-soft"}
           >
             <Icon />
           </Button>
@@ -221,10 +264,12 @@ function Action({
 function Menu({
   icon: Icon,
   label,
+  view,
   children,
 }: {
   icon: LucideIcon;
   label: string;
+  view: EditorView;
   children: React.ReactNode;
 }) {
   return (
@@ -243,7 +288,8 @@ function Menu({
           </Button>
         }
       />
-      <DropdownMenuContent align="center" side="top" className="min-w-44">
+      {/* Back to the note, not the menu button, so typing and undo carry on there. */}
+      <DropdownMenuContent align="center" side="top" className="min-w-44" finalFocus={() => view.contentDOM}>
         {children}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -307,3 +353,35 @@ function EmojiPicker({ onPick }: { onPick: (emoji: string) => void }) {
     </Popover>
   );
 }
+
+function TableMenu({ view, run }: { view: EditorView; run: (command: (view: EditorView) => boolean) => void }) {
+  const [inTable, setInTable] = useState(false);
+  const op = (tableOp: TableOp, failure: string) => () => {
+    if (!runTableOp(view, tableOp)) toast(failure);
+    view.focus();
+  };
+  return (
+    <DropdownMenu onOpenChange={(open) => open && setInTable(tableAt(view) !== null)}>
+      <DropdownMenuTrigger
+        render={
+          <Button variant="ghost" size="icon-sm" aria-label="Table" onMouseDown={(event) => event.preventDefault()} className="text-ink-soft">
+            <TableIcon />
+          </Button>
+        }
+      />
+      <DropdownMenuContent align="center" side="top" className="min-w-52" finalFocus={() => view.contentDOM}>
+        <DropdownMenuItem onClick={() => run(insertTable)}>Insert table</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {!inTable && <p className="px-2 py-1 text-[0.72rem] text-muted-foreground">Tap inside a table to edit it.</p>}
+        <DropdownMenuItem disabled={!inTable} onClick={op({ kind: "addRow" }, "Couldn’t add a row.")}>Add row below</DropdownMenuItem>
+        <DropdownMenuItem disabled={!inTable} onClick={op({ kind: "addColumn" }, "Couldn’t add a column.")}>Add column right</DropdownMenuItem>
+        <DropdownMenuItem disabled={!inTable} onClick={op({ kind: "deleteRow" }, "The header row can’t be deleted.")}>Delete row</DropdownMenuItem>
+        <DropdownMenuItem disabled={!inTable} onClick={op({ kind: "deleteColumn" }, "A table needs at least one column.")}>Delete column</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem disabled={!inTable} onClick={op({ kind: "sort", descending: false }, "Couldn’t sort.")}>Sort by this column, A→Z / 1→9</DropdownMenuItem>
+        <DropdownMenuItem disabled={!inTable} onClick={op({ kind: "sort", descending: true }, "Couldn’t sort.")}>Sort by this column, Z→A / 9→1</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
