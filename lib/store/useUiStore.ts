@@ -103,6 +103,8 @@ interface UiState {
   readingMode: boolean;
   /** The note list and other titles blurred, for screen sharing (§4.59). */
   privacyMode: boolean;
+  /** Turn privacyMode on whenever the page goes to the background (§4.62). */
+  autoPrivacy: boolean;
 
   theme: ThemeChoice;
   editorWidth: EditorWidth;
@@ -127,6 +129,7 @@ interface UiState {
   toggleOutline: () => void;
   toggleReadingMode: () => void;
   togglePrivacyMode: () => void;
+  setAutoPrivacy: (on: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
   setTheme: (theme: ThemeChoice) => void;
   setEditorWidth: (width: EditorWidth) => void;
@@ -161,6 +164,7 @@ export const useUiStore = create<UiState>()(
       outlineOpen: true,
       readingMode: false,
       privacyMode: false,
+      autoPrivacy: true,
 
       theme: "forest",
       editorWidth: "regular",
@@ -184,6 +188,7 @@ export const useUiStore = create<UiState>()(
       toggleOutline: () => set((state) => ({ outlineOpen: !state.outlineOpen })),
       toggleReadingMode: () => set((state) => ({ readingMode: !state.readingMode })),
       togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
+      setAutoPrivacy: (autoPrivacy) => set({ autoPrivacy }),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
       setTheme: (theme) => set({ theme }),
       setEditorWidth: (editorWidth) => set({ editorWidth }),
@@ -222,6 +227,7 @@ export const useUiStore = create<UiState>()(
         outlineOpen: state.outlineOpen,
         readingMode: state.readingMode,
         privacyMode: state.privacyMode,
+        autoPrivacy: state.autoPrivacy,
       }),
     },
   ),

@@ -1354,3 +1354,22 @@ Owner question: can changing the theme recolour the favicon?
 - R61.6 Esc was re-checked in a browser: it closes the settings panel, ⌘K, menus
   and the image viewer, and leaves the open note alone.
 
+### 4.62 Hide titles when the app goes to the background
+
+Owner request: switch to the blurred list automatically when the browser goes
+to the background.
+
+- R62.1 When the page becomes hidden (another tab, another app, a minimised
+  window, a locked phone), hidden titles (§4.59) turn on.
+- R62.2 They stay hidden on return, until Show, the eye button or ⌘⇧L —
+  coming back in the middle of a screen share is exactly the moment to be
+  safe.
+- R62.3 The attribute on `<html>` is set in the event handler itself, not
+  after a re-render, so the phone's app-switcher snapshot is already blurred.
+- R62.4 On by default; Settings → "Hide titles when I leave the tab" and a ⌘K
+  command switch it off. Device-only, like hidden titles.
+- R62.5 Only page visibility counts, not window focus: a file picker or a
+  confirm dialog takes focus, and blurring the list for those would be noise.
+- R62.6 Nothing happens before the saved settings are back, so an early
+  background switch can't save defaults over them (R59.5).
+

@@ -284,6 +284,22 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     if (useUiStore.persist.hasHydrated()) apply();
     return useUiStore.persist.onFinishHydration(apply);
   }, [privacyMode]);
+
+  // Leaving the tab or app hides titles (PRD §4.62), so coming back mid-call,
+  // or the phone's app switcher, never shows the list. Set on <html> at once:
+  // the OS snapshots the page before React would re-render. Coming back
+  // leaves them hidden until Show.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState !== "hidden" || !useUiStore.persist.hasHydrated()) return;
+      const state = useUiStore.getState();
+      if (!state.autoPrivacy || state.privacyMode) return;
+      document.documentElement.setAttribute("data-ursa-privacy", "");
+      state.togglePrivacyMode();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
   // Recently opened notes for ⌘K (PRD §4.57).
   const [recentIds, setRecentIds] = useState<string[]>([]);
   useEffect(() => setRecentIds(loadRecent()), []);
@@ -938,6 +954,15 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         label: "Hide or show note titles (screen sharing)",
         hint: "⌘⇧L",
         run: () => useUiStore.getState().togglePrivacyMode(),
+      },
+      {
+        id: "auto-privacy",
+        label: "Hide titles when I leave the tab: on or off",
+        run: () => {
+          const state = useUiStore.getState();
+          state.setAutoPrivacy(!state.autoPrivacy);
+          toast(state.autoPrivacy ? "Titles stay visible when you leave the tab." : "Titles hide whenever you leave the tab.");
+        },
       },
       ...(counts.trash > 0
         ? [{ id: "empty-trash", label: `Empty trash (${counts.trash})`, run: confirmEmptyTrash }]

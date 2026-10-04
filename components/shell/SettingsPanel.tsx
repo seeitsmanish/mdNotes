@@ -44,6 +44,11 @@ const FONTS: Array<{ value: EditorFont; label: string; css: string }> = [
   { value: "mono", label: "Mono", css: "var(--font-mono)" },
 ];
 
+const ON_OFF: Array<{ value: "on" | "off"; label: string }> = [
+  { value: "off", label: "Off" },
+  { value: "on", label: "On" },
+];
+
 const HEADINGS: Array<{ value: HeadingMode; label: string }> = [
   { value: "theme", label: "Theme" },
   { value: "brand", label: "Accent" },
@@ -163,6 +168,8 @@ export function SettingsPanel() {
   const setFontSize = useUiStore((s) => s.setFontSize);
   const editorFont = useUiStore((s) => s.editorFont);
   const setEditorFont = useUiStore((s) => s.setEditorFont);
+  const autoPrivacy = useUiStore((s) => s.autoPrivacy);
+  const setAutoPrivacy = useUiStore((s) => s.setAutoPrivacy);
   const brandColor = useUiStore((s) => s.brandColor);
   const setBrandColor = useUiStore((s) => s.setBrandColor);
   const radius = useUiStore((s) => s.radius);
@@ -286,6 +293,15 @@ export function SettingsPanel() {
         options={FONTS}
         columns={3}
         onChange={setEditorFont}
+      />
+
+      {/* PRD §4.62: leaving the tab blurs note titles until Show. */}
+      <OptionGroup
+        label="Hide titles when I leave the tab"
+        value={autoPrivacy ? "on" : "off"}
+        options={ON_OFF}
+        columns={2}
+        onChange={(value) => setAutoPrivacy(value === "on")}
       />
 
       <Separator />

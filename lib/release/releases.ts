@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.49.0",
+    date: "2026-10-04",
+    title: "Titles hide when you leave the app",
+    changes: [
+      "Switch to another tab or app and your note titles blur by themselves, so coming back during a screen share — or your phone's app switcher — never shows the list. Tap Show to bring them back.",
+      "Don't want it? Settings → “Hide titles when I leave the tab” → Off.",
+    ],
+  },
+  {
     version: "1.48.0",
     date: "2026-10-04",
     title: "Tab types a tab, and a round of fixes",
