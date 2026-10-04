@@ -7,6 +7,7 @@ import { displayTitle } from "@/lib/markdown/derive";
 import { safeStem } from "@/lib/export/filename";
 import { normaliseTitle } from "@/lib/markdown/wikilink";
 import { conflictCopyBody } from "@/lib/notes/conflict";
+import { duplicateBody } from "@/lib/notes/duplicate";
 import { LIST_BOUNDS, THEMES, type SyncedSettings, useUiStore } from "@/lib/store/useUiStore";
 import { useSettingsSync } from "@/lib/store/useSettingsSync";
 import type { Clock } from "@/lib/clock";
@@ -496,6 +497,66 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
   }, [download, note]);
 
+  // --- note actions (PRD §4.40) ---------------------------------------------
+
+  /** What the editor shows now — the loaded body can be several keystrokes old. */
+  const currentText = useCallback(
+    () => (note ? (liveBody.current.get(note.id) ?? note.body) : ""),
+    [note],
+  );
+
+  const copyMarkdown = useCallback(async () => {
+    if (!note) return;
+    try {
+      await navigator.clipboard.writeText(currentText());
+      toast("Copied as Markdown.");
+    } catch {
+      toast.error("Couldn’t copy — the browser refused clipboard access.");
+    }
+  }, [currentText, note]);
+
+  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+  const shareNote = useCallback(async () => {
+    if (!note) return;
+    const text = currentText();
+    try {
+      await navigator.share({ title: displayTitle(note.title), text });
+    } catch (error) {
+      // Closing the share sheet is a choice, not a failure.
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      await copyMarkdown();
+    }
+  }, [copyMarkdown, currentText, note]);
+
+  const duplicateNote = useCallback(
+    () =>
+      note
+        ? gate.run(`duplicate:${note.id}`, async () => {
+            flush();
+            const { note: created } = await api.createNote();
+            const result = await api.saveBody(created.id, duplicateBody(currentText()), created.version);
+            versions.current.set(created.id, result.note.version);
+            if (filter === "trash") setFilter("all");
+            await refreshList();
+            selectNote(created.id);
+            toast("Duplicated — you are in the copy.");
+          })
+        : undefined,
+    [currentText, filter, flush, gate, note, refreshList, selectNote, setFilter],
+  );
+
+  /** A tapped #tag searches for it: search is how notes are found (§2). */
+  const searchTag = useCallback(
+    (tag: string) => {
+      flush();
+      setQuery(tag);
+      setSearchSignal((n) => n + 1);
+      setMobilePane("list");
+    },
+    [flush, setMobilePane, setQuery],
+  );
+
   /**
    * A wiki-link to a note that does not exist is an invitation, not an error
    * (PRD R10.3): offer to create it rather than doing nothing.
@@ -605,6 +666,12 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         : []),
       ...(note ? [{ id: "export-one", label: "Export this note (.md)", run: exportCurrent }] : []),
       ...(note ? [{ id: "history", label: "Note history…", run: openHistory }] : []),
+      ...(note
+        ? [
+            { id: "duplicate", label: "Duplicate note", run: () => void duplicateNote() },
+            { id: "copy-md", label: "Copy note as Markdown", run: () => void copyMarkdown() },
+          ]
+        : []),
       ...(installMode !== "installed"
         ? [{ id: "install", label: "Install mdNotes as an app", run: () => void installApp() }]
         : []),
@@ -621,7 +688,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         : []),
       ...themeCommands,
     ];
-  }, [confirmEmptyTrash, counts.trash, createNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [confirmEmptyTrash, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -764,6 +831,11 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
             loading={noteLoading}
             onHistory={openHistory}
             onCreate={() => void createNote()}
+            onDuplicate={() => void duplicateNote()}
+            onCopy={() => void copyMarkdown()}
+            onShare={canShare ? () => void shareNote() : undefined}
+            onDownload={exportCurrent}
+            onTag={searchTag}
           />
         </div>
       </div>

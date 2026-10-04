@@ -36,6 +36,7 @@ interface EditorProps {
   onBlur?: () => void;
   onStats?: (stats: EditorStats) => void;
   onWikiLink?: (title: string) => void;
+  onTag?: (tag: string) => void;
   /** Hands the live view out so the format bar can run commands against it. */
   onReady?: (view: EditorView | null) => void;
 }
@@ -48,14 +49,15 @@ export function Editor({
   onBlur,
   onStats,
   onWikiLink,
+  onTag,
   onReady,
 }: EditorProps) {
   const host = useRef<HTMLDivElement | null>(null);
   const view = useRef<EditorView | null>(null);
 
   // Callbacks live in a ref so changing one never rebuilds the editor state.
-  const handlers = useRef({ onChange, onBlur, onStats, onWikiLink, noteId });
-  handlers.current = { onChange, onBlur, onStats, onWikiLink, noteId };
+  const handlers = useRef({ onChange, onBlur, onStats, onWikiLink, onTag, noteId });
+  handlers.current = { onChange, onBlur, onStats, onWikiLink, onTag, noteId };
 
   useEffect(() => {
     if (!host.current) return;
@@ -94,6 +96,7 @@ type Handlers = {
     onBlur?: () => void;
     onStats?: (stats: EditorStats) => void;
     onWikiLink?: (title: string) => void;
+    onTag?: (tag: string) => void;
     noteId: string | null;
   };
 };
@@ -122,6 +125,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       calcField,
       markdownStyling({
         onWikiLink: (title) => handlers.current.onWikiLink?.(title),
+        onTag: (tag) => handlers.current.onTag?.(tag),
       }),
       smartPaste,
       imagePaste,

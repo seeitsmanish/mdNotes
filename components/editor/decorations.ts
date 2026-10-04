@@ -411,6 +411,14 @@ export interface MarkdownStyleOptions {
   onLinkClick?: (href: string) => void;
   /** A wiki-link was clicked; the shell decides whether to open or create. */
   onWikiLink?: (title: string) => void;
+  /** A #tag was tapped on a line that is not being edited (PRD R40.3). */
+  onTag?: (tag: string) => void;
+}
+
+/** `##work` and `#multi word#` search as `#work` and `#multi word`. */
+export function tagQuery(raw: string): string {
+  const inner = raw.replace(/^#+/, "").replace(/#$/, "").trim();
+  return inner ? `#${inner}` : "";
 }
 
 export function markdownStyling(options: MarkdownStyleOptions = {}) {
@@ -442,6 +450,23 @@ export function markdownStyling(options: MarkdownStyleOptions = {}) {
             if (title) {
               event.preventDefault();
               options.onWikiLink(title);
+              return true;
+            }
+          }
+
+          // A tag searches for itself — unless its line is being edited, where
+          // a tap has to place the caret like anywhere else.
+          const tag = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-ursa-tag]");
+          if (tag && options.onTag && !event.metaKey && !event.ctrlKey) {
+            const at = view.posAtDOM(tag);
+            const line = view.state.doc.lineAt(at);
+            const editing = view.hasFocus && view.state.selection.ranges.some(
+              (range) => range.head >= line.from && range.head <= line.to,
+            );
+            const query = tagQuery(tag.dataset.ursaTag ?? "");
+            if (!editing && query) {
+              event.preventDefault();
+              options.onTag(query);
               return true;
             }
           }

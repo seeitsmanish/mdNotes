@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.28.0",
+    date: "2026-10-04",
+    title: "Share, copy and duplicate a note",
+    changes: [
+      "A note's ⋯ menu can now Share it (on your phone, to any app), Copy it as Markdown, Duplicate it, or download it as a .md file.",
+      "Tap a #tag to search for every note that has it.",
+    ],
+  },
+  {
     version: "1.27.0",
     date: "2026-10-04",
     title: "mdNotes",

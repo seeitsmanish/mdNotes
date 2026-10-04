@@ -4,6 +4,9 @@ import { useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import {
   ChevronLeftIcon,
+  CopyIcon,
+  CopyPlusIcon,
+  DownloadIcon,
   EllipsisIcon,
   HistoryIcon,
   Loader2Icon,
@@ -13,6 +16,7 @@ import {
   PinIcon,
   PlusIcon,
   RotateCcwIcon,
+  ShareIcon,
   Trash2Icon,
 } from "lucide-react";
 import { NotesMark } from "@/components/brand/NotesMark";
@@ -62,6 +66,12 @@ interface EditorPaneProps {
   loading: boolean;
   onHistory: () => void;
   onCreate?: () => void;
+  onDuplicate: () => void;
+  onCopy: () => void;
+  /** Absent where the browser has no share sheet. */
+  onShare?: () => void;
+  onDownload: () => void;
+  onTag: (tag: string) => void;
 }
 
 export function EditorPane({
@@ -79,6 +89,11 @@ export function EditorPane({
   loading,
   onHistory,
   onCreate,
+  onDuplicate,
+  onCopy,
+  onShare,
+  onDownload,
+  onTag,
 }: EditorPaneProps) {
   const [stats, setStats] = useState<EditorStats>(() => measure(note?.body ?? ""));
   const [view, setView] = useState<EditorView | null>(null);
@@ -155,6 +170,19 @@ export function EditorPane({
                 />
               </>
             )}
+            <NoteMenu
+              inTrash={inTrash}
+              trashing={false}
+              duplicating={pending.has(`duplicate:${note.id}`)}
+              outlineOpen={outlineOpen}
+              onHistory={onHistory}
+              onOutline={toggleOutline}
+              onTrash={onTrash}
+              onDuplicate={onDuplicate}
+              onCopy={onCopy}
+              onShare={onShare}
+              onDownload={onDownload}
+            />
             <Separator orientation="vertical" className="mx-1 !h-4" />
           </div>
         )}
@@ -178,38 +206,20 @@ export function EditorPane({
                 pending={pending.has(`pin:${note.id}`)}
               />
             )}
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button variant="ghost" size="icon-sm" aria-label="More actions" className="text-ink-faint">
-                    {pending.has(`trash:${note.id}`) ? <Loader2Icon className="animate-spin" /> : <EllipsisIcon />}
-                  </Button>
-                }
-              />
-              <DropdownMenuContent align="end" className="min-w-48">
-                <DropdownMenuItem onClick={onHistory}>
-                  <HistoryIcon />
-                  History
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={toggleOutline}>
-                  <ListTreeIcon />
-                  {outlineOpen ? "Hide outline" : "Show outline"}
-                </DropdownMenuItem>
-                {!inTrash && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      disabled={pending.has(`trash:${note.id}`)}
-                      onClick={onTrash}
-                    >
-                      <Trash2Icon />
-                      Move to trash
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <NoteMenu
+              compact
+              inTrash={inTrash}
+              trashing={pending.has(`trash:${note.id}`)}
+              duplicating={pending.has(`duplicate:${note.id}`)}
+              outlineOpen={outlineOpen}
+              onHistory={onHistory}
+              onOutline={toggleOutline}
+              onTrash={onTrash}
+              onDuplicate={onDuplicate}
+              onCopy={onCopy}
+              onShare={onShare}
+              onDownload={onDownload}
+            />
           </div>
         )}
 
@@ -260,6 +270,7 @@ export function EditorPane({
             onBlur={onBlur}
             onStats={setStats}
             onWikiLink={onWikiLink}
+            onTag={onTag}
             onReady={setView}
           />
         ) : (
@@ -297,6 +308,95 @@ export function EditorPane({
 
       {note && !inTrash && <FormatBar view={view} />}
     </section>
+  );
+}
+
+/**
+ * The note's ⋯ menu. On a phone it also carries History, Outline and Trash,
+ * which have their own buttons on a desktop (PRD R26.7, §4.40).
+ */
+function NoteMenu({
+  compact = false,
+  inTrash,
+  trashing,
+  duplicating,
+  outlineOpen,
+  onHistory,
+  onOutline,
+  onTrash,
+  onDuplicate,
+  onCopy,
+  onShare,
+  onDownload,
+}: {
+  compact?: boolean;
+  inTrash: boolean;
+  trashing: boolean;
+  duplicating: boolean;
+  outlineOpen: boolean;
+  onHistory: () => void;
+  onOutline: () => void;
+  onTrash: () => void;
+  onDuplicate: () => void;
+  onCopy: () => void;
+  onShare?: () => void;
+  onDownload: () => void;
+}) {
+  const busy = trashing || duplicating;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button variant="ghost" size="icon-sm" aria-label="More actions" className="text-ink-faint">
+            {busy ? <Loader2Icon className="animate-spin" /> : <EllipsisIcon />}
+          </Button>
+        }
+      />
+      <DropdownMenuContent align="end" className="min-w-52">
+        {compact && (
+          <>
+            <DropdownMenuItem onClick={onHistory}>
+              <HistoryIcon />
+              History
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onOutline}>
+              <ListTreeIcon />
+              {outlineOpen ? "Hide outline" : "Show outline"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        {onShare && (
+          <DropdownMenuItem onClick={onShare}>
+            <ShareIcon />
+            Share…
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={onCopy}>
+          <CopyIcon />
+          Copy as Markdown
+        </DropdownMenuItem>
+        {!inTrash && (
+          <DropdownMenuItem disabled={duplicating} onClick={onDuplicate}>
+            <CopyPlusIcon />
+            Duplicate
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={onDownload}>
+          <DownloadIcon />
+          Download .md
+        </DropdownMenuItem>
+        {compact && !inTrash && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" disabled={trashing} onClick={onTrash}>
+              <Trash2Icon />
+              Move to trash
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

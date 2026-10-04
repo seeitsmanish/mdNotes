@@ -936,3 +936,25 @@ Renamed again by the owner (v1.27.0), to match the domain they own. Every
 user-visible "myNotes" from §4.37 now reads "mdNotes", and exports are named
 `mdnotes-<date>.zip`; the icon is unchanged. The domain is attached in Vercel
 and DNS, not in code — steps in DEPLOYMENT.md §9.
+
+### 4.40 Note actions
+
+Getting a note out of the app, or starting one from another, meant export
+(desktop-centric, a file) or select-all and copy (fiddly on a phone).
+
+- R40.1 **Duplicate** makes a new note with the same text and opens it; an
+  opening heading gets "(copy)" so the two differ in the list (never stacked
+  — a copy of a copy stays "(copy)"). It copies the editor's live text, not
+  the last saved body, and is gated like every network action (§4.25).
+- R40.2 **Copy as Markdown** puts the note's text on the clipboard.
+  **Share…** opens the system share sheet with the title and text, where the
+  browser has one (phones, Safari); closing the sheet is not an error, and a
+  failed share falls back to copying. **Download .md** is the existing
+  single-note export, now in the menu.
+- R40.3 Tapping a `#tag` searches for it — on any line not being edited, so
+  editing a tag still works. Consistent with §2: tags file nothing, and search
+  is how notes are found. `##work` searches `#work`; `#multi word#` searches
+  `#multi word`.
+- R40.4 On a phone these live in the ⋯ menu with History, Outline and Trash;
+  on a desktop a ⋯ menu sits next to Trash. Duplicate and Copy are also in the
+  command palette.

@@ -24,3 +24,13 @@ describe("headingMarkEnd", () => {
     expect(headingMarkEnd(doc, "EmphasisMark", line(4).from, line(4).from + 1)).toBe(line(4).from + 1);
   });
 });
+
+describe("tagQuery", () => {
+  it("normalises a tag into a search", async () => {
+    const { tagQuery } = await import("./decorations");
+    expect(tagQuery("#work")).toBe("#work");
+    expect(tagQuery("##work")).toBe("#work");
+    expect(tagQuery("#multi word#")).toBe("#multi word");
+    expect(tagQuery("#")).toBe("");
+  });
+});
