@@ -30,6 +30,7 @@ const LIST_FIELDS = {
   archivedAt: true,
   color: true,
   isTemplate: true,
+  locked: true,
   updatedAt: true,
   deletedAt: true,
 } as const;
@@ -45,6 +46,7 @@ type ListRow = {
   archivedAt: Date | null;
   color: string | null;
   isTemplate: boolean;
+  locked: boolean;
   updatedAt: Date;
   deletedAt: Date | null;
 };
@@ -61,6 +63,7 @@ function toListItem(row: ListRow): NoteListItem {
     archivedAt: row.archivedAt?.toISOString() ?? null,
     color: isNoteColor(row.color) ? row.color : null,
     isTemplate: row.isTemplate,
+    locked: row.locked,
     updatedAt: row.updatedAt.toISOString(),
     deletedAt: row.deletedAt?.toISOString() ?? null,
   };
@@ -151,7 +154,7 @@ export async function listNotes(options: {
   const scope = filterSql(filter, color);
   const read = (column: Prisma.Sql) =>
     prisma.$queryRaw<Array<ListRow & { body: string }>>`
-      SELECT "id", "title", "excerpt", "cover", "todoDone", "todoTotal", "pinned", "archivedAt", "color", "isTemplate", "updatedAt", "deletedAt", "body"
+      SELECT "id", "title", "excerpt", "cover", "todoDone", "todoTotal", "pinned", "archivedAt", "color", "isTemplate", "locked", "updatedAt", "deletedAt", "body"
       FROM "Note"
       WHERE ${scope}
         AND translate(${column}, ${FOLD_FROM}, ${FOLD_TO}) ILIKE ${pattern} ESCAPE '\\'

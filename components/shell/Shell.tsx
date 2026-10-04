@@ -28,6 +28,7 @@ import { applyAppearance } from "@/lib/theme";
 import { CommandPalette, type Command } from "./CommandPalette";
 import type { LabelPatch } from "./EditorPane";
 import type { BulkAction } from "./NoteList";
+import { ShareLinkDialog } from "./ShareLinkDialog";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { HistoryDialog } from "./HistoryDialog";
 import { createGate } from "@/lib/async/gate";
@@ -152,6 +153,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     applyAppearance(document.documentElement, { brandColor, radius, headingMode });
   }, [brandColor, radius, headingMode]);
 
+  const [shareLinkOpen, setShareLinkOpen] = useState(false);
   const hapticsOn = useUiStore((state) => state.haptics);
   useEffect(() => setHapticsEnabled(hapticsOn), [hapticsOn]);
 
@@ -304,6 +306,31 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     if (useUiStore.persist.hasHydrated()) apply();
     return useUiStore.persist.onFinishHydration(apply);
   }, [privacyMode]);
+
+  // A few minutes without touching the app hides titles too (PRD §4.68): a
+  // laptop left open on a desk, or a shared screen forgotten mid-call.
+  const idleHideMinutes = useUiStore((state) => state.idleHideMinutes);
+  useEffect(() => {
+    if (!idleHideMinutes) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const hide = () => {
+      const state = useUiStore.getState();
+      if (!useUiStore.persist.hasHydrated() || state.privacyMode) return;
+      document.documentElement.setAttribute("data-ursa-privacy", "");
+      state.togglePrivacyMode();
+    };
+    const reset = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(hide, idleHideMinutes * 60_000);
+    };
+    const events = ["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "scroll"] as const;
+    for (const name of events) window.addEventListener(name, reset, { passive: true, capture: true });
+    reset();
+    return () => {
+      if (timer) clearTimeout(timer);
+      for (const name of events) window.removeEventListener(name, reset, { capture: true });
+    };
+  }, [idleHideMinutes]);
 
   // Leaving the tab or app hides titles (PRD §4.62), so coming back mid-call,
   // or the phone's app switcher, never shows the list. Set on <html> at once:
@@ -1408,6 +1435,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
             onPdf={exportPdf}
             onLabels={(patch) => note && void setLabels(note, patch)}
             onUseTemplate={() => note && void newFromTemplate(note)}
+            onShareLink={() => setShareLinkOpen(true)}
             onShare={canShare ? () => void shareNote() : undefined}
             onDownload={exportCurrent}
             onTag={searchTag}
@@ -1417,6 +1445,13 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           />
         </div>
       </div>
+
+      <ShareLinkDialog
+        noteId={note?.id ?? null}
+        locked={Boolean(note?.locked)}
+        open={shareLinkOpen}
+        onOpenChange={setShareLinkOpen}
+      />
 
       {/* Focus mode hides the list entirely, so leave a way back to it. */}
       {listHidden && focusMode && (

@@ -27,6 +27,8 @@ export interface NoteListItem {
   archivedAt: string | null;
   color: NoteColor | null;
   isTemplate: boolean;
+  /** Behind the note passcode (PRD §4.69). */
+  locked: boolean;
   updatedAt: string;
   deletedAt: string | null;
   match?: SearchMatch;

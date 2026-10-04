@@ -34,6 +34,8 @@ model Note {
   color     String?
   /// A template: listed under Templates, used to start new notes (§4.65).
   isTemplate Boolean  @default(false)
+  /// Locked behind the note passcode: no preview, body only after unlocking (§4.69).
+  locked    Boolean   @default(false)
   /// Bumped on every body save; a save from an older version is refused and
   /// kept as a conflicted copy instead (PRD §4.18).
   version   Int       @default(0)
@@ -42,6 +44,7 @@ model Note {
   deletedAt DateTime?
 
   revisions NoteRevision[]
+  share     NoteShare?
 
   @@index([deletedAt, pinned, updatedAt])
 }
@@ -77,6 +80,8 @@ model Settings {
   /// ends every session at once — "sign out everywhere" (PRD §4.30). Server
   /// only: never sent to the client with the appearance settings.
   sessionEpoch  Int      @default(0)
+  /// scrypt hash of the note-lock passcode (§4.69). Server only.
+  lockHash      String?
   updatedAt     DateTime @updatedAt
 }
 
@@ -110,3 +115,13 @@ model LoginFailure {
   @@index([ip, at])
   @@index([at])
 }
+
+/// A public, read-only link to one note (§4.68). Deleting the row revokes it;
+/// the token is 128 random bits, so links cannot be guessed.
+model NoteShare {
+  token     String   @id
+  noteId    String   @unique
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+

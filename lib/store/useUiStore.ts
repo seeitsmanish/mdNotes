@@ -127,6 +127,8 @@ interface UiState {
   colorFilter: NoteColor | null;
   /** Gesture ticks on Android, and on iPhones that allow them (§4.67). */
   haptics: boolean;
+  /** Minutes without activity before titles hide; 0 is never (§4.68). */
+  idleHideMinutes: number;
 
   theme: ThemeChoice;
   editorWidth: EditorWidth;
@@ -155,6 +157,7 @@ interface UiState {
   toggleFocusDim: () => void;
   setColorFilter: (color: NoteColor | null) => void;
   setHaptics: (on: boolean) => void;
+  setIdleHideMinutes: (minutes: number) => void;
   setSettingsOpen: (open: boolean) => void;
   setTheme: (theme: ThemeChoice) => void;
   setEditorWidth: (width: EditorWidth) => void;
@@ -193,6 +196,7 @@ export const useUiStore = create<UiState>()(
       focusDim: false,
       colorFilter: null,
       haptics: true,
+      idleHideMinutes: 5,
 
       theme: "forest",
       editorWidth: "regular",
@@ -219,6 +223,7 @@ export const useUiStore = create<UiState>()(
       setAutoPrivacy: (autoPrivacy) => set({ autoPrivacy }),
       toggleFocusDim: () => set((state) => ({ focusDim: !state.focusDim })),
       setHaptics: (haptics) => set({ haptics }),
+      setIdleHideMinutes: (idleHideMinutes) => set({ idleHideMinutes }),
       setColorFilter: (colorFilter) => set({ colorFilter, selectedNoteId: null, mobilePane: "list" }),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
       setTheme: (theme) => set({ theme }),
@@ -261,6 +266,7 @@ export const useUiStore = create<UiState>()(
         autoPrivacy: state.autoPrivacy,
         focusDim: state.focusDim,
         haptics: state.haptics,
+        idleHideMinutes: state.idleHideMinutes,
       }),
     },
   ),

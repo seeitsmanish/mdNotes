@@ -49,6 +49,16 @@ const config: NextConfig = {
     return [
       { source: "/(.*)", headers: SECURITY_HEADERS },
       {
+        // Shared notes (PRD §4.68): not indexed, never cached, and the link
+        // never leaks onward in a Referer.
+        source: "/s/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
+      {
         // Never cached, so a fixed service worker reaches every installed
         // copy on its next launch (PRD §4.27).
         source: "/sw.js",

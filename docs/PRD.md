@@ -1503,3 +1503,27 @@ Owner picks 16, 17, 18 and 19.
   past a third of the width (at most 120px), returns to the list. Only
   there: Safari and Android own that edge themselves.
 
+### 4.68 Hide titles when idle, and public share links
+
+Owner picks 21 and 23. Schema (additive, rehearsed): `NoteShare` table, plus
+`Note.locked` and `Settings.lockHash` for §4.69.
+
+- R68.1 Idle: after 1, 5 (default) or 15 minutes with no pointer, key,
+  scroll or touch activity, hidden titles (§4.59) turn on, until Show.
+  Settings → "Hide titles when idle", or Never. Device-only.
+- R68.2 Share link: a note's ⋯ menu → "Share link…" makes a read-only link
+  (`/s/<token>`, 128 random bits), copies it, and offers "Stop sharing",
+  which deletes it — the link is dead at once. One link per note; it shows
+  the note as it is now, so later edits appear.
+- R68.3 The shared page is rendered on the server by the Copy as HTML
+  renderer (all text escaped, only safe links), with no app chrome, in a
+  reading face, light or dark by the visitor's system. Not indexed
+  (robots meta and X-Robots-Tag), never cached, `Referrer-Policy:
+  no-referrer` so the link does not leak onward.
+- R68.4 Images in a shared note load from `/s/<token>/a/<id>`, only when
+  that note's text references that image; never cached, so revoking stops
+  them too. The library's own image route stays behind the password.
+- R68.5 A trashed or locked note's link stops opening (404) without being
+  revoked; restoring or unlocking brings it back. Locked notes cannot get a
+  link.
+

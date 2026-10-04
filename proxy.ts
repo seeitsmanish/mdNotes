@@ -42,7 +42,9 @@ export async function proxy(request: NextRequest) {
     return response;
   };
 
-  if (PUBLIC_PATHS.has(pathname)) return pass();
+  // A shared note's page and its images are public by design (PRD §4.68);
+  // each handler checks the token itself.
+  if (PUBLIC_PATHS.has(pathname) || pathname.startsWith("/s/")) return pass();
 
   const secret = process.env.AUTH_SECRET;
   const password = process.env.APP_PASSWORD;

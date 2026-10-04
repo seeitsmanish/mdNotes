@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.55.0",
+    date: "2026-10-04",
+    title: "Share a note by link, and hide titles when idle",
+    changes: [
+      "Share link… in a note's ⋯ menu makes a read-only web page anyone with the link can open — no account needed. Stop sharing any time and the link stops working.",
+      "Titles now hide after 5 minutes without activity, like when you switch tabs. Change it, or turn it off, in Settings.",
+    ],
+  },
+  {
     version: "1.54.0",
     date: "2026-10-04",
     title: "Gestures for your phone",

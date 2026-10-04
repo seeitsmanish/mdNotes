@@ -7,6 +7,7 @@ import {
   ChevronLeftIcon,
   PencilIcon,
   ArchiveIcon,
+  Link2Icon,
   ArchiveRestoreIcon,
   LayoutTemplateIcon,
   CodeXmlIcon,
@@ -82,6 +83,8 @@ interface EditorPaneProps {
   onLabels: (patch: LabelPatch) => void;
   /** Start a new note from this template. */
   onUseTemplate: () => void;
+  /** Open the public-link dialog (PRD §4.68). */
+  onShareLink: () => void;
   /** Absent where the browser has no share sheet. */
   onShare?: () => void;
   onDownload: () => void;
@@ -118,6 +121,7 @@ export function EditorPane({
   onPdf,
   onLabels,
   onUseTemplate,
+  onShareLink,
   onShare,
   onDownload,
   onTag,
@@ -222,6 +226,7 @@ export function EditorPane({
               onPdf={onPdf}
               labels={{ archived: Boolean(note.archivedAt), color: note.color ?? null, isTemplate: Boolean(note.isTemplate) }}
               onLabels={onLabels}
+              onShareLink={onShareLink}
               onShare={onShare}
               onDownload={onDownload}
               readingMode={readingMode}
@@ -265,6 +270,7 @@ export function EditorPane({
               onPdf={onPdf}
               labels={{ archived: Boolean(note.archivedAt), color: note.color ?? null, isTemplate: Boolean(note.isTemplate) }}
               onLabels={onLabels}
+              onShareLink={onShareLink}
               onShare={onShare}
               onDownload={onDownload}
               readingMode={readingMode}
@@ -427,6 +433,7 @@ function NoteMenu({
   onPdf,
   labels,
   onLabels,
+  onShareLink,
   onShare,
   onDownload,
   readingMode,
@@ -446,6 +453,7 @@ function NoteMenu({
   onPdf: () => void;
   labels: { archived: boolean; color: NoteColor | null; isTemplate: boolean };
   onLabels: (patch: LabelPatch) => void;
+  onShareLink: () => void;
   onShare?: () => void;
   onDownload: () => void;
   readingMode: boolean;
@@ -488,6 +496,12 @@ function NoteMenu({
           <DropdownMenuItem onClick={onShare}>
             <ShareIcon />
             Share…
+          </DropdownMenuItem>
+        )}
+        {!inTrash && (
+          <DropdownMenuItem onClick={onShareLink}>
+            <Link2Icon />
+            Share link…
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onCopy}>

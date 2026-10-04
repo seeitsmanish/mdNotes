@@ -45,6 +45,13 @@ const ON_OFF: Array<{ value: "on" | "off"; label: string }> = [
   { value: "on", label: "On" },
 ];
 
+const IDLE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "0", label: "Never" },
+  { value: "1", label: "1 min" },
+  { value: "5", label: "5 min" },
+  { value: "15", label: "15 min" },
+];
+
 const HEADINGS: Array<{ value: HeadingMode; label: string }> = [
   { value: "theme", label: "Theme" },
   { value: "brand", label: "Accent" },
@@ -167,6 +174,8 @@ export function SettingsPanel() {
   const autoPrivacy = useUiStore((s) => s.autoPrivacy);
   const focusDim = useUiStore((s) => s.focusDim);
   const haptics = useUiStore((s) => s.haptics);
+  const idleHideMinutes = useUiStore((s) => s.idleHideMinutes);
+  const setIdleHideMinutes = useUiStore((s) => s.setIdleHideMinutes);
   const setHaptics = useUiStore((s) => s.setHaptics);
   const toggleFocusDim = useUiStore((s) => s.toggleFocusDim);
   const setAutoPrivacy = useUiStore((s) => s.setAutoPrivacy);
@@ -320,6 +329,14 @@ export function SettingsPanel() {
         options={ON_OFF}
         columns={2}
         onChange={(value) => setAutoPrivacy(value === "on")}
+      />
+
+      <OptionGroup
+        label="Hide titles when idle"
+        value={String(idleHideMinutes)}
+        options={IDLE_OPTIONS}
+        columns={4}
+        onChange={(value) => setIdleHideMinutes(Number(value))}
       />
 
       <Separator />
