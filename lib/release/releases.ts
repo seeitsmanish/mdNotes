@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.63.0",
+    date: "2026-10-04",
+    title: "Two-step sign-in",
+    changes: [
+      "Settings → Two-step sign-in: after your password, mdNotes asks for a code from an authenticator app on your phone, so a leaked password alone can't get in.",
+      "You get ten recovery codes when you turn it on — keep them safe, they're the way back in if you lose your phone.",
+    ],
+  },
+  {
     version: "1.62.0",
     date: "2026-10-04",
     title: "Import from Keep, Evernote and Notion",

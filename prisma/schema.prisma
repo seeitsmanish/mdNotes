@@ -82,6 +82,14 @@ model Settings {
   sessionEpoch  Int      @default(0)
   /// scrypt hash of the note-lock passcode (§4.69). Server only.
   lockHash      String?
+  /// Two-step sign-in (§4.76), all server only: the authenticator secret
+  /// (base32), one being set up but not yet confirmed, SHA-256 hashes of the
+  /// unused recovery codes (JSON), and the last code's time step, so a code
+  /// cannot be used twice.
+  totpSecret    String?
+  totpPending   String?
+  recoveryCodes String?
+  totpLastStep  Int      @default(0)
   updatedAt     DateTime @updatedAt
 }
 

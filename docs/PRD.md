@@ -1704,3 +1704,26 @@ Owner pick 18 from round 2. Settings → Import notes now takes:
   the bytes, 4 MB each) and the import's 50 MB decompressed budget. As
   before, import only ever adds notes; it never changes existing ones.
 
+### 4.76 Two-step sign-in
+
+Owner pick 19 from round 2. Schema (additive, rehearsed): `Settings.totpSecret`,
+`totpPending`, `recoveryCodes`, `totpLastStep` — server only; the settings API
+returns appearance columns by name, so none can reach a browser.
+
+- R76.1 Settings → Two-step sign-in → Set up shows a QR code (and the key as
+  text) for any authenticator app; the first correct code turns it on. Ten
+  single-use recovery codes are shown once, to copy; only their SHA-256
+  hashes are kept. Turning it on signs out every other device (the session
+  epoch is raised) and re-issues this browser's session.
+- R76.2 Sign-in: the right password then asks for the 6-digit code (or "Lost
+  your phone? Use a recovery code"). Asking is not a failure; a wrong code
+  counts against the same per-address limit as a wrong password (10 in 10
+  minutes). The password is kept while the code is asked for, never shown.
+- R76.3 TOTP per RFC 6238 (HMAC-SHA1, 30 s, 6 digits), accepting the
+  neighbouring step either side for clock drift. Each accepted code's step is
+  recorded atomically, so a code cannot be used twice; a recovery code is
+  deleted on use, under a row lock.
+- R76.4 Turning it off needs a current code or a recovery code. If every
+  recovery code and the phone are lost, it can only be turned off in the
+  database (DEPLOYMENT.md): there is no email to reset through.
+

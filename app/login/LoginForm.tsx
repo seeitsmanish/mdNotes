@@ -23,6 +23,10 @@ export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const [password, setPassword] = useState("");
+  // Two-step sign-in (PRD §4.76): after the right password, a code.
+  const [needsCode, setNeedsCode] = useState(false);
+  const [code, setCode] = useState("");
+  const [recovery, setRecovery] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -35,11 +39,18 @@ export function LoginForm() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify(needsCode ? { password, code } : { password }),
       });
 
       if (!response.ok) {
-        const detail = (await response.json().catch(() => null)) as { error?: string } | null;
+        const detail = (await response.json().catch(() => null)) as { error?: string; needsCode?: boolean } | null;
+        if (detail?.needsCode) {
+          // The password was right: keep it, ask for the code.
+          if (needsCode) setError(detail.error ?? "That code isn’t right.");
+          setNeedsCode(true);
+          setCode("");
+          return;
+        }
         setError(detail?.error ?? "Could not sign in.");
         setPassword("");
         return;
@@ -68,23 +79,52 @@ export function LoginForm() {
         <div className="mb-4 flex flex-col items-center gap-2 text-center">
           <NotesMark size={44} className="mb-1" />
           <h1 className="text-[1.15rem] font-semibold tracking-tight text-ink">mdNotes</h1>
-          <p className="text-[0.76rem] text-ink-faint">Enter the password to continue.</p>
+          <p className="text-[0.76rem] text-ink-faint">
+            {needsCode
+              ? recovery
+                ? "Enter one of your recovery codes."
+                : "Enter the 6-digit code from your authenticator app."
+              : "Enter the password to continue."}
+          </p>
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="password" className="sr-only">
-            Password
-          </Label>
-          <Input
-            id="password"
-            type="password"
-            autoFocus
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Password"
-            aria-invalid={error ? true : undefined}
-          />
+          {needsCode ? (
+            <>
+              <Label htmlFor="code" className="sr-only">
+                {recovery ? "Recovery code" : "Code"}
+              </Label>
+              <Input
+                id="code"
+                key={recovery ? "recovery" : "totp"}
+                autoFocus
+                inputMode={recovery ? "text" : "numeric"}
+                autoComplete="one-time-code"
+                maxLength={recovery ? 11 : 6}
+                value={code}
+                onChange={(event) => setCode(recovery ? event.target.value : event.target.value.replace(/\D/g, ""))}
+                placeholder={recovery ? "abcde-fghij" : "123456"}
+                className="text-center tracking-[0.3em]"
+                aria-invalid={error ? true : undefined}
+              />
+            </>
+          ) : (
+            <>
+              <Label htmlFor="password" className="sr-only">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                autoFocus
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Password"
+                aria-invalid={error ? true : undefined}
+              />
+            </>
+          )}
 
           {error && (
             <p role="alert" className="text-[0.74rem] text-destructive">
@@ -92,9 +132,26 @@ export function LoginForm() {
             </p>
           )}
 
-          <Button type="submit" disabled={pending || password.length === 0} className="mt-1 w-full">
-            {pending ? "Checking…" : "Sign in"}
+          <Button
+            type="submit"
+            disabled={pending || password.length === 0 || (needsCode && code.trim().length < (recovery ? 10 : 6))}
+            className="mt-1 w-full"
+          >
+            {pending ? "Checking…" : needsCode ? "Continue" : "Sign in"}
           </Button>
+          {needsCode && (
+            <button
+              type="button"
+              onClick={() => {
+                setRecovery((value) => !value);
+                setCode("");
+                setError(null);
+              }}
+              className="text-[0.72rem] text-ink-faint underline-offset-2 hover:text-ink hover:underline"
+            >
+              {recovery ? "Use the authenticator app instead" : "Lost your phone? Use a recovery code"}
+            </button>
+          )}
         </div>
       </form>
     </main>

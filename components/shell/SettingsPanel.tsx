@@ -14,6 +14,7 @@ import { installApp, useInstallMode } from "@/lib/pwa/install";
 import { toast } from "sonner";
 import { useUnseenRelease, WhatsNew } from "./WhatsNew";
 import { WebClipper } from "./WebClipper";
+import { TwoStepSettings } from "./TwoStepSettings";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -381,6 +382,8 @@ export function SettingsPanel() {
       </Button>
 
       <WebClipper />
+
+      <TwoStepSettings />
 
       <input
         ref={fileInput}

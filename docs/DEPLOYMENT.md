@@ -161,6 +161,17 @@ are all relative to whatever host serves it.
 The `*.vercel.app` address keeps working. `pnpm backup` now defaults to
 `https://www.mdnotes.in`; set `URSA_URL` to back up from another host.
 
+## Locked out of two-step sign-in
+
+If the phone with the authenticator app and every recovery code are lost,
+turn two-step sign-in off in the database (Neon's SQL editor):
+
+```sql
+UPDATE "Settings" SET "totpSecret" = NULL, "totpPending" = NULL, "recoveryCodes" = NULL, "totpLastStep" = 0;
+```
+
+Then sign in with the password alone, and set it up again from Settings.
+
 ## Troubleshooting
 
 | Symptom | Cause |

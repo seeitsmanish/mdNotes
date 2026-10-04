@@ -79,3 +79,66 @@ export async function setLockHash(lockHash: string): Promise<void> {
   });
 }
 
+/** Two-step sign-in state (PRD §4.76). Server only. */
+export async function getTotpState(): Promise<{ secret: string | null; pending: string | null; lastStep: number; recovery: string[] }> {
+  const row = await prisma.settings.findUnique({
+    where: { id: SINGLETON },
+    select: { totpSecret: true, totpPending: true, totpLastStep: true, recoveryCodes: true },
+  });
+  let recovery: string[] = [];
+  try {
+    recovery = row?.recoveryCodes ? (JSON.parse(row.recoveryCodes) as string[]) : [];
+  } catch {
+    recovery = [];
+  }
+  return { secret: row?.totpSecret ?? null, pending: row?.totpPending ?? null, lastStep: row?.totpLastStep ?? 0, recovery };
+}
+
+export async function setTotpPending(pending: string | null): Promise<void> {
+  await prisma.settings.upsert({
+    where: { id: SINGLETON },
+    update: { totpPending: pending },
+    create: { id: SINGLETON, ...DEFAULT_SETTINGS, totpPending: pending },
+  });
+}
+
+export async function enableTotp(secret: string, step: number, recoveryHashes: string[]): Promise<void> {
+  await prisma.settings.update({
+    where: { id: SINGLETON },
+    data: { totpSecret: secret, totpPending: null, totpLastStep: step, recoveryCodes: JSON.stringify(recoveryHashes) },
+  });
+}
+
+export async function disableTotp(): Promise<void> {
+  await prisma.settings.update({
+    where: { id: SINGLETON },
+    data: { totpSecret: null, totpPending: null, totpLastStep: 0, recoveryCodes: null },
+  });
+}
+
+/** Records a used code's step; false if a code from this step or later was already used (a replay). */
+export async function consumeStep(step: number): Promise<boolean> {
+  const result = await prisma.settings.updateMany({
+    where: { id: SINGLETON, totpLastStep: { lt: step } },
+    data: { totpLastStep: step },
+  });
+  return result.count === 1;
+}
+
+/** Uses up a recovery code by its hash; false if it is not (or no longer) there. */
+export async function consumeRecovery(hash: string): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const rows = await tx.$queryRaw<Array<{ recoveryCodes: string | null }>>`
+      SELECT "recoveryCodes" FROM "Settings" WHERE "id" = ${SINGLETON} FOR UPDATE`;
+    let codes: string[] = [];
+    try {
+      codes = rows[0]?.recoveryCodes ? (JSON.parse(rows[0].recoveryCodes) as string[]) : [];
+    } catch {
+      return false;
+    }
+    if (!codes.includes(hash)) return false;
+    await tx.settings.update({ where: { id: SINGLETON }, data: { recoveryCodes: JSON.stringify(codes.filter((c) => c !== hash)) } });
+    return true;
+  });
+}
+

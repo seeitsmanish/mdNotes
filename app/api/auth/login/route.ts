@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE, SESSION_TTL_SECONDS, safeEqual, sessionKey, signToken } from "@/lib/auth/token";
-import { getSessionEpoch } from "@/lib/db/settings";
+import { safeEqual } from "@/lib/auth/token";
+import { getTotpState } from "@/lib/db/settings";
+import { issueSession } from "@/lib/auth/issue";
+import { checkSecondFactor } from "@/lib/auth/secondFactor";
 import { clientIp } from "@/lib/auth/clientIp";
 import { clearFailures, isLimited, recordFailure } from "@/lib/db/loginFailures";
 import { crossSiteRefusal, isCrossSiteWrite } from "@/lib/security/origin";
@@ -31,8 +33,11 @@ export async function POST(request: Request) {
   }
 
   let submitted: unknown;
+  let code: unknown;
   try {
-    submitted = (await request.json())?.password;
+    const body = (await request.json()) as { password?: unknown; code?: unknown };
+    submitted = body?.password;
+    code = body?.code;
   } catch {
     return NextResponse.json({ error: "Body must be JSON." }, { status: 400 });
   }
@@ -42,16 +47,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Wrong password." }, { status: 401 });
   }
 
+  // Two-step sign-in (PRD §4.76): the right password then asks for a code.
+  // Asking is not a failure; a wrong code is, and counts like a wrong password.
+  const totp = await getTotpState();
+  if (totp.secret) {
+    if (typeof code !== "string" || !code.trim()) {
+      return NextResponse.json({ needsCode: true, error: "Enter the 6-digit code from your authenticator app." }, { status: 401 });
+    }
+    const used = await checkSecondFactor(totp.secret, totp.lastStep, code);
+    if (!used) {
+      await recordFailure(ip);
+      return NextResponse.json({ needsCode: true, error: "That code isn’t right. Codes change every 30 seconds." }, { status: 401 });
+    }
+  }
+
   await clearFailures(ip);
 
   const response = NextResponse.json({ ok: true });
-  const token = await signToken(sessionKey(secret, password), await getSessionEpoch());
-  response.cookies.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_TTL_SECONDS,
-  });
+  await issueSession(response);
   return response;
 }
