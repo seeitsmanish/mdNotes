@@ -2,6 +2,17 @@ import type { NoteCounts, NoteDetail, NoteFilter, NoteListItem } from "./types";
 
 /** Thin client over the route handlers in app/api (docs/TECH-SPEC.md §5). */
 
+/** A failed request, carrying the HTTP status so callers need not parse messages. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
@@ -10,8 +21,9 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const detail = await response.json().catch(() => null);
-    throw new Error(
+    throw new ApiError(
       (detail as { error?: string } | null)?.error ?? `Request failed (${response.status}).`,
+      response.status,
     );
   }
 

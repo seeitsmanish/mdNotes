@@ -10,6 +10,7 @@ import { conflictCopyBody } from "@/lib/notes/conflict";
 import { duplicateBody } from "@/lib/notes/duplicate";
 import { markdownToHtml } from "@/lib/export/toHtml";
 import { shouldAdopt, shouldResync } from "@/lib/notes/resync";
+import { createOutbox, replayPlan, UNKNOWN_BASE } from "@/lib/notes/outbox";
 import { LIST_BOUNDS, THEMES, type SyncedSettings, useUiStore } from "@/lib/store/useUiStore";
 import { useSettingsSync } from "@/lib/store/useSettingsSync";
 import type { Clock } from "@/lib/clock";
@@ -248,6 +249,19 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
    */
   const versions = useRef(new Map<string, number>());
 
+  /** Unconfirmed edits kept on the device (PRD §4.55); a ref for callbacks made earlier. */
+  const outbox = useMemo(
+    () => createOutbox(typeof window === "undefined" ? null : (() => {
+      try {
+        return window.localStorage;
+      } catch {
+        return null;
+      }
+    })()),
+    [],
+  );
+  const outboxRef = useRef(outbox);
+
   const onConflict = useCallback((id: string, current: NoteDetail, copy: NoteDetail) => {
     versions.current.set(id, current.version);
     versions.current.set(copy.id, copy.version);
@@ -255,7 +269,12 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     // Anything typed while the losing save was in flight was built on the
     // losing text too, so it follows that text to the copy (R18.4).
     const newer = takePendingRef.current(id);
-    if (newer !== undefined) queueRef.current(copy.id, conflictCopyBody(newer));
+    if (newer !== undefined) {
+      // The device copy follows the text to the copy too (PRD §4.55).
+      outboxRef.current.remove(id);
+      outboxRef.current.put(copy.id, conflictCopyBody(newer), copy.version);
+      queueRef.current(copy.id, conflictCopyBody(newer));
+    }
 
     // Replacing the body resets the editor to the current text.
     liveBody.current.set(id, current.body);
@@ -281,6 +300,9 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           reportError(error, "autosave");
           throw error;
         });
+        // Either way the text is now on the server — in the note, or kept as
+        // its conflicted copy — so the device copy of it can go.
+        outbox.settle(id, body);
         if (result.status === "conflict") {
           onConflict(id, result.note, result.copy);
           return;
@@ -294,7 +316,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         setNote((prev) => (prev && prev.id === saved.id ? { ...saved, body: prev.body } : prev));
         setNotes((prev) => prev.map((row) => (row.id === saved.id ? toListItem(saved) : row)));
       },
-      [onConflict],
+      [onConflict, outbox],
     ),
     useMemo(
       () => ({
@@ -322,10 +344,11 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   const onBodyChange = useCallback(
     (id: string, body: string) => {
       liveBody.current.set(id, body);
+      outbox.put(id, body, versions.current.get(id) ?? null);
       if (freshNoteId.current === id && body.length > 0) freshNoteId.current = null;
       queue(id, body);
     },
-    [queue],
+    [outbox, queue],
   );
 
   const discardFreshIfEmpty = useCallback(async () => {
@@ -340,6 +363,60 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       // A failed cleanup is harmless — the note stays as an empty row.
     }
   }, [selectNote]);
+
+  // --- edits written offline (PRD §4.55) -------------------------------------
+
+  // On launch, anything still in the device outbox was never confirmed —
+  // typed offline, or the tab closed first. Each goes back through autosave
+  // with the version it was built on, so a clash becomes a conflicted copy.
+  useEffect(() => {
+    const entries = outbox.all();
+    if (entries.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      let restored = 0;
+      for (const entry of entries) {
+        if (cancelled) return;
+        let server: NoteDetail | null = null;
+        try {
+          server = (await api.fetchNote(entry.id)).note;
+        } catch (error) {
+          // Only a note that is truly gone is recreated; a network failure
+          // leaves the entry for the next launch.
+          if (!(error instanceof api.ApiError && error.status === 404)) continue;
+        }
+        const plan = replayPlan(entry, server);
+        if (plan === "drop") {
+          outbox.remove(entry.id);
+          continue;
+        }
+        if (plan === "recreate") {
+          const { note: created } = await api.createNote();
+          await api.saveBody(created.id, entry.body, created.version);
+          outbox.remove(entry.id);
+          restored += 1;
+          continue;
+        }
+        // An unknown base can only be safe as a conflict. The largest Int the
+        // column holds passes validation and never matches a real version.
+        versions.current.set(entry.id, entry.base ?? UNKNOWN_BASE);
+        liveBody.current.set(entry.id, entry.body);
+        setNote((prev) => (prev && prev.id === entry.id ? { ...prev, body: entry.body } : prev));
+        queueRef.current(entry.id, entry.body);
+        restored += 1;
+      }
+      if (cancelled) return;
+      if (restored > 0) {
+        await refreshList().catch(() => undefined);
+        toast(`Synced ${restored} ${restored === 1 ? "note" : "notes"} you edited offline.`);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Once per launch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- coming back (PRD §4.42) -----------------------------------------------
 

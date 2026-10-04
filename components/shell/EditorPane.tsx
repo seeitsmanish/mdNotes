@@ -148,7 +148,12 @@ export function EditorPane({
             </>
           )}
           {saveStatus === "failed" && (
-            <span className="ml-2 text-brand">Couldn’t save — retrying on next edit.</span>
+            <span className="ml-2 text-brand">Couldn’t save — retrying.</span>
+          )}
+          {saveStatus === "offline" && (
+            <span className="ml-2 text-brand" data-ursa-offline="">
+              Offline — kept on this device, will sync.
+            </span>
           )}
         </span>
 

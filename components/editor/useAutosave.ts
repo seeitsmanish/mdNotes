@@ -16,7 +16,8 @@ const DEBOUNCE_MS = 400;
 const RETRY_BASE_MS = 1000;
 const RETRY_MAX_MS = 30_000;
 
-export type SaveStatus = "idle" | "saving" | "failed";
+/** "offline": a save failed while the browser reports no connection (PRD §4.55). */
+export type SaveStatus = "idle" | "saving" | "failed" | "offline";
 
 export interface AutosaveOptions {
   /**
@@ -51,6 +52,12 @@ export function useAutosave(
     const body = pending.current.get(id);
     if (body === undefined) return;
     if (inFlight.current.has(id)) return; // picked up when the current save lands
+    // Known to be offline: do not send a request that cannot land. The text
+    // stays pending (and in the device outbox); "online" sends it (§4.55).
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setStatus("offline");
+      return;
+    }
 
     pending.current.delete(id);
     inFlight.current.add(id);
@@ -65,7 +72,7 @@ export function useAutosave(
       // Put the body back so the next flush retries it rather than losing it.
       if (!pending.current.has(id)) pending.current.set(id, body);
       failures.current.set(id, (failures.current.get(id) ?? 0) + 1);
-      setStatus("failed");
+      setStatus(typeof navigator !== "undefined" && navigator.onLine === false ? "offline" : "failed");
     } finally {
       inFlight.current.delete(id);
       inFlightBody.current.delete(id);
@@ -119,6 +126,17 @@ export function useAutosave(
     },
     [flushOne],
   );
+
+  // Back online: send everything now rather than waiting out the backoff,
+  // which may have grown to 30s while the connection was down (PRD §4.55).
+  useEffect(() => {
+    const onOnline = () => {
+      failures.current.clear();
+      for (const id of [...pending.current.keys()]) void flushOne(id);
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [flushOne]);
 
   // Closing the tab mid-sentence must cost at most the debounce window, which
   // is the "no data loss" line in the PRD's success criteria.

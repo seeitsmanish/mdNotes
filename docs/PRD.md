@@ -1202,3 +1202,38 @@ far along they were.
 - R54.2 An image's alt text shows as a small italic caption under it — but
   only words someone wrote: filenames, camera names (`IMG_2041`), generic
   words ("image", "screenshot") and upload placeholders are not shown.
+
+### 4.55 Writing offline never loses text
+
+Autosave retried a failed save, but only while the tab lived: on a phone the
+browser may close a background tab or kill the installed app, and anything
+typed without a connection went with it (the unload keepalive fails offline
+too).
+
+- R55.1 Every edit is also written to a device outbox (localStorage, which is
+  synchronous, so a closing tab cannot interrupt the write) with the note
+  version it was built on. It is removed when the server confirms that exact
+  text — in the note, or kept as its conflicted copy.
+- R55.2 On launch, each outbox entry is checked against the server: text the
+  server already has is dropped (no duplicate when a save landed but its
+  reply did not); a note deleted meanwhile is recreated with the text;
+  anything else goes back through autosave with its original base version,
+  so a clash with edits from another device becomes a conflicted copy
+  (§4.18), never an overwrite. A replayed note already on screen switches to
+  the device text first. A toast says how many notes were synced.
+- R55.3 While the browser reports no connection, a failed save shows
+  "Offline — kept on this device, will sync" instead of an error, and saving
+  resumes the moment the connection returns rather than after the backoff.
+- R55.4 Text moved to a conflicted copy takes its device copy with it.
+- R55.5 Storage that is full or blocked (private mode) silently falls back to
+  the in-memory autosave; typing never fails because of it.
+- R55.6 While the browser reports no connection, autosave does not send
+  requests that cannot land; it waits for "online". A save started as a page
+  closed can still be delivered when the network returns, ahead of the next
+  launch's replay — then the replay finds the text already saved and drops it,
+  and whichever of two clashing saves lands second becomes the conflicted
+  copy. Verified as an invariant, not an order: both texts always survive,
+  with exactly one conflicted copy and no duplicates.
+
+Not yet: opening the app with no connection at all still shows the offline
+page — caching the app shell and notes for offline reading is the next step.
