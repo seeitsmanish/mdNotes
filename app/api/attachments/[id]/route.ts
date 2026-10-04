@@ -25,8 +25,7 @@ async function handleGET(request: Request, { params }: Params) {
     "content-disposition": "inline",
     "accept-ranges": "bytes",
   };
-  // Voice memos (PRD §4.74): Safari plays audio only from a server that
-  // answers byte ranges.
+  // Byte ranges, which media players ask for (kept from §4.74).
   const range = byteRange(request.headers.get("range"), attachment.bytes.byteLength);
   if (range) {
     const [start, end] = range;

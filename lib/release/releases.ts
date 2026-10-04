@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.65.0",
+    date: "2026-10-04",
+    title: "Voice features removed",
+    changes: [
+      "Voice typing and voice memos have been removed — the browser's speech service couldn't be reached on your devices. The microphone key on your phone's keyboard still types by voice anywhere, mdNotes included.",
+    ],
+  },
+  {
     version: "1.64.1",
     date: "2026-10-04",
     title: "Voice typing keeps listening",

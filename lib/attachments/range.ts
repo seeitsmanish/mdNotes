@@ -1,7 +1,7 @@
 /**
  * A single `Range: bytes=…` request, as [start, end] inclusive, or null to
  * send the whole file (no header, several ranges, or one that makes no
- * sense). PRD §4.74.
+ * sense). Kept from voice memos (§4.74, removed): media players use ranges.
  */
 export function byteRange(header: string | null, size: number): [number, number] | null {
   if (!header || size === 0) return null;

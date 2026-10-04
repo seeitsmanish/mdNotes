@@ -7,7 +7,7 @@ import { parse as parseFrontmatter } from "@/lib/export/frontmatter";
 import { readEntryBytesCapped, readEntryCapped } from "@/lib/export/unzip";
 import { archiveEntryId, fromArchive } from "@/lib/export/attachments";
 import { createAttachment } from "@/lib/db/attachments";
-import { attachmentUrl, MAX_ATTACHMENT_BYTES, sniffAttachment } from "@/lib/attachments/sniff";
+import { attachmentUrl, MAX_ATTACHMENT_BYTES, sniffImage } from "@/lib/attachments/sniff";
 import { enexToNote, parseEnex } from "@/lib/import/enex";
 import { keepToNote, type KeepNote, parseKeep } from "@/lib/import/keep";
 import { IMAGE_FILE, relativeImages, rewriteImages } from "@/lib/import/relative";
@@ -54,9 +54,9 @@ async function handlePOST(request: Request) {
   const keepNotes: Array<{ path: string; note: KeepNote }> = [];
 
   let storedCount = 0;
-  /** One image or recording stored as an attachment, through the upload checks. */
+  /** One image stored as an attachment, through the upload checks. */
   const store = async (bytes: Uint8Array | null, path: string): Promise<string | null> => {
-    const mime = bytes ? sniffAttachment(bytes) : null;
+    const mime = bytes ? sniffImage(bytes) : null;
     if (!bytes || !mime) {
       imageSkips.push({ path, reason: bytes ? "not a supported image" : "image too large" });
       return null;
@@ -195,7 +195,7 @@ async function handlePOST(request: Request) {
   for (const note of enexNotes) {
     const urls = new Map<string, string>();
     for (const resource of note.resources) {
-      if (!/^(image|audio)\//.test(resource.mime) || resource.bytes.byteLength > MAX_ATTACHMENT_BYTES) continue;
+      if (!/^image\//.test(resource.mime) || resource.bytes.byteLength > MAX_ATTACHMENT_BYTES) continue;
       const id = await store(resource.bytes, `${note.title || "note"} (attachment)`);
       if (id) urls.set(resource.hash, attachmentUrl(id));
     }

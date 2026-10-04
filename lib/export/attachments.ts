@@ -12,7 +12,7 @@
 
 const APP_URL = /\/api\/attachments\/([a-z0-9]{20,40})/g;
 /** `attachments/<id>.<ext>`, optionally written `./attachments/…`. */
-const ARCHIVE_PATH = /(?:\.\/)?attachments\/([a-z0-9]{20,40})\.(webp|png|jpe?g|gif|webm|m4a|ogg|mp3)/gi;
+const ARCHIVE_PATH = /(?:\.\/)?attachments\/([a-z0-9]{20,40})\.(webp|png|jpe?g|gif)/gi;
 
 export const ARCHIVE_DIR = "attachments";
 
@@ -21,10 +21,6 @@ const EXTENSIONS: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/gif": "gif",
-  "audio/webm": "webm",
-  "audio/mp4": "m4a",
-  "audio/ogg": "ogg",
-  "audio/mpeg": "mp3",
 };
 
 export function extensionFor(mime: string): string {
@@ -58,6 +54,6 @@ export function fromArchive(body: string, newIds: Map<string, string>): string {
 
 /** The old id an archive entry carries, if the entry is an exported image. */
 export function archiveEntryId(path: string): string | null {
-  const match = /(?:^|\/)attachments\/([a-z0-9]{20,40})\.(webp|png|jpe?g|gif|webm|m4a|ogg|mp3)$/i.exec(path);
+  const match = /(?:^|\/)attachments\/([a-z0-9]{20,40})\.(webp|png|jpe?g|gif)$/i.exec(path);
   return match?.[1] ?? null;
 }

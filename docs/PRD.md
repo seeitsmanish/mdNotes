@@ -1609,6 +1609,9 @@ Owner picks 3, 23, 24 and 26 from round 2.
 
 ### 4.72 Voice typing and table tools
 
+*(v1.65.0: voice typing removed at the owner's request — see R72.5. The
+table tools stay.)*
+
 Owner picks 4 and 6 from round 2.
 
 - R72.1 Voice typing: a microphone button in the format bar, where the browser
@@ -1634,7 +1637,14 @@ Owner picks 4 and 6 from round 2.
   message carries the browser's error code, so a report says exactly what
   went wrong. The on-device retry of R72.1a is dropped: it needed language
   packs that are rarely installed.
-- R72.2 `Permissions-Policy` now allows the microphone for this site itself
+- R72.5 *(v1.65.0)* Removed, with voice memos (§4.74). Every browser the
+  owner used answered `network`: the built-in recognisers send audio to
+  Google's or Apple's servers, which in-app browsers and some Chromium
+  browsers cannot reach, and no change in the app can fix that. Offered a
+  server-side transcription service or an on-device model instead; the
+  owner chose removal. The keyboard's own microphone covers dictation.
+  `Permissions-Policy` is back to `microphone=()`.
+- R72.2 *(Superseded by R72.5.)* `Permissions-Policy` now allows the microphone for this site itself
   (`microphone=(self)`); nothing embedded can ask for it. Camera, location
   and payment stay off.
 - R72.3 Table tools: the format bar's table button is a menu — Insert table,
@@ -1674,6 +1684,10 @@ Owner picks 15 and 16 from round 2.
   Share sheet.
 
 ### 4.74 Voice memos
+
+*(Removed in v1.65.0 with voice typing, at the owner's request — R72.5. The
+recorder, the in-note player and audio uploads are gone; byte-range answers
+on the attachment route stay, as any media player uses them.)*
 
 Owner pick 17 from round 2.
 

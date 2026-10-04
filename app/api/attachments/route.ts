@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { guarded } from "@/lib/auth/session";
 import { createAttachment } from "@/lib/db/attachments";
-import { attachmentUrl, MAX_ATTACHMENT_BYTES, sniffAttachment } from "@/lib/attachments/sniff";
+import { attachmentUrl, MAX_ATTACHMENT_BYTES, sniffImage } from "@/lib/attachments/sniff";
 
-/** Upload one image (PRD §4.24) or voice memo (§4.74). Returns the URL to write into the note. */
+/** Upload one image (PRD §4.24). Returns the URL to write into the note. */
 async function handlePOST(request: Request) {
   let form: FormData;
   try {
@@ -17,15 +17,15 @@ async function handlePOST(request: Request) {
     return NextResponse.json({ error: "No file was uploaded." }, { status: 400 });
   }
   if (file.size > MAX_ATTACHMENT_BYTES) {
-    return NextResponse.json({ error: "The file is larger than 4 MB." }, { status: 413 });
+    return NextResponse.json({ error: "Image is larger than 4 MB." }, { status: 413 });
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   // The type is read from the bytes; the client's claim is ignored (R24.4).
-  const mime = sniffAttachment(bytes);
+  const mime = sniffImage(bytes);
   if (!mime) {
     return NextResponse.json(
-      { error: "Only PNG, JPEG, GIF and WebP images, and voice recordings, can be added." },
+      { error: "Only PNG, JPEG, GIF and WebP images can be added." },
       { status: 415 },
     );
   }
