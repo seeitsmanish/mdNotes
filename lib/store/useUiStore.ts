@@ -40,7 +40,22 @@ export const THEMES: Array<{ value: ThemeChoice; label: string; dark: boolean }>
 ];
 
 export type EditorWidth = "narrow" | "regular" | "wide" | "full";
-export type EditorFont = "sans" | "serif" | "mono";
+export type EditorFont = "sans" | "serif" | "mono" | "literata" | "atkinson" | "nunito" | "plex";
+
+/**
+ * Typefaces for writing (PRD §4.64). The first three are the device's own;
+ * the rest ship with the app (self-hosted, so the CSP and offline use hold)
+ * and only download once picked.
+ */
+export const EDITOR_FONTS: Array<{ value: EditorFont; label: string; css: string }> = [
+  { value: "sans", label: "Sans", css: "var(--font-sans)" },
+  { value: "serif", label: "Serif", css: "var(--font-serif)" },
+  { value: "mono", label: "Mono", css: "var(--font-mono)" },
+  { value: "literata", label: "Literata", css: '"Literata Variable", var(--font-serif)' },
+  { value: "atkinson", label: "Atkinson", css: '"Atkinson Hyperlegible", var(--font-sans)' },
+  { value: "nunito", label: "Nunito", css: '"Nunito Variable", var(--font-sans)' },
+  { value: "plex", label: "Plex Mono", css: '"IBM Plex Mono", var(--font-mono)' },
+];
 
 export const EDITOR_WIDTHS: Array<{ value: EditorWidth; label: string; rem: number }> = [
   { value: "narrow", label: "Narrow", rem: 34 },
@@ -105,6 +120,8 @@ interface UiState {
   privacyMode: boolean;
   /** Turn privacyMode on whenever the page goes to the background (§4.62). */
   autoPrivacy: boolean;
+  /** Fade every paragraph but the one being written (§4.64). */
+  focusDim: boolean;
 
   theme: ThemeChoice;
   editorWidth: EditorWidth;
@@ -130,6 +147,7 @@ interface UiState {
   toggleReadingMode: () => void;
   togglePrivacyMode: () => void;
   setAutoPrivacy: (on: boolean) => void;
+  toggleFocusDim: () => void;
   setSettingsOpen: (open: boolean) => void;
   setTheme: (theme: ThemeChoice) => void;
   setEditorWidth: (width: EditorWidth) => void;
@@ -165,6 +183,7 @@ export const useUiStore = create<UiState>()(
       readingMode: false,
       privacyMode: false,
       autoPrivacy: true,
+      focusDim: false,
 
       theme: "forest",
       editorWidth: "regular",
@@ -189,6 +208,7 @@ export const useUiStore = create<UiState>()(
       toggleReadingMode: () => set((state) => ({ readingMode: !state.readingMode })),
       togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
       setAutoPrivacy: (autoPrivacy) => set({ autoPrivacy }),
+      toggleFocusDim: () => set((state) => ({ focusDim: !state.focusDim })),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
       setTheme: (theme) => set({ theme }),
       setEditorWidth: (editorWidth) => set({ editorWidth }),
@@ -228,6 +248,7 @@ export const useUiStore = create<UiState>()(
         readingMode: state.readingMode,
         privacyMode: state.privacyMode,
         autoPrivacy: state.autoPrivacy,
+        focusDim: state.focusDim,
       }),
     },
   ),

@@ -1406,3 +1406,28 @@ Link titles:
   256KB read cap, HTML only. Only the title is returned. og:title is
   preferred over `<title>`.
 
+### 4.64 Diagrams, PDF export, more typefaces, focus dimming
+
+Owner picks 6, 22, 24 and 25.
+
+- R64.1 Diagrams: a ```mermaid block draws as a diagram while the caret is
+  outside it; clicking it shows the source, like tables. Mermaid loads only
+  when a note has a diagram. Strict security level, so labels cannot carry
+  HTML or click handlers. A mistake shows Mermaid's message instead of a
+  blank. The / menu inserts a starter flowchart. Copy as HTML and PDF keep
+  the source as a code block.
+- R64.2 Export as PDF, in a note's ⋯ menu and ⌘K: the note is rendered with
+  the Copy as HTML renderer into a print-only container and the browser's
+  print dialog opens, where every platform can save a PDF. Book-like face,
+  white page, code and tables kept whole across pages, callouts keep their
+  colour. The file is named after the note.
+- R64.3 Typefaces: Literata (book serif), Atkinson Hyperlegible (made for
+  legibility), Nunito (rounded) and IBM Plex Mono join Sans, Serif and Mono.
+  Self-hosted from npm (fontsource), so the CSP's `font-src 'self'` and
+  offline use hold; a face downloads only once it is used. Synced between
+  devices like the other appearance settings.
+- R64.4 Focus dimming: with it on, every paragraph but the caret's fades
+  while the editor has focus. A paragraph is the run of non-blank lines, so a
+  list reads as one thought. Off by default; Settings and ⌘K switch it.
+  Device-only.
+

@@ -45,6 +45,7 @@ export const SLASH_ITEMS: SlashItem[] = [
   { id: "callout-tip", label: "Callout: tip", keywords: "callout note info box admonition", insert: "> [!tip] ‸" },
   { id: "callout-warning", label: "Callout: warning", keywords: "callout caution box admonition", insert: "> [!warning] ‸" },
   { id: "callout-note", label: "Callout: note", keywords: "callout info box admonition", insert: "> [!note] ‸" },
+  { id: "diagram", label: "Diagram", keywords: "mermaid flowchart chart graph sequence", insert: "```mermaid\nflowchart LR\n  ‸Idea‸ --> Draft --> Publish\n```" },
   { id: "code", label: "Code block", keywords: "fence pre snippet", insert: "```‸\n\n```" },
   { id: "table", label: "Table", keywords: "grid", insert: "| ‸Column‸ | Column |\n| --- | --- |\n|  |  |" },
   { id: "divider", label: "Divider", keywords: "hr rule line separator", insert: "---\n‸" },

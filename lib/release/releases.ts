@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.51.0",
+    date: "2026-10-04",
+    title: "Diagrams, PDF export, new fonts and focus dimming",
+    changes: [
+      "Draw diagrams from text: type /diagram, or write a ```mermaid block, and it becomes a flowchart. Click it to edit.",
+      "Export as PDF from a note's ⋯ menu — a clean, printable page named after the note.",
+      "Four new typefaces in Settings: Literata, Atkinson Hyperlegible, Nunito and IBM Plex Mono.",
+      "Focus dimming (Settings or ⌘K): paragraphs you aren't writing fade while you type.",
+    ],
+  },
+  {
     version: "1.50.0",
     date: "2026-10-04",
     title: "Callout boxes, and links that name themselves",

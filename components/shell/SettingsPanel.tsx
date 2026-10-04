@@ -26,7 +26,7 @@ import {
   FONT_SIZE,
   RADIUS,
   THEMES,
-  type EditorFont,
+  EDITOR_FONTS,
   type HeadingMode,
   useUiStore,
 } from "@/lib/store/useUiStore";
@@ -38,11 +38,7 @@ import {
  * host as a custom property — no component re-themes itself.
  */
 
-const FONTS: Array<{ value: EditorFont; label: string; css: string }> = [
-  { value: "sans", label: "Sans", css: "var(--font-sans)" },
-  { value: "serif", label: "Serif", css: "var(--font-serif)" },
-  { value: "mono", label: "Mono", css: "var(--font-mono)" },
-];
+const FONTS = EDITOR_FONTS;
 
 const ON_OFF: Array<{ value: "on" | "off"; label: string }> = [
   { value: "off", label: "Off" },
@@ -169,6 +165,8 @@ export function SettingsPanel() {
   const editorFont = useUiStore((s) => s.editorFont);
   const setEditorFont = useUiStore((s) => s.setEditorFont);
   const autoPrivacy = useUiStore((s) => s.autoPrivacy);
+  const focusDim = useUiStore((s) => s.focusDim);
+  const toggleFocusDim = useUiStore((s) => s.toggleFocusDim);
   const setAutoPrivacy = useUiStore((s) => s.setAutoPrivacy);
   const brandColor = useUiStore((s) => s.brandColor);
   const setBrandColor = useUiStore((s) => s.setBrandColor);
@@ -291,8 +289,18 @@ export function SettingsPanel() {
         label="Typeface"
         value={editorFont}
         options={FONTS}
-        columns={3}
+        columns={4}
         onChange={setEditorFont}
+      />
+
+      <OptionGroup
+        label="Fade other paragraphs while writing"
+        value={focusDim ? "on" : "off"}
+        options={ON_OFF}
+        columns={2}
+        onChange={(value) => {
+          if ((value === "on") !== focusDim) toggleFocusDim();
+        }}
       />
 
       {/* PRD §4.62: leaving the tab blurs note titles until Show. */}

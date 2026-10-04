@@ -612,6 +612,35 @@ input[type="search"]::-webkit-search-cancel-button {
   box-shadow: inset 2px 0 0 var(--border-strong);
 }
 
+/* Diagrams (PRD §4.64). */
+.ursa-mermaid {
+  margin: 0.4em var(--line-pad);
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--raised);
+  overflow-x: auto;
+  text-align: center;
+  font-size: 0.85em;
+  color: var(--ink-faint);
+  cursor: text;
+}
+.ursa-mermaid svg { max-width: 100%; height: auto; }
+.ursa-mermaid-error { color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.85em; }
+
+/* Focus dimming (PRD §4.64): while writing, every paragraph but the caret's
+   fades. Only while the editor has focus, so reading a note is unaffected. */
+[data-ursa-dim] .cm-editor.cm-focused .cm-line {
+  opacity: 0.3;
+  transition: opacity 0.25s ease;
+}
+[data-ursa-dim] .cm-editor.cm-focused .cm-line.ursa-current {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-ursa-dim] .cm-editor .cm-line { transition: none; }
+}
+
 /* Callout boxes (PRD §4.63). One hue per kind, mixed into the theme's canvas
    so the tint works on light and dark alike; the label carries the hue. */
 .ursa-callout { --callout: #4f8ff7; }
@@ -1355,3 +1384,35 @@ input[type="search"]::-webkit-search-cancel-button {
     padding-right: env(safe-area-inset-right);
   }
 }
+
+/* Export as PDF (PRD §4.64): only the rendered note prints, on white, in a
+   book-like face. Elsewhere the container is never shown. */
+#ursa-print { display: none; }
+@media print {
+  html.ursa-printing body > *:not(#ursa-print) { display: none !important; }
+  html.ursa-printing, html.ursa-printing body { background: #fff !important; color: #111 !important; height: auto; overflow: visible; }
+  @page { margin: 18mm 16mm; }
+  #ursa-print {
+    display: block;
+    font-family: "Literata Variable", "Iowan Old Style", Georgia, serif;
+    font-size: 11pt;
+    line-height: 1.55;
+    color: #111;
+  }
+  #ursa-print h1, #ursa-print h2, #ursa-print h3 { font-family: var(--font-sans); line-height: 1.25; break-after: avoid; }
+  #ursa-print h1 { font-size: 20pt; margin: 0 0 10pt; }
+  #ursa-print h2 { font-size: 15pt; margin: 16pt 0 6pt; }
+  #ursa-print h3 { font-size: 12.5pt; margin: 12pt 0 4pt; }
+  #ursa-print p, #ursa-print li { orphans: 3; widows: 3; }
+  #ursa-print a { color: #1a5fb4; text-decoration: underline; }
+  #ursa-print pre { background: #f4f4f6; border: 1px solid #ddd; border-radius: 6px; padding: 8pt 10pt; white-space: pre-wrap; font-size: 9.5pt; break-inside: avoid; }
+  #ursa-print code { font-family: var(--font-mono); font-size: 0.9em; }
+  #ursa-print :not(pre) > code { background: #f1f1f3; padding: 0 3px; border-radius: 3px; }
+  #ursa-print blockquote { margin: 8pt 0; padding-left: 10pt; border-left: 3px solid #ccc; color: #444; }
+  #ursa-print aside { break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #ursa-print table { border-collapse: collapse; width: 100%; font-size: 10pt; break-inside: avoid; }
+  #ursa-print th, #ursa-print td { border: 1px solid #ccc; padding: 4pt 6pt; text-align: left; }
+  #ursa-print img { max-width: 100%; break-inside: avoid; }
+  #ursa-print hr { border: 0; border-top: 1px solid #ccc; margin: 14pt 0; }
+}
+

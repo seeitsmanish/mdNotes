@@ -7,6 +7,7 @@ import {
   ChevronLeftIcon,
   PencilIcon,
   CodeXmlIcon,
+  FileDownIcon,
   CopyIcon,
   CopyPlusIcon,
   DownloadIcon,
@@ -37,7 +38,7 @@ import { Editor, type EditorStats, measure } from "@/components/editor/Editor";
 import { FormatBar } from "@/components/editor/FormatBar";
 import type { SaveStatus } from "@/components/editor/useAutosave";
 import { relativeTime } from "@/lib/time";
-import { EDITOR_PADDINGS, EDITOR_WIDTHS, useUiStore } from "@/lib/store/useUiStore";
+import { EDITOR_FONTS, EDITOR_PADDINGS, EDITOR_WIDTHS, useUiStore } from "@/lib/store/useUiStore";
 import type { NoteDetail } from "@/lib/types";
 import { Backlinks } from "./Backlinks";
 import { Outline } from "./Outline";
@@ -72,6 +73,7 @@ interface EditorPaneProps {
   onDuplicate: () => void;
   onCopy: () => void;
   onCopyHtml: () => void;
+  onPdf: () => void;
   /** Absent where the browser has no share sheet. */
   onShare?: () => void;
   onDownload: () => void;
@@ -99,6 +101,7 @@ export function EditorPane({
   onDuplicate,
   onCopy,
   onCopyHtml,
+  onPdf,
   onShare,
   onDownload,
   onTag,
@@ -122,6 +125,7 @@ export function EditorPane({
   const editorPadding = useUiStore((s) => s.editorPadding);
   const fontSize = useUiStore((s) => s.fontSize);
   const editorFont = useUiStore((s) => s.editorFont);
+  const focusDim = useUiStore((s) => s.focusDim);
 
   const inTrash = note?.deletedAt != null;
   const measureRem = EDITOR_WIDTHS.find((o) => o.value === editorWidth)?.rem ?? 44;
@@ -199,6 +203,7 @@ export function EditorPane({
               onDuplicate={onDuplicate}
               onCopy={onCopy}
               onCopyHtml={onCopyHtml}
+              onPdf={onPdf}
               onShare={onShare}
               onDownload={onDownload}
               readingMode={readingMode}
@@ -239,6 +244,7 @@ export function EditorPane({
               onDuplicate={onDuplicate}
               onCopy={onCopy}
               onCopyHtml={onCopyHtml}
+              onPdf={onPdf}
               onShare={onShare}
               onDownload={onDownload}
               readingMode={readingMode}
@@ -270,18 +276,14 @@ export function EditorPane({
       <div className="flex min-h-0 flex-1">
       <div
         className={`ursa-editor-host min-h-0 min-w-0 flex-1 transition-opacity duration-150 ${loading ? "opacity-55" : ""}`}
+        data-ursa-dim={focusDim ? "" : undefined}
         aria-busy={loading}
         style={
           {
             "--editor-measure": measureRem === 0 ? "none" : `${measureRem}rem`,
             "--editor-pad": `${padRem}rem`,
             "--editor-size": `${fontSize}px`,
-            "--editor-family":
-              editorFont === "serif"
-                ? "var(--font-serif)"
-                : editorFont === "mono"
-                  ? "var(--font-mono)"
-                  : "var(--font-sans)",
+            "--editor-family": (EDITOR_FONTS.find((f) => f.value === editorFont) ?? EDITOR_FONTS[0]!).css,
           } as React.CSSProperties
         }
       >
@@ -374,6 +376,7 @@ function NoteMenu({
   onDuplicate,
   onCopy,
   onCopyHtml,
+  onPdf,
   onShare,
   onDownload,
   readingMode,
@@ -390,6 +393,7 @@ function NoteMenu({
   onDuplicate: () => void;
   onCopy: () => void;
   onCopyHtml: () => void;
+  onPdf: () => void;
   onShare?: () => void;
   onDownload: () => void;
   readingMode: boolean;
@@ -441,6 +445,10 @@ function NoteMenu({
         <DropdownMenuItem onClick={onCopyHtml}>
           <CodeXmlIcon />
           Copy as HTML
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onPdf}>
+          <FileDownIcon />
+          Export as PDF
         </DropdownMenuItem>
         {!inTrash && (
           <DropdownMenuItem disabled={duplicating} onClick={onDuplicate}>

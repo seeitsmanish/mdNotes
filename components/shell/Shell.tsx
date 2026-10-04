@@ -8,6 +8,7 @@ import { safeStem } from "@/lib/export/filename";
 import { normaliseTitle } from "@/lib/markdown/wikilink";
 import { conflictCopyBody } from "@/lib/notes/conflict";
 import { duplicateBody } from "@/lib/notes/duplicate";
+import { printHtml } from "@/lib/export/print";
 import { markdownToHtml } from "@/lib/export/toHtml";
 import { shouldAdopt, shouldResync } from "@/lib/notes/resync";
 import { createOutbox, replayPlan, UNKNOWN_BASE } from "@/lib/notes/outbox";
@@ -745,6 +746,11 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     }
   }, [currentText, note]);
 
+  const exportPdf = useCallback(() => {
+    if (!note) return;
+    printHtml(displayTitle(note.title), markdownToHtml(currentText(), { origin: window.location.origin }));
+  }, [currentText, note]);
+
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   const shareNote = useCallback(async () => {
@@ -948,6 +954,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       { id: "export-all", label: "Export all notes (.zip)", run: exportAll },
       { id: "shortcuts", label: "Keyboard shortcuts", hint: "⌘/", run: () => setShortcutsOpen(true) },
       { id: "outline", label: "Toggle outline", hint: "⌘⇧O", run: toggleOutline },
+      { id: "focus-dim", label: "Toggle focus dimming (fade other paragraphs)", run: () => useUiStore.getState().toggleFocusDim() },
       { id: "reading", label: "Toggle reading mode", run: () => useUiStore.getState().toggleReadingMode() },
       {
         id: "privacy",
@@ -974,6 +981,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
             { id: "duplicate", label: "Duplicate note", run: () => void duplicateNote() },
             { id: "copy-md", label: "Copy note as Markdown", run: () => void copyMarkdown() },
             { id: "copy-html", label: "Copy note as HTML", run: () => void copyHtml() },
+            { id: "pdf", label: "Export note as PDF", run: exportPdf },
           ]
         : []),
       ...(installMode !== "installed"
@@ -992,7 +1000,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         : []),
       ...themeCommands,
     ];
-  }, [confirmEmptyTrash, copyHtml, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [confirmEmptyTrash, copyHtml, exportPdf, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1148,6 +1156,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
             onDuplicate={() => void duplicateNote()}
             onCopy={() => void copyMarkdown()}
             onCopyHtml={() => void copyHtml()}
+            onPdf={exportPdf}
             onShare={canShare ? () => void shareNote() : undefined}
             onDownload={exportCurrent}
             onTag={searchTag}

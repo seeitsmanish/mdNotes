@@ -1,5 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+// Writing typefaces (PRD §4.64): @font-face rules only; a file downloads the
+// first time a note is shown in that face.
+import "@fontsource-variable/literata";
+import "@fontsource-variable/literata/wght-italic.css";
+import "@fontsource/atkinson-hyperlegible/400.css";
+import "@fontsource/atkinson-hyperlegible/400-italic.css";
+import "@fontsource/atkinson-hyperlegible/700.css";
+import "@fontsource-variable/nunito";
+import "@fontsource-variable/nunito/wght-italic.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/400-italic.css";
+import "@fontsource/ibm-plex-mono/600.css";
 import type { CSSProperties } from "react";
 import { headers } from "next/headers";
 import { TooltipProvider } from "@/components/ui/tooltip";

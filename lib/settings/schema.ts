@@ -37,7 +37,7 @@ const ALLOWED = {
   headingMode: ["theme", "brand", "text"],
   editorWidth: ["narrow", "regular", "wide", "full"],
   editorPadding: ["none", "small", "medium", "large"],
-  editorFont: ["sans", "serif", "mono"],
+  editorFont: ["sans", "serif", "mono", "literata", "atkinson", "nunito", "plex"],
 } as const;
 
 /** A hex colour, or null. Anything else is rejected rather than stored. */

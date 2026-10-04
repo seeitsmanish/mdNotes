@@ -15,10 +15,12 @@ import { searchHighlight, highlightSearch } from "./searchHighlight";
 import { slashMenu } from "./slashMenu";
 import { currentNoteId } from "./wikiComplete";
 import { tableField } from "./tableField";
+import { mermaidField } from "./mermaidField";
 import { smartPaste, ursaKeymap } from "./commands";
 import { calcField } from "./calcField";
 import { imagePaste } from "./imagePaste";
 import { linkTitles } from "./linkTitles";
+import { currentParagraph } from "./currentParagraph";
 
 /**
  * The single-pane markdown editor.
@@ -173,6 +175,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       }),
       syntaxHighlighting(ursaHighlightStyle),
       tableField,
+      mermaidField,
       searchHighlight,
       headingFold,
       calcField,
@@ -182,6 +185,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       }),
       smartPaste,
       linkTitles,
+      currentParagraph,
       imagePaste,
       slashMenu,
       currentNoteId.of(handlers.current.noteId),
