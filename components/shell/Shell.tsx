@@ -22,6 +22,8 @@ import type { NoteCounts, NoteDetail, NoteListItem } from "@/lib/types";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { applyFavicon } from "@/lib/favicon";
+import { haptic, setHapticsEnabled } from "@/lib/gestures/haptics";
+import { EDGE_WIDTH, edgeBack } from "@/lib/gestures/swipe";
 import { applyAppearance } from "@/lib/theme";
 import { CommandPalette, type Command } from "./CommandPalette";
 import type { LabelPatch } from "./EditorPane";
@@ -149,6 +151,9 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   useEffect(() => {
     applyAppearance(document.documentElement, { brandColor, radius, headingMode });
   }, [brandColor, radius, headingMode]);
+
+  const hapticsOn = useUiStore((state) => state.haptics);
+  useEffect(() => setHapticsEnabled(hapticsOn), [hapticsOn]);
 
   // The tab icon follows the theme and accent (PRD §4.60). Only once the saved
   // settings are back, or a reload would flash the default icon.
@@ -695,6 +700,53 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       setMobilePane("list");
     }
   }, [setMobilePane]);
+
+  // --- edge swipe back (PRD §4.67) -------------------------------------------
+
+  // An app added to an iPhone's home screen has no system back gesture, so the
+  // editor offers its own: from the left edge, rightward, the pane follows the
+  // finger and letting go past a third of the way returns to the list. Only
+  // there — Safari and Android already have a system gesture at that edge.
+  const edge = useRef<{ x: number; y: number; dx: number; locked: boolean | null } | null>(null);
+  const [edgeShift, setEdgeShift] = useState(0);
+  const iosStandalone = useRef(false);
+  useEffect(() => {
+    iosStandalone.current = (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  }, []);
+  const edgeHandlers = {
+    onTouchStart: (event: React.TouchEvent) => {
+      if (!iosStandalone.current || mobilePane !== "editor" || event.touches.length !== 1) return;
+      const t = event.touches[0]!;
+      if (t.clientX > EDGE_WIDTH) return;
+      edge.current = { x: t.clientX, y: t.clientY, dx: 0, locked: null };
+    },
+    onTouchMove: (event: React.TouchEvent) => {
+      const e = edge.current;
+      if (!e) return;
+      const t = event.touches[0]!;
+      const dx = t.clientX - e.x;
+      const dy = t.clientY - e.y;
+      e.locked ??= Math.abs(dx) > 8 || Math.abs(dy) > 8 ? Math.abs(dx) > Math.abs(dy) : null;
+      if (e.locked === false) {
+        edge.current = null;
+        setEdgeShift(0);
+        return;
+      }
+      e.dx = Math.max(0, dx);
+      setEdgeShift(e.dx);
+    },
+    onTouchEnd: (event: React.TouchEvent) => {
+      const e = edge.current;
+      edge.current = null;
+      if (!e) return;
+      const width = (event.currentTarget as HTMLElement).offsetWidth;
+      if (edgeBack(e.x, e.dx, 0, width) === "back") {
+        haptic();
+        backToList();
+      }
+      setEdgeShift(0);
+    },
+  };
 
   // --- links into the app (PRD §4.31) ---------------------------------------
 
@@ -1304,6 +1356,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           onArchive={(target) => void setLabels(target, { archived: !target.archivedAt })}
           onTag={searchTag}
           onBulk={(ids, action) => void bulk(ids, action)}
+          onRefresh={resync}
           pending={pending}
           searchSignal={searchSignal}
         />
@@ -1323,7 +1376,10 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
       <div
         ref={editorRef}
-        className={`ursa-pane-editor ${
+        {...edgeHandlers}
+        onTouchCancel={edgeHandlers.onTouchEnd}
+        style={edgeShift ? { transform: `translateX(${edgeShift}px)`, transition: "none" } : undefined}
+        className={`ursa-pane-editor transition-transform duration-200 ${
           mobilePane === "editor" ? "flex" : "hidden"
         } min-w-0 flex-1 @[900px]:flex @[900px]:min-w-[420px]`}
       >

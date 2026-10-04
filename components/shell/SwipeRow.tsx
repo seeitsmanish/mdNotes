@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { dragOffset, lockAxis, settle } from "@/lib/gestures/swipe";
+import { dragOffset, leadingOffset, leadingThreshold, lockAxis, settle } from "@/lib/gestures/swipe";
+import { haptic } from "@/lib/gestures/haptics";
 
 /**
  * A list row that swipes right-to-left to reveal actions, as on iOS (PRD
@@ -15,6 +16,8 @@ export function SwipeRow({
   actions,
   actionsWidth,
   onFullSwipe,
+  onLeadingSwipe,
+  leading,
   disabled = false,
   children,
 }: {
@@ -25,6 +28,10 @@ export function SwipeRow({
   actionsWidth: number;
   /** Swiping most of the way across runs this (iOS's full-swipe delete). */
   onFullSwipe?: () => void;
+  /** Swiping right past the threshold runs this — pin (PRD §4.67). */
+  onLeadingSwipe?: () => void;
+  /** Shown behind the row on its left while swiping right. */
+  leading?: React.ReactNode;
   /** No swiping, e.g. while selecting several notes (PRD §4.66). */
   disabled?: boolean;
   children: React.ReactNode;
@@ -42,6 +49,7 @@ export function SwipeRow({
     lastT: number;
     velocity: number;
     moved: boolean;
+    crossed: boolean;
   } | null>(null);
 
   // Follow the parent's idea of which row is open (only one at a time).
@@ -62,6 +70,7 @@ export function SwipeRow({
       lastT: event.timeStamp,
       velocity: 0,
       moved: false,
+      crossed: false,
     };
   };
 
@@ -82,7 +91,25 @@ export function SwipeRow({
       setDragging(true);
       if (!open) onOpenChange(true); // claim "the open row" so others close
     }
-    setOffset(dragOffset(g.start, dx, actionsWidth, row.current?.offsetWidth ?? 360));
+    const width = row.current?.offsetWidth ?? 360;
+    // Rightward from closed: the pin swipe, which acts on release past its mark.
+    if (g.start === 0 && dx > 0 && onLeadingSwipe) {
+      const next = leadingOffset(dx, width);
+      const past = next >= leadingThreshold(width);
+      if (past !== g.crossed) {
+        g.crossed = past;
+        if (past) haptic();
+      }
+      setOffset(next);
+      return;
+    }
+    const next = dragOffset(g.start, dx, actionsWidth, width);
+    const past = Boolean(onFullSwipe) && next < -width * 0.6;
+    if (past !== g.crossed) {
+      g.crossed = past;
+      if (past) haptic();
+    }
+    setOffset(next);
   };
 
   const onTouchEnd = () => {
@@ -92,6 +119,13 @@ export function SwipeRow({
       return;
     }
     const width = row.current?.offsetWidth ?? 360;
+    if (offset > 0) {
+      setDragging(false);
+      setOffset(0);
+      onOpenChange(false);
+      if (offset >= leadingThreshold(width)) onLeadingSwipe?.();
+      return;
+    }
     const outcome = settle(offset, g.velocity, actionsWidth, width, Boolean(onFullSwipe));
     setDragging(false);
     if (outcome === "full" && onFullSwipe) {
@@ -121,8 +155,20 @@ export function SwipeRow({
   };
 
   const revealed = offset < 0;
+  const pinning = offset > 0;
   return (
     <div ref={row} className="ursa-swipe relative overflow-hidden rounded-lg" data-open={open ? "" : undefined}>
+      {pinning && leading && (
+        <div
+          aria-hidden
+          className={`absolute inset-y-0 left-0 flex items-center justify-start pl-4 transition-colors ${
+            offset >= leadingThreshold(row.current?.offsetWidth ?? 360) ? "bg-[#f5a524]" : "bg-[#8e8e93]"
+          }`}
+          style={{ width: offset }}
+        >
+          {leading}
+        </div>
+      )}
       <div
         className="absolute inset-y-0 right-0 flex"
         style={{ width: Math.max(actionsWidth, -offset), visibility: revealed ? "visible" : "hidden" }}

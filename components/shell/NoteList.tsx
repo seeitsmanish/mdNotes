@@ -14,6 +14,7 @@ import {
   ArchiveIcon,
   ArchiveRestoreIcon,
   CalendarDaysIcon,
+  RefreshCwIcon,
   PaletteIcon,
   CheckIcon,
   ListChecksIcon,
@@ -47,6 +48,8 @@ import { displayExcerpt, displayTitle } from "@/lib/markdown/derive";
 import { sectionNotes } from "@/lib/notes/sections";
 import { relativeTime } from "@/lib/time";
 import { TagTree } from "./TagTree";
+import { haptic } from "@/lib/gestures/haptics";
+import { PULL_TRIGGER, pullDistance } from "@/lib/gestures/swipe";
 import { COLOR_HEX, COLOR_LABEL, NOTE_COLORS, type NoteColor } from "@/lib/notes/colors";
 import type { NoteCounts, NoteFilter, NoteListItem, SearchMatch } from "@/lib/types";
 
@@ -95,6 +98,8 @@ interface NoteListProps {
   onArchive: (note: NoteListItem) => void;
   /** A tag picked in the tag tree: searched for (PRD §4.66). */
   onTag: (tag: string) => void;
+  /** Pull to refresh (PRD §4.67): resolves once the list and open note are fresh. */
+  onRefresh: () => Promise<void>;
   /** An action on several selected notes at once (PRD §4.66). */
   onBulk: (ids: string[], action: BulkAction) => void;
 }
@@ -123,7 +128,13 @@ export function NoteList({
   onArchive,
   onTag,
   onBulk,
+  onRefresh,
 }: NoteListProps) {
+  // Pull to refresh (PRD §4.67), from the top of the list on touch screens.
+  const listEl = useRef<HTMLUListElement | null>(null);
+  const [pull, setPull] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullStart = useRef<{ x: number; y: number; crossed: boolean } | null>(null);
   // Several notes picked at once (PRD §4.66); null when not selecting.
   const [picked, setPicked] = useState<Set<string> | null>(null);
   const togglePick = (id: string) =>
@@ -366,9 +377,71 @@ export function NoteList({
       {notes.length === 0 && !loading ? (
         <EmptyState inTrash={inTrash} filter={filter} colored={colorFilter !== null} searching={searching} onCreate={onCreate} />
       ) : (
+        <>
+        <div
+          aria-hidden={!refreshing}
+          aria-live="polite"
+          className={`flex flex-none items-end justify-center overflow-hidden text-ink-faint ${pullStart.current ? "" : "transition-[height] duration-200"}`}
+          style={{ height: pull }}
+        >
+          <span className="mb-2 grid size-8 place-items-center rounded-full border border-border bg-raised shadow-sm">
+            {refreshing ? (
+              <Loader2Icon className="size-4 animate-spin text-brand" aria-label="Refreshing" />
+            ) : (
+              <RefreshCwIcon
+                className={`size-4 ${pull >= PULL_TRIGGER ? "text-brand" : ""}`}
+                style={{ transform: `rotate(${pull * 3}deg)` }}
+              />
+            )}
+          </span>
+        </div>
         <ul
-          className="flex-1 overflow-y-auto px-3 pb-24 pt-1 @[900px]:pb-4"
+          ref={listEl}
+          className="flex-1 overflow-y-auto overscroll-y-contain px-3 pb-24 pt-1 @[900px]:pb-4"
           onKeyDown={moveFocusOnArrows}
+          onTouchStart={(event) => {
+            if (picked || refreshing || event.touches.length !== 1 || (listEl.current?.scrollTop ?? 0) > 0) return;
+            const t = event.touches[0]!;
+            pullStart.current = { x: t.clientX, y: t.clientY, crossed: false };
+          }}
+          onTouchMove={(event) => {
+            const start = pullStart.current;
+            if (!start) return;
+            const t = event.touches[0]!;
+            const dy = t.clientY - start.y;
+            const dx = t.clientX - start.x;
+            // Sideways is a row swipe, not a pull.
+            if (pull === 0 && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) {
+              pullStart.current = null;
+              return;
+            }
+            if (dy <= 0 || (listEl.current?.scrollTop ?? 0) > 0) {
+              if (pull) setPull(0);
+              return;
+            }
+            const next = pullDistance(dy);
+            const past = next >= PULL_TRIGGER;
+            if (past !== start.crossed) {
+              start.crossed = past;
+              if (past) haptic();
+            }
+            setPull(next);
+          }}
+          onTouchEnd={() => {
+            const start = pullStart.current;
+            pullStart.current = null;
+            if (!start) return;
+            if (pull >= PULL_TRIGGER) {
+              setRefreshing(true);
+              setPull(48);
+              void onRefresh().finally(() => {
+                setRefreshing(false);
+                setPull(0);
+              });
+            } else {
+              setPull(0);
+            }
+          }}
           data-ursa-private=""
         >
           {notes.map((note, index) => {
@@ -404,6 +477,13 @@ export function NoteList({
                   }
                   actionsWidth={inTrash ? 168 : 156}
                   onFullSwipe={inTrash ? undefined : () => onTrash(note)}
+                  onLeadingSwipe={inTrash ? undefined : () => onTogglePin(note)}
+                  leading={
+                    <span className="flex flex-col items-center gap-0.5 text-[0.7rem] font-semibold text-white [&_svg]:size-5">
+                      {note.pinned ? <PinOffIcon /> : <PinIcon />}
+                      {note.pinned ? "Unpin" : "Pin"}
+                    </span>
+                  }
                   actions={
                     inTrash ? (
                       <>
@@ -479,7 +559,7 @@ export function NoteList({
                         timer: setTimeout(() => {
                           if (!press.current) return;
                           press.current.fired = true;
-                          navigator.vibrate?.(12);
+                          haptic();
                           togglePick(note.id);
                         }, 480),
                       };
@@ -613,6 +693,7 @@ export function NoteList({
             );
           })}
         </ul>
+        </>
       )}
 
       {picked && (

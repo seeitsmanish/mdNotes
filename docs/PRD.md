@@ -1479,3 +1479,27 @@ Owner picks 8 and 11.
 - R66.3 Each note is its own request; partial failures say how many. Trash
   and Archive have Undo. Deleting permanently asks first.
 
+### 4.67 Phone gestures
+
+Owner picks 16, 17, 18 and 19.
+
+- R67.1 Swipe right to pin: a row follows the finger rightwards over a grey
+  Pin (or Unpin) panel that turns amber past the mark (22% of the row, kept
+  between 64 and 96px); letting go past it pins and the row springs back.
+  Not in Trash, not while selecting.
+- R67.2 Pull to refresh: from the top of the list, pull down past 64px
+  (damped, capped at 96) and let go: the list and the open note re-read from
+  the server, as on returning to the app (§4.39), with a spinner until done.
+  The list contains overscroll so the browser's own pull-to-reload does not
+  fire instead.
+- R67.3 Vibration: a 10ms tick when a swipe passes its mark, a pull passes
+  its mark, a long-press starts selecting, a to-do is ticked, and on edge
+  back. Android uses the Vibration API; iPhones expose no web haptics, but
+  Safari 18 ticks when a switch checkbox toggles, so a hidden one is toggled;
+  older iPhones stay silent. Settings → "Vibrate on gestures" turns it off.
+- R67.4 Back gesture: the system back gesture already returns from a note
+  to the list (R26.5). An app added to an iPhone's home screen has no system
+  gesture, so there the editor follows a swipe from the left edge and,
+  past a third of the width (at most 120px), returns to the list. Only
+  there: Safari and Android own that edge themselves.
+

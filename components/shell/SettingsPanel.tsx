@@ -166,6 +166,8 @@ export function SettingsPanel() {
   const setEditorFont = useUiStore((s) => s.setEditorFont);
   const autoPrivacy = useUiStore((s) => s.autoPrivacy);
   const focusDim = useUiStore((s) => s.focusDim);
+  const haptics = useUiStore((s) => s.haptics);
+  const setHaptics = useUiStore((s) => s.setHaptics);
   const toggleFocusDim = useUiStore((s) => s.toggleFocusDim);
   const setAutoPrivacy = useUiStore((s) => s.setAutoPrivacy);
   const brandColor = useUiStore((s) => s.brandColor);
@@ -301,6 +303,14 @@ export function SettingsPanel() {
         onChange={(value) => {
           if ((value === "on") !== focusDim) toggleFocusDim();
         }}
+      />
+
+      <OptionGroup
+        label="Vibrate on gestures (phones)"
+        value={haptics ? "on" : "off"}
+        options={ON_OFF}
+        columns={2}
+        onChange={(value) => setHaptics(value === "on")}
       />
 
       {/* PRD §4.62: leaving the tab blurs note titles until Show. */}

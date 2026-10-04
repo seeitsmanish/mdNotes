@@ -12,6 +12,7 @@ import { safeExternalUrl } from "@/lib/security/urls";
 import { hangingPrefix } from "./hangingIndent";
 import { captionOf } from "./caption";
 import { openLightbox } from "./lightbox";
+import { haptic } from "@/lib/gestures/haptics";
 import { CALLOUTS, type CalloutType, parseCallout } from "@/lib/markdown/callout";
 
 let measureCanvas: CanvasRenderingContext2D | null = null;
@@ -119,6 +120,7 @@ class CheckboxWidget extends WidgetType {
     box.addEventListener("mousedown", (event) => {
       event.preventDefault();
       lastToggle = { from: this.from, at: Date.now() };
+      haptic();
       view.dispatch({
         changes: { from: this.from, to: this.to, insert: this.checked ? "[ ]" : "[x]" },
       });

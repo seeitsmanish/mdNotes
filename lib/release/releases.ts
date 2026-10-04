@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.54.0",
+    date: "2026-10-04",
+    title: "Gestures for your phone",
+    changes: [
+      "Swipe a note to the right to pin it.",
+      "Pull the list down to refresh it.",
+      "A light buzz when a swipe or pull takes effect, or you tick a to-do (Android, and iPhones on iOS 18). Settings can turn it off.",
+      "On iPhone, if you added mdNotes to your home screen, swipe in from the left edge to go back to the list.",
+    ],
+  },
+  {
     version: "1.53.0",
     date: "2026-10-04",
     title: "Tag tree, and selecting several notes",

@@ -40,3 +40,33 @@ export function settle(
   if (offset < -actionsWidth / 2 || velocity < -0.5) return "open";
   return "closed";
 }
+
+/** How far a rightward swipe must travel to pin (PRD §4.67): past this, letting go pins. */
+export function leadingThreshold(rowWidth: number): number {
+  return Math.min(96, Math.max(64, rowWidth * 0.22));
+}
+
+/** The row's offset while swiping right to pin: follows the finger, then resists. */
+export function leadingOffset(dx: number, rowWidth: number): number {
+  if (dx <= 0) return 0;
+  const threshold = leadingThreshold(rowWidth);
+  return dx <= threshold ? dx : threshold + (dx - threshold) * 0.35;
+}
+
+/** Pull-to-refresh distance for a finger drag of `dy` (PRD §4.67): damped, capped. */
+export const PULL_TRIGGER = 64;
+export function pullDistance(dy: number): number {
+  if (dy <= 0) return 0;
+  return Math.min(96, dy * 0.5);
+}
+
+/**
+ * Whether a touch is the edge swipe back to the list (PRD §4.67): it must
+ * start at the left edge, travel right far enough, and stay mostly level.
+ */
+export const EDGE_WIDTH = 28;
+export function edgeBack(startX: number, dx: number, dy: number, width: number): "back" | "stay" {
+  if (startX > EDGE_WIDTH) return "stay";
+  if (Math.abs(dy) > Math.abs(dx)) return "stay";
+  return dx > Math.min(120, width * 0.3) ? "back" : "stay";
+}
