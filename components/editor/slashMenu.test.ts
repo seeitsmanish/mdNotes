@@ -22,7 +22,7 @@ describe("matchItems", () => {
 
   it("matches label words before keywords", () => {
     expect(matchItems("h").map((i) => i.id).slice(0, 3)).toEqual(["h1", "h2", "h3"]);
-    expect(matchItems("check").map((i) => i.id)).toEqual(["todo"]);
+    expect(matchItems("check").map((i) => i.id)).toEqual(["tpl-checklist", "todo"]);
     expect(matchItems("hr").map((i) => i.id)).toEqual(["divider"]);
     expect(matchItems("list")[0]!.id).toBe("bullet");
   });
@@ -45,7 +45,7 @@ describe("template", () => {
   });
 
   it("keeps a table's pipes and selects its first placeholder", () => {
-    const table = SLASH_ITEMS.find((i) => i.id === "table")!.insert!;
+    const table = SLASH_ITEMS.find((i) => i.id === "table")!.insert as string;
     const { text, anchor, head } = template(table);
     expect(text.startsWith("| Column | Column |")).toBe(true);
     expect(text.slice(anchor, head)).toBe("Column");
@@ -53,7 +53,16 @@ describe("template", () => {
 
   it("every text item has a caret or a selection", () => {
     for (const item of SLASH_ITEMS.filter((i) => i.insert)) {
-      expect([2, 3]).toContain(item.insert!.split("‸").length);
+      const text = typeof item.insert === "function" ? item.insert(new Date(2026, 9, 4)) : item.insert!;
+      expect([2, 3]).toContain(text.split("‸").length);
     }
+  });
+
+  it("templates: the daily note is dated and the interview one selects the company", () => {
+    const daily = SLASH_ITEMS.find((i) => i.id === "tpl-daily")!.insert as (d: Date) => string;
+    expect(daily(new Date(2026, 9, 4))).toMatch(/^# .*2026/);
+    const interview = template(SLASH_ITEMS.find((i) => i.id === "tpl-interview")!.insert as string);
+    expect(interview.text.slice(interview.anchor, interview.head)).toBe("Company");
+    expect(matchItems("template").map((i) => i.id)).toEqual(["tpl-daily", "tpl-meeting", "tpl-interview", "tpl-checklist"]);
   });
 });

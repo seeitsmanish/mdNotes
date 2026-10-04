@@ -10,6 +10,7 @@ import {
 } from "@codemirror/view";
 import { safeExternalUrl } from "@/lib/security/urls";
 import { hangingPrefix } from "./hangingIndent";
+import { captionOf } from "./caption";
 import { openLightbox } from "./lightbox";
 
 let measureCanvas: CanvasRenderingContext2D | null = null;
@@ -193,6 +194,13 @@ class ImageWidget extends WidgetType {
       });
     });
     wrap.append(img);
+    const caption = captionOf(this.alt);
+    if (caption) {
+      const text = document.createElement("span");
+      text.className = "ursa-image-caption";
+      text.textContent = caption;
+      wrap.append(text);
+    }
     return wrap;
   }
 

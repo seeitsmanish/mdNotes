@@ -512,6 +512,15 @@ input[type="search"]::-webkit-search-cancel-button {
   display: block;
   margin: 0.35em 0;
 }
+/* A caption under an image (PRD §4.54): its alt text, when someone wrote one. */
+.cm-editor .ursa-image-caption {
+  display: block;
+  margin-top: 0.35em;
+  font-size: 0.82em;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
 .cm-editor .ursa-image img {
   display: block;
   max-width: 100%;

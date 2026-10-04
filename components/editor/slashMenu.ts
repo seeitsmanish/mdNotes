@@ -25,8 +25,9 @@ export interface SlashItem {
   label: string;
   /** Extra words it answers to: `/h1`, `/check`, `/hr`. */
   keywords: string;
-  /** Text that replaces `/query`, with `‸` marking where the caret lands. */
-  insert?: string;
+  /** Text that replaces `/query`, with `‸` marking where the caret lands
+   * (two `‸` select a placeholder). A function receives today's date. */
+  insert?: string | ((now: Date) => string);
   /** Instead of text: something that needs the view, like a file picker. */
   run?: (view: EditorView, at: number) => void;
   /** Runs after the insert — Link to note goes straight on to its titles. */
@@ -48,7 +49,40 @@ export const SLASH_ITEMS: SlashItem[] = [
   { id: "link", label: "Link", keywords: "url", insert: "[‸](url)" },
   { id: "wikilink", label: "Link to note", keywords: "wiki note backlink", insert: "[[‸]]", then: startCompletion },
   { id: "image", label: "Image", keywords: "picture photo upload", run: (view, at) => pickImages(view, at) },
+  // Templates (PRD §4.54): a page's worth of structure in one go.
+  {
+    id: "tpl-daily",
+    label: "Daily note",
+    keywords: "template today journal day date",
+    insert: (now) =>
+      `# ${longDate(now)}\n\n## Top three\n- [ ] ‸\n- [ ] \n- [ ] \n\n## Notes\n\n`,
+  },
+  {
+    id: "tpl-meeting",
+    label: "Meeting notes",
+    keywords: "template meeting call agenda minutes",
+    insert: (now) =>
+      `# Meeting: ‸Topic‸\n\n**Date:** ${longDate(now)}\n**With:** \n\n## Agenda\n- \n\n## Notes\n\n## Action items\n- [ ] `,
+  },
+  {
+    id: "tpl-interview",
+    label: "Interview prep",
+    keywords: "template interview job company role rounds",
+    insert:
+      "# ‸Company‸ — interview prep\n\n**Role:** \n**Recruiter:** \n\n| Round | Format | Date | Status |\n| --- | --- | --- | --- |\n| Phone screen |  |  |  |\n| Technical |  |  |  |\n| Onsite |  |  |  |\n\n## About the company\n- \n\n## Questions to ask them\n- \n\n## Follow-ups\n- [ ] Thank-you note",
+  },
+  {
+    id: "tpl-checklist",
+    label: "Checklist",
+    keywords: "template todo list tasks",
+    insert: "- [ ] ‸\n- [ ] \n- [ ] ",
+  },
 ];
+
+/** "Sunday, 4 October 2026" in the browser's language. */
+export function longDate(now: Date): string {
+  return now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
 
 /** Where the query starts and what it is, or null if `/` is not opening a line. */
 export function slashQuery(textBeforeCaret: string): { offset: number; query: string } | null {
@@ -112,7 +146,8 @@ export function slashSource(context: CompletionContext): CompletionResult | null
         item.run(view, start);
         return;
       }
-      const { text, anchor, head } = template(item.insert ?? "");
+      const source = typeof item.insert === "function" ? item.insert(new Date()) : (item.insert ?? "");
+      const { text, anchor, head } = template(source);
       view.dispatch({
         changes: { from: start, to: end, insert: text },
         selection: { anchor: start + anchor, head: start + head },

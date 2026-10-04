@@ -1190,3 +1190,15 @@ far along they were.
   on all 75 preview notes; no production note mixes code blocks and to-dos,
   so the SQL equals the JS there exactly. Rehearsed on a Neon branch; every
   note's body md5, `updatedAt` and version identical before and after.
+
+### 4.54 Templates and image captions
+
+- R54.1 The `/` menu offers four templates: **Daily note** (today's date as
+  the heading, a top-three to-do list, notes), **Meeting notes** (topic
+  selected for typing, date, attendees, agenda, notes, action items),
+  **Interview prep** (company selected, role, recruiter, a rounds table,
+  questions to ask them, follow-ups) and **Checklist**. `/template` lists
+  them all. They are plain markdown — nothing is tracked or scored.
+- R54.2 An image's alt text shows as a small italic caption under it — but
+  only words someone wrote: filenames, camera names (`IMG_2041`), generic
+  words ("image", "screenshot") and upload placeholders are not shown.

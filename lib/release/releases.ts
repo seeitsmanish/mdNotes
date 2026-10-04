@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.42.0",
+    date: "2026-10-04",
+    title: "Templates and captions",
+    changes: [
+      "Type /template for a ready-made page: Daily note (with today's date), Meeting notes, Interview prep (with a rounds table) or Checklist.",
+      "Images now show their description as a caption underneath — write it inside the brackets: ![like this](…).",
+    ],
+  },
+  {
     version: "1.41.0",
     date: "2026-10-04",
     title: "Checklist progress at a glance",
