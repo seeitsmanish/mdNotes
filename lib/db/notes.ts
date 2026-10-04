@@ -5,6 +5,7 @@ import { conflictCopyBody } from "@/lib/notes/conflict";
 import type { NotePatch } from "@/lib/notes/patch";
 import { deriveCover, deriveExcerpt, deriveTitle, deriveTodos } from "@/lib/markdown/derive";
 import { linksTo, normaliseTitle } from "@/lib/markdown/wikilink";
+import { extractTags } from "@/lib/markdown/tags";
 import { rank, terms } from "@/lib/search/rank";
 import { CANDIDATE_CAP, mergeCandidates } from "@/lib/search/candidates";
 import { containsPattern, FOLD_FROM, FOLD_TO } from "@/lib/search/foldSql";
@@ -345,3 +346,19 @@ export async function emptyTrash(): Promise<number> {
   const result = await prisma.note.deleteMany({ where: { deletedAt: { not: null } } });
   return result.count;
 }
+
+/**
+ * Every note's tags for the tag tree (PRD §4.66): live and archived notes,
+ * not templates or trash. Derived on read from the bodies; there is no tag
+ * table. Capped so a huge library degrades to a partial tree, not a timeout.
+ */
+export async function tagsByNote(): Promise<string[][]> {
+  const rows = await prisma.note.findMany({
+    where: { deletedAt: null, isTemplate: false, body: { contains: "#" } },
+    select: { body: true },
+    orderBy: { updatedAt: "desc" },
+    take: 5000,
+  });
+  return rows.map((row) => extractTags(row.body));
+}
+

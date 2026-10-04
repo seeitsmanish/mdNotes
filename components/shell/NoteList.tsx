@@ -14,6 +14,9 @@ import {
   ArchiveIcon,
   ArchiveRestoreIcon,
   CalendarDaysIcon,
+  PaletteIcon,
+  CheckIcon,
+  ListChecksIcon,
   PinIcon,
   PinOffIcon,
   PlusIcon,
@@ -43,7 +46,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { displayExcerpt, displayTitle } from "@/lib/markdown/derive";
 import { sectionNotes } from "@/lib/notes/sections";
 import { relativeTime } from "@/lib/time";
-import { COLOR_HEX, COLOR_LABEL, NOTE_COLORS } from "@/lib/notes/colors";
+import { TagTree } from "./TagTree";
+import { COLOR_HEX, COLOR_LABEL, NOTE_COLORS, type NoteColor } from "@/lib/notes/colors";
 import type { NoteCounts, NoteFilter, NoteListItem, SearchMatch } from "@/lib/types";
 
 /**
@@ -89,6 +93,10 @@ interface NoteListProps {
   /** Today's daily note (PRD §4.65). */
   onToday: () => void;
   onArchive: (note: NoteListItem) => void;
+  /** A tag picked in the tag tree: searched for (PRD §4.66). */
+  onTag: (tag: string) => void;
+  /** An action on several selected notes at once (PRD §4.66). */
+  onBulk: (ids: string[], action: BulkAction) => void;
 }
 
 export function NoteList({
@@ -113,7 +121,22 @@ export function NoteList({
   onEmptyTrash,
   onToday,
   onArchive,
+  onTag,
+  onBulk,
 }: NoteListProps) {
+  // Several notes picked at once (PRD §4.66); null when not selecting.
+  const [picked, setPicked] = useState<Set<string> | null>(null);
+  const togglePick = (id: string) =>
+    setPicked((previous) => {
+      const next = new Set(previous ?? []);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next.size > 0 || previous?.size === 0 ? next : null;
+    });
+  const press = useRef<{ id: string; x: number; y: number; fired: boolean; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const endPress = () => {
+    if (press.current) clearTimeout(press.current.timer);
+  };
   const colorFilter = useUiStore((state) => state.colorFilter);
   const setColorFilter = useUiStore((state) => state.setColorFilter);
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -137,6 +160,18 @@ export function NoteList({
     focusWhenOpen.current = false;
     searchRef.current?.focus();
   }, [searchOpen]);
+
+  useEffect(() => setPicked(null), [filter, colorFilter]);
+  useEffect(() => {
+    if (!picked) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setPicked(null);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [picked]);
 
   const clock = useClock();
   const inTrash = filter === "trash";
@@ -224,6 +259,15 @@ export function NoteList({
                   </DropdownMenuItem>
                 )}
               </div>
+              {notes.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setPicked(new Set())}>
+                    <ListChecksIcon />
+                    Select notes…
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -238,6 +282,7 @@ export function NoteList({
                 pending={pending.has("create")}
               />
             </div>
+            <TagTree onPick={onTag} />
             <IconAction
               icon={CalendarDaysIcon}
               label={pending.has("today") ? "Opening today’s note…" : "Today’s note"}
@@ -352,6 +397,7 @@ export function NoteList({
                 }}
               >
                 <SwipeRow
+                  disabled={picked !== null}
                   open={swipedId === note.id}
                   onOpenChange={(open) =>
                     setSwipedId((current) => (open ? note.id : current === note.id ? null : current))
@@ -412,9 +458,43 @@ export function NoteList({
                     type="button"
                     data-ursa-row=""
                     aria-current={selected ? "true" : undefined}
-                    onClick={() => onSelect(note.id)}
-                    className={`relative block w-full rounded-lg py-2.5 pl-4 pr-3 text-left transition-[background-color,transform] duration-150 active:scale-[0.985] ${
-                      selected ? "bg-row-active" : "hover:bg-row-hover"
+                    aria-pressed={picked ? picked.has(note.id) : undefined}
+                    onClick={(event) => {
+                      // A long press already picked this row; the click that follows is not a second tap.
+                      if (press.current?.fired) {
+                        press.current = null;
+                        return;
+                      }
+                      if (picked || event.shiftKey || event.metaKey || event.ctrlKey) {
+                        togglePick(note.id);
+                        return;
+                      }
+                      onSelect(note.id);
+                    }}
+                    onPointerDown={(event) => {
+                      if (event.pointerType === "mouse" || picked) return;
+                      const start = { id: note.id, x: event.clientX, y: event.clientY, fired: false };
+                      press.current = {
+                        ...start,
+                        timer: setTimeout(() => {
+                          if (!press.current) return;
+                          press.current.fired = true;
+                          navigator.vibrate?.(12);
+                          togglePick(note.id);
+                        }, 480),
+                      };
+                    }}
+                    onPointerMove={(event) => {
+                      const p = press.current;
+                      if (p && !p.fired && Math.hypot(event.clientX - p.x, event.clientY - p.y) > 8) endPress();
+                    }}
+                    onPointerUp={endPress}
+                    onPointerCancel={endPress}
+                    onContextMenu={(event) => {
+                      if (press.current?.fired) event.preventDefault();
+                    }}
+                    className={`relative block w-full rounded-lg py-2.5 pl-4 pr-3 text-left transition-[background-color,transform] duration-150 active:scale-[0.985] [-webkit-touch-callout:none] ${
+                      picked?.has(note.id) || (!picked && selected) ? "bg-row-active" : "hover:bg-row-hover"
                     }`}
                   >
                     {/* The bar is the selection signal; the fill alone is too quiet. */}
@@ -426,6 +506,16 @@ export function NoteList({
                     />
 
                     <span className="flex items-start gap-3">
+                    {picked && (
+                      <span
+                        aria-hidden
+                        className={`ursa-pop mt-0.5 grid size-5 flex-none place-items-center rounded-full border-2 transition-colors ${
+                          picked.has(note.id) ? "border-brand bg-brand text-on-brand" : "border-border-strong"
+                        }`}
+                      >
+                        {picked.has(note.id) && <CheckIcon className="size-3" strokeWidth={3} />}
+                      </span>
+                    )}
                     <span className="block min-w-0 flex-1">
                     <span className="flex items-start gap-1.5">
                       {note.color && (
@@ -468,6 +558,7 @@ export function NoteList({
                 </SwipeRow>
 
                 <span
+                  hidden={picked !== null}
                   className={`ursa-row-actions absolute bottom-2 flex ${note.cover ? "right-[4.5rem]" : "right-3"} items-center gap-0.5 transition-opacity focus-within:opacity-100 group-hover:opacity-100 ${
                     ["pin", "trash", "restore", "delete"].some((k) => pending.has(`${k}:${note.id}`))
                       ? "opacity-100"
@@ -524,8 +615,23 @@ export function NoteList({
         </ul>
       )}
 
+      {picked && (
+        <BulkBar
+          count={picked.size}
+          filter={filter}
+          allPinned={notes.filter((n) => picked.has(n.id)).every((n) => n.pinned)}
+          onAll={() => setPicked(new Set(notes.map((n) => n.id)))}
+          onCancel={() => setPicked(null)}
+          onAction={(action) => {
+            const ids = [...picked];
+            setPicked(null);
+            onBulk(ids, action);
+          }}
+        />
+      )}
+
       {/* Phones: New note where a thumb is, not in the top corner (PRD R38.3). */}
-      {!inTrash && (
+      {!inTrash && !picked && (
         <Button
           size="icon"
           onClick={onCreate}
@@ -809,3 +915,94 @@ export function moveFocusOnArrows(event: React.KeyboardEvent<HTMLElement>): void
     target.focus();
   }
 }
+
+export type BulkAction =
+  | { kind: "pin"; pinned: boolean }
+  | { kind: "archive"; archived: boolean }
+  | { kind: "color"; color: NoteColor | null }
+  | { kind: "trash" }
+  | { kind: "restore" }
+  | { kind: "delete" };
+
+/** The actions for picked notes, where the new-note button usually sits (PRD §4.66). */
+function BulkBar({
+  count,
+  filter,
+  allPinned,
+  onAll,
+  onCancel,
+  onAction,
+}: {
+  count: number;
+  filter: NoteFilter;
+  allPinned: boolean;
+  onAll: () => void;
+  onCancel: () => void;
+  onAction: (action: BulkAction) => void;
+}) {
+  const none = count === 0;
+  const button = "flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-[0.68rem] font-medium text-ink-soft hover:bg-row-hover hover:text-ink disabled:opacity-40 [&_svg]:size-[18px]";
+  return (
+    <div
+      role="toolbar"
+      aria-label={`${count} selected`}
+      className="ursa-fade-in absolute inset-x-2 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-1 rounded-2xl border border-border bg-raised px-2 py-1.5 shadow-[var(--shadow)]"
+    >
+      <div className="flex min-w-0 flex-1 flex-col px-1.5 leading-tight">
+        <span className="text-[0.8rem] font-semibold tabular-nums text-ink">{count} selected</span>
+        <span className="flex gap-2 text-[0.7rem]">
+          <button type="button" onClick={onAll} className="text-brand hover:underline">All</button>
+          <button type="button" onClick={onCancel} className="text-ink-faint hover:underline">Cancel</button>
+        </span>
+      </div>
+      {filter === "trash" ? (
+        <>
+          <button type="button" disabled={none} className={button} onClick={() => onAction({ kind: "restore" })}>
+            <RotateCcwIcon />
+            Restore
+          </button>
+          <button type="button" disabled={none} className={`${button} text-[#e5484d] hover:text-[#e5484d]`} onClick={() => onAction({ kind: "delete" })}>
+            <XIcon />
+            Delete
+          </button>
+        </>
+      ) : (
+        <>
+          <button type="button" disabled={none} className={button} onClick={() => onAction({ kind: "pin", pinned: !allPinned })}>
+            {allPinned ? <PinOffIcon /> : <PinIcon />}
+            {allPinned ? "Unpin" : "Pin"}
+          </button>
+          <button type="button" disabled={none} className={button} onClick={() => onAction({ kind: "archive", archived: filter !== "archive" })}>
+            {filter === "archive" ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
+            {filter === "archive" ? "Unarchive" : "Archive"}
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button type="button" disabled={none} className={button}>
+                  <PaletteIcon />
+                  Colour
+                </button>
+              }
+            />
+            <DropdownMenuContent align="end" side="top" className="min-w-40">
+              {NOTE_COLORS.map((color) => (
+                <DropdownMenuItem key={color} onClick={() => onAction({ kind: "color", color })}>
+                  <span aria-hidden className="size-3 rounded-full" style={{ background: COLOR_HEX[color] }} />
+                  {COLOR_LABEL[color]}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onAction({ kind: "color", color: null })}>No colour</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button type="button" disabled={none} className={`${button} text-[#e5484d] hover:text-[#e5484d]`} onClick={() => onAction({ kind: "trash" })}>
+            <Trash2Icon />
+            Delete
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+

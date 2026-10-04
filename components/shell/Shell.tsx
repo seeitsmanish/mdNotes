@@ -25,6 +25,7 @@ import { applyFavicon } from "@/lib/favicon";
 import { applyAppearance } from "@/lib/theme";
 import { CommandPalette, type Command } from "./CommandPalette";
 import type { LabelPatch } from "./EditorPane";
+import type { BulkAction } from "./NoteList";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { HistoryDialog } from "./HistoryDialog";
 import { createGate } from "@/lib/async/gate";
@@ -836,6 +837,67 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     [currentText, filter, flush, gate, note, refreshList, selectNote, setFilter],
   );
 
+  /** One action on several notes (PRD §4.66). Each note is its own request; a failure names how many. */
+  const bulk = useCallback(
+    (ids: string[], action: BulkAction) =>
+      gate.run("bulk", async () => {
+        if (ids.length === 0) return;
+        flush();
+        if (action.kind === "delete") {
+          const noun = ids.length === 1 ? "note" : "notes";
+          if (!window.confirm(`Delete ${ids.length} ${noun} permanently? This cannot be undone.`)) return;
+        }
+        const one = (id: string): Promise<unknown> => {
+          switch (action.kind) {
+            case "pin":
+              return api.patchNote(id, { pinned: action.pinned });
+            case "archive":
+              return api.patchNote(id, { archived: action.archived });
+            case "color":
+              return api.patchNote(id, { color: action.color });
+            case "trash":
+              return api.trashNote(id);
+            case "restore":
+              return api.restoreNote(id);
+            case "delete":
+              return api.deleteNoteForever(id);
+          }
+        };
+        const results = await Promise.allSettled(ids.map(one));
+        const failed = results.filter((r) => r.status === "rejected").length;
+        const open = useUiStore.getState().selectedNoteId;
+        if (open && ids.includes(open) && (action.kind === "trash" || action.kind === "delete" || action.kind === "restore")) {
+          selectNote(null);
+        }
+        await refreshList();
+        const done = ids.length - failed;
+        const noun = done === 1 ? "note" : "notes";
+        const verb =
+          action.kind === "pin"
+            ? action.pinned ? "Pinned" : "Unpinned"
+            : action.kind === "archive"
+              ? action.archived ? "Archived" : "Moved back"
+              : action.kind === "color"
+                ? action.color ? "Labelled" : "Cleared the colour of"
+                : action.kind === "trash"
+                  ? "Moved to trash"
+                  : action.kind === "restore"
+                    ? "Restored"
+                    : "Deleted";
+        const undo =
+          action.kind === "trash"
+            ? () => void Promise.allSettled(ids.map((id) => api.restoreNote(id))).then(() => refreshList())
+            : action.kind === "archive"
+              ? () => void Promise.allSettled(ids.map((id) => api.patchNote(id, { archived: !action.archived }))).then(() => refreshList())
+              : null;
+        toast(`${verb} ${done} ${noun}.`, {
+          ...(failed ? { description: `${failed} couldn’t be changed — try those again.` } : {}),
+          ...(undo ? { action: { label: "Undo", onClick: undo } } : {}),
+        });
+      }),
+    [flush, gate, refreshList, selectNote],
+  );
+
   /** A new note from a template, placeholders filled (PRD §4.65). */
   const newFromTemplate = useCallback(
     (template: NoteListItem) =>
@@ -1240,6 +1302,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           onEmptyTrash={confirmEmptyTrash}
           onToday={() => void openToday()}
           onArchive={(target) => void setLabels(target, { archived: !target.archivedAt })}
+          onTag={searchTag}
+          onBulk={(ids, action) => void bulk(ids, action)}
           pending={pending}
           searchSignal={searchSignal}
         />

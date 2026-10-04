@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.53.0",
+    date: "2026-10-04",
+    title: "Tag tree, and selecting several notes",
+    changes: [
+      "The # button at the top of the list shows all your tags, nested — #work/meetings sits under work. Tap one to see its notes.",
+      "Long-press a note (or ⌘-click on a computer) to select several, then pin, archive, colour or delete them together.",
+    ],
+  },
+  {
     version: "1.52.0",
     date: "2026-10-04",
     title: "Archive, colour labels, templates and a daily note",

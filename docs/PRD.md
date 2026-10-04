@@ -44,9 +44,9 @@ cut, and the effort went into making the editor itself worth using.
 
 ### Non-goals
 
-- **Tags as organisation.** Cut in v1.1. `#tag` still *styles* as a pill so notes
-  written in Bear look right, but it files nothing, is not clickable, and has no
-  sidebar, no rename, no filtering. There is no tag table in the database.
+- **Tags as organisation.** Cut in v1.1; partly back in v1.53 at the owner's
+  request (§4.66): a tag tree that searches. Still no tag table — tags are
+  derived from note text on read — and no rename.
 - Accounts, auth, multi-user. Single-user against a local Postgres.
 - Sync, conflict resolution, offline queueing.
 - Wiki-links (`[[Note]]`) and backlinks.
@@ -1458,4 +1458,24 @@ Owner picks 7, 9, 12 and 26. Three additive columns on Note: `archivedAt`,
   history do not carry them.
 - R65.6 An older offline copy of the list, cached before these fields,
   reads as unlabelled rather than archived.
+
+### 4.66 Tag tree and selecting several notes
+
+Owner picks 8 and 11.
+
+- R66.1 Tag tree: the # button in the list header lists every tag, nested
+  by slash (`#work/meetings` under `work`), with how many notes carry it or
+  anything below it (a note counts once per branch). Picking one searches for
+  it, which also finds the nested tags. Read with the editor's own parser on
+  the server, so `#` in code, headings and URLs is not a tag; case is folded.
+  Derived from live and archived notes on each open; no table. The tree is
+  blurred with hidden titles.
+- R66.2 Selecting: long-press a row on a phone (a short buzz on Android),
+  ⌘/Ctrl- or Shift-click on a computer, or "Select notes…" in the list menu.
+  Rows show check circles; tapping toggles; swiping is off meanwhile. A bar
+  where the + button sits shows the count, All, Cancel, and Pin/Unpin,
+  Archive/Unarchive, Colour and Delete — Restore and Delete permanently in
+  Trash. Esc or Cancel leaves; changing list leaves too.
+- R66.3 Each note is its own request; partial failures say how many. Trash
+  and Archive have Undo. Deleting permanently asks first.
 

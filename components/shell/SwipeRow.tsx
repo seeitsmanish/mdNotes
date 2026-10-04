@@ -15,6 +15,7 @@ export function SwipeRow({
   actions,
   actionsWidth,
   onFullSwipe,
+  disabled = false,
   children,
 }: {
   open: boolean;
@@ -24,6 +25,8 @@ export function SwipeRow({
   actionsWidth: number;
   /** Swiping most of the way across runs this (iOS's full-swipe delete). */
   onFullSwipe?: () => void;
+  /** No swiping, e.g. while selecting several notes (PRD §4.66). */
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   const row = useRef<HTMLDivElement | null>(null);
@@ -47,6 +50,7 @@ export function SwipeRow({
   }, [open, actionsWidth, dragging, leaving]);
 
   const onTouchStart = (event: React.TouchEvent) => {
+    if (disabled) return;
     if (event.touches.length !== 1) return;
     const t = event.touches[0]!;
     gesture.current = {
