@@ -9,6 +9,8 @@ import { normaliseTitle } from "@/lib/markdown/wikilink";
 import { conflictCopyBody } from "@/lib/notes/conflict";
 import { duplicateBody } from "@/lib/notes/duplicate";
 import { printHtml } from "@/lib/export/print";
+import { bodyFromTemplate, dailyBody, dailyTitle } from "@/lib/notes/daily";
+import { COLOR_LABEL, NOTE_COLORS } from "@/lib/notes/colors";
 import { markdownToHtml } from "@/lib/export/toHtml";
 import { shouldAdopt, shouldResync } from "@/lib/notes/resync";
 import { createOutbox, replayPlan, UNKNOWN_BASE } from "@/lib/notes/outbox";
@@ -22,6 +24,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { applyFavicon } from "@/lib/favicon";
 import { applyAppearance } from "@/lib/theme";
 import { CommandPalette, type Command } from "./CommandPalette";
+import type { LabelPatch } from "./EditorPane";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { HistoryDialog } from "./HistoryDialog";
 import { createGate } from "@/lib/async/gate";
@@ -58,8 +61,18 @@ const FAILURE: Record<string, string> = {
   link: "Couldn’t create the linked note.",
 };
 
+function deviceTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return undefined;
+  }
+}
+
 export function Shell({ initialNotes, initialCounts, initialSettings, initialClock }: ShellProps) {
   const filter = useUiStore((state) => state.filter);
+  const colorFilter = useUiStore((state) => state.colorFilter);
+  const paletteOpenNow = useUiStore((state) => state.paletteOpen);
   const setFilter = useUiStore((state) => state.setFilter);
   const query = useUiStore((state) => state.query);
   const setQuery = useUiStore((state) => state.setQuery);
@@ -187,11 +200,11 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   }, [query]);
 
   const refreshList = useCallback(async () => {
-    const result = await api.fetchNotes({ filter, query: debouncedQuery });
+    const result = await api.fetchNotes({ filter, query: debouncedQuery, color: colorFilter });
     setNotes(result.notes);
     setCounts(result.counts);
     return result.notes;
-  }, [debouncedQuery, filter]);
+  }, [colorFilter, debouncedQuery, filter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -563,6 +576,47 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     [gate, refreshList],
   );
 
+  /** Archive, colour and template flags (PRD §4.65). */
+  const setLabels = useCallback(
+    (target: NoteListItem | NoteDetail, patch: LabelPatch) =>
+      gate.run(`label:${target.id}`, async () => {
+        const { note: saved } = await api.patchNote(target.id, patch);
+        setNote((prev) => (prev && prev.id === saved.id ? { ...saved, body: prev.body } : prev));
+        await refreshList();
+        const name = `“${displayTitle(target.title)}”`;
+        if (patch.archived !== undefined) {
+          toast(patch.archived ? `${name} archived.` : `${name} is back in Notes.`, {
+            action: {
+              label: "Undo",
+              onClick: () => void api.patchNote(target.id, { archived: !patch.archived }).then(() => refreshList()),
+            },
+          });
+        }
+        if (patch.template === true) {
+          toast(`${name} is now a template.`, { description: "Start a note from it in ⌘K, or from the Templates list." });
+        }
+      }),
+    [gate, refreshList],
+  );
+
+  // Templates for ⌘K's "New from …" commands; re-read when the palette opens
+  // so a renamed template shows its new name.
+  const [templates, setTemplates] = useState<NoteListItem[]>([]);
+  useEffect(() => {
+    if (!counts.templates) {
+      setTemplates([]);
+      return;
+    }
+    let cancelled = false;
+    api
+      .fetchNotes({ filter: "templates" })
+      .then((result) => !cancelled && setTemplates(result.notes))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [counts.templates, paletteOpenNow]);
+
   const restore = useCallback(
     (target: NoteListItem | NoteDetail) =>
       gate.run(`restore:${target.id}`, async () => {
@@ -782,6 +836,51 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     [currentText, filter, flush, gate, note, refreshList, selectNote, setFilter],
   );
 
+  /** A new note from a template, placeholders filled (PRD §4.65). */
+  const newFromTemplate = useCallback(
+    (template: NoteListItem) =>
+      gate.run(`template:${template.id}`, async () => {
+        flush();
+        const source = template.id === note?.id ? currentText() : (await api.fetchNote(template.id)).note.body;
+        const { note: created } = await api.createNote();
+        const result = await api.saveBody(created.id, bodyFromTemplate(source, new Date(), deviceTimeZone()), created.version);
+        versions.current.set(created.id, result.note.version);
+        if (filter !== "all") setFilter("all");
+        await refreshList();
+        selectNote(created.id);
+      }),
+    [currentText, filter, flush, gate, note, refreshList, selectNote, setFilter],
+  );
+
+  /** Today's note: opened if it exists, otherwise made, from the "Daily note" template if there is one. */
+  const openToday = useCallback(
+    () =>
+      gate.run("today", async () => {
+        flush();
+        const now = new Date();
+        const zone = deviceTimeZone();
+        const title = dailyTitle(now, zone);
+        const [live, archived] = await Promise.all([
+          api.fetchNotes({ filter: "all", query: title }),
+          api.fetchNotes({ filter: "archive", query: title }),
+        ]);
+        const existing = [...live.notes, ...archived.notes].find((item) => item.title === title);
+        if (filter !== "all") setFilter("all");
+        if (existing) {
+          selectNote(existing.id);
+          return;
+        }
+        const daily = templates.find((item) => item.title.trim().toLowerCase() === "daily note");
+        const template = daily ? (await api.fetchNote(daily.id)).note.body : null;
+        const { note: created } = await api.createNote();
+        const result = await api.saveBody(created.id, dailyBody(title, template, now, zone), created.version);
+        versions.current.set(created.id, result.note.version);
+        await refreshList();
+        selectNote(created.id);
+      }),
+    [filter, flush, gate, refreshList, selectNote, setFilter, templates],
+  );
+
   /**
    * The swipe menu's actions, for any row — not only the open note (PRD
    * §4.52). The open note uses the editor's live text; others are fetched.
@@ -944,6 +1043,34 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
     return [
       { id: "new", label: "New note", hint: "⌘N", run: () => void createNote() },
+      { id: "today", label: "Open today’s note", run: () => void openToday() },
+      ...templates.map((template) => ({
+        id: `template:${template.id}`,
+        label: `New from template: ${displayTitle(template.title)}`,
+        run: () => void newFromTemplate(template),
+      })),
+      { id: "filter-archive", label: "Show archived notes", run: () => setFilter("archive") },
+      { id: "filter-templates", label: "Show templates", run: () => setFilter("templates") },
+      ...(note && !note.deletedAt
+        ? [
+            {
+              id: "archive",
+              label: note.archivedAt ? "Move note back to Notes" : "Archive note",
+              run: () => void setLabels(note, { archived: !note.archivedAt }),
+            },
+            {
+              id: "template-flag",
+              label: note.isTemplate ? "Stop using note as a template" : "Save note as template",
+              run: () => void setLabels(note, { template: !note.isTemplate }),
+            },
+            ...NOTE_COLORS.map((color) => ({
+              id: `color:${color}`,
+              label: `Colour label: ${COLOR_LABEL[color]}`,
+              run: () => void setLabels(note, { color }),
+            })),
+            ...(note.color ? [{ id: "color:none", label: "Remove colour label", run: () => void setLabels(note, { color: null }) }] : []),
+          ]
+        : []),
       {
         id: "focus",
         label: focusMode ? "Exit focus mode" : "Focus mode",
@@ -1000,7 +1127,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         : []),
       ...themeCommands,
     ];
-  }, [confirmEmptyTrash, copyHtml, exportPdf, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [openToday, templates, newFromTemplate, setLabels, setFilter, confirmEmptyTrash, copyHtml, exportPdf, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1111,6 +1238,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           canShare={canShare}
           onCreate={() => void createNote()}
           onEmptyTrash={confirmEmptyTrash}
+          onToday={() => void openToday()}
+          onArchive={(target) => void setLabels(target, { archived: !target.archivedAt })}
           pending={pending}
           searchSignal={searchSignal}
         />
@@ -1157,6 +1286,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
             onCopy={() => void copyMarkdown()}
             onCopyHtml={() => void copyHtml()}
             onPdf={exportPdf}
+            onLabels={(patch) => note && void setLabels(note, patch)}
+            onUseTemplate={() => note && void newFromTemplate(note)}
             onShare={canShare ? () => void shareNote() : undefined}
             onDownload={exportCurrent}
             onTag={searchTag}

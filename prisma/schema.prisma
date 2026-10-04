@@ -28,6 +28,12 @@ model Note {
   todoDone  Int       @default(0)
   todoTotal Int       @default(0)
   pinned    Boolean   @default(false)
+  /// Out of the main list but kept and searchable (§4.65).
+  archivedAt DateTime?
+  /// A colour label for the row's dot and the colour filter (§4.65).
+  color     String?
+  /// A template: listed under Templates, used to start new notes (§4.65).
+  isTemplate Boolean  @default(false)
   /// Bumped on every body save; a save from an older version is refused and
   /// kept as a conflicted copy instead (PRD §4.18).
   version   Int       @default(0)

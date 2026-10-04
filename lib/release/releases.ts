@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.52.0",
+    date: "2026-10-04",
+    title: "Archive, colour labels, templates and a daily note",
+    changes: [
+      "Archive finished notes from the ⋯ menu or by swiping — they leave your list but stay searchable under Archive.",
+      "Give a note a colour from its ⋯ menu. A dot shows in the list, and the list menu can show just one colour.",
+      "Save any note as a template, then start new notes from it in ⌘K. {{date}} and {{time}} fill themselves in.",
+      "The calendar button opens today's note, making it if needed. Name a template “Daily note” to start each day from it.",
+    ],
+  },
+  {
     version: "1.51.0",
     date: "2026-10-04",
     title: "Diagrams, PDF export, new fonts and focus dimming",

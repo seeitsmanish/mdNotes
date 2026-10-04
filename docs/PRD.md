@@ -1431,3 +1431,31 @@ Owner picks 6, 22, 24 and 25.
   list reads as one thought. Off by default; Settings and ⌘K switch it.
   Device-only.
 
+### 4.65 Archive, colour labels, templates, daily note
+
+Owner picks 7, 9, 12 and 26. Three additive columns on Note: `archivedAt`,
+`color`, `isTemplate` (rehearsed on a Neon branch, fingerprint unchanged).
+
+- R65.1 Archive: a note's ⋯ menu, the swipe menu and ⌘K archive it. It
+  leaves Notes and Pinned and lists under Archive, where it can be searched
+  and opened; a banner on it offers "Move back to Notes". Undo in the toast.
+- R65.2 Colour labels: seven fixed colours (not a free picker, so they stay
+  tellable apart and filterable). Set from a row of dots in the ⋯ menu or ⌘K;
+  a dot shows before the title in the list. The list's filter menu has a
+  colour row that narrows whichever list is shown; its dot appears beside the
+  list name while on. The colour filter resets on reload.
+- R65.3 Templates: "Save as template" moves a note to Templates, out of the
+  main list. A template shows a banner with "New note from this"; ⌘K lists
+  "New from template: …" for each. Placeholders {{date}}, {{weekday}},
+  {{time}} and {{today}} are filled when a note is made from it; others stay.
+- R65.4 Daily note: the calendar button in the list header and ⌘K "Open
+  today's note" open the note titled with today's date in the device's time
+  zone ("Sunday, 4 October 2026"), creating it if there is none (archived
+  ones count, so archiving yesterday's never makes a duplicate). If a
+  template is titled "Daily note", its text goes under the date.
+- R65.5 Labels bump the edit time, as pinning always has, so other devices'
+  resync picks them up. They are not part of the markdown, so exports and
+  history do not carry them.
+- R65.6 An older offline copy of the list, cached before these fields,
+  reads as unlabelled rather than archived.
+

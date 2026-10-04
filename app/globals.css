@@ -231,6 +231,7 @@
   --color-marker: var(--marker);
   --color-brand: var(--brand);
   --color-brand-soft: var(--brand-soft);
+  --color-on-brand: var(--on-brand);
   --color-row-hover: var(--row-hover);
   --color-row-active: var(--row-active);
   --color-highlight: var(--highlight);

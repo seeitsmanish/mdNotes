@@ -20,7 +20,7 @@ export default async function Home() {
   if (!(await hasSession())) redirect("/login");
 
   let initialNotes: NoteListItem[] = [];
-  let initialCounts: NoteCounts = { all: 0, pinned: 0, trash: 0 };
+  let initialCounts: NoteCounts = { all: 0, pinned: 0, archive: 0, templates: 0, trash: 0 };
   let initialSettings: SyncedSettings | null = null;
   let dbError: string | null = null;
 

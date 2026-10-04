@@ -6,6 +6,9 @@ import {
   BookOpenIcon,
   ChevronLeftIcon,
   PencilIcon,
+  ArchiveIcon,
+  ArchiveRestoreIcon,
+  LayoutTemplateIcon,
   CodeXmlIcon,
   FileDownIcon,
   CopyIcon,
@@ -38,6 +41,7 @@ import { Editor, type EditorStats, measure } from "@/components/editor/Editor";
 import { FormatBar } from "@/components/editor/FormatBar";
 import type { SaveStatus } from "@/components/editor/useAutosave";
 import { relativeTime } from "@/lib/time";
+import { COLOR_HEX, COLOR_LABEL, NOTE_COLORS, type NoteColor } from "@/lib/notes/colors";
 import { EDITOR_FONTS, EDITOR_PADDINGS, EDITOR_WIDTHS, useUiStore } from "@/lib/store/useUiStore";
 import type { NoteDetail } from "@/lib/types";
 import { Backlinks } from "./Backlinks";
@@ -74,6 +78,10 @@ interface EditorPaneProps {
   onCopy: () => void;
   onCopyHtml: () => void;
   onPdf: () => void;
+  /** Archive, colour label and template flags (PRD §4.65). */
+  onLabels: (patch: LabelPatch) => void;
+  /** Start a new note from this template. */
+  onUseTemplate: () => void;
   /** Absent where the browser has no share sheet. */
   onShare?: () => void;
   onDownload: () => void;
@@ -81,6 +89,12 @@ interface EditorPaneProps {
   highlight?: string;
   loadError?: string | null;
   onRetry?: () => void;
+}
+
+export interface LabelPatch {
+  archived?: boolean;
+  color?: NoteColor | null;
+  template?: boolean;
 }
 
 export function EditorPane({
@@ -102,6 +116,8 @@ export function EditorPane({
   onCopy,
   onCopyHtml,
   onPdf,
+  onLabels,
+  onUseTemplate,
   onShare,
   onDownload,
   onTag,
@@ -204,6 +220,8 @@ export function EditorPane({
               onCopy={onCopy}
               onCopyHtml={onCopyHtml}
               onPdf={onPdf}
+              labels={{ archived: Boolean(note.archivedAt), color: note.color ?? null, isTemplate: Boolean(note.isTemplate) }}
+              onLabels={onLabels}
               onShare={onShare}
               onDownload={onDownload}
               readingMode={readingMode}
@@ -245,6 +263,8 @@ export function EditorPane({
               onCopy={onCopy}
               onCopyHtml={onCopyHtml}
               onPdf={onPdf}
+              labels={{ archived: Boolean(note.archivedAt), color: note.color ?? null, isTemplate: Boolean(note.isTemplate) }}
+              onLabels={onLabels}
               onShare={onShare}
               onDownload={onDownload}
               readingMode={readingMode}
@@ -272,6 +292,34 @@ export function EditorPane({
           <AppearanceButton open={settingsOpen} onOpenChange={setSettingsOpen} />
         </div>
       </header>
+
+      {/* A template or an archived note says so, with the one action that
+          matters for it (PRD §4.65). */}
+      {note && !inTrash && (note.isTemplate || note.archivedAt) && (
+        <div className="ursa-fade-in flex flex-none items-center justify-center gap-3 border-b border-border bg-brand-soft px-4 py-1.5 text-[0.78rem] text-brand">
+          {note.isTemplate ? (
+            <>
+              <span className="flex items-center gap-1.5">
+                <LayoutTemplateIcon className="size-3.5" />
+                Template — edits here change it for next time
+              </span>
+              <button type="button" onClick={onUseTemplate} className="rounded-md bg-brand px-2 py-0.5 font-semibold text-on-brand hover:bg-brand/90">
+                New note from this
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="flex items-center gap-1.5">
+                <ArchiveIcon className="size-3.5" />
+                Archived
+              </span>
+              <button type="button" onClick={() => onLabels({ archived: false })} className="font-semibold underline-offset-2 hover:underline">
+                Move back to Notes
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="flex min-h-0 flex-1">
       <div
@@ -377,6 +425,8 @@ function NoteMenu({
   onCopy,
   onCopyHtml,
   onPdf,
+  labels,
+  onLabels,
   onShare,
   onDownload,
   readingMode,
@@ -394,6 +444,8 @@ function NoteMenu({
   onCopy: () => void;
   onCopyHtml: () => void;
   onPdf: () => void;
+  labels: { archived: boolean; color: NoteColor | null; isTemplate: boolean };
+  onLabels: (patch: LabelPatch) => void;
   onShare?: () => void;
   onDownload: () => void;
   readingMode: boolean;
@@ -455,6 +507,36 @@ function NoteMenu({
             <CopyPlusIcon />
             Duplicate
           </DropdownMenuItem>
+        )}
+        {!inTrash && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onLabels({ archived: !labels.archived })}>
+              {labels.archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
+              {labels.archived ? "Move back to Notes" : "Archive"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onLabels({ template: !labels.isTemplate })}>
+              <LayoutTemplateIcon />
+              {labels.isTemplate ? "Stop using as a template" : "Save as template"}
+            </DropdownMenuItem>
+            {/* Colour labels (PRD §4.65): one row of dots, the current one ringed. */}
+            <div className="flex items-center gap-1 px-2 py-1.5" role="group" aria-label="Colour label">
+              {NOTE_COLORS.map((color) => (
+                <DropdownMenuItem
+                  key={color}
+                  aria-label={`${COLOR_LABEL[color]} label${labels.color === color ? " (current)" : ""}`}
+                  onClick={() => onLabels({ color: labels.color === color ? null : color })}
+                  className="size-7 justify-center rounded-full p-0"
+                >
+                  <span
+                    aria-hidden
+                    className={`size-4 rounded-full ${labels.color === color ? "ring-2 ring-ink ring-offset-2 ring-offset-popover" : ""}`}
+                    style={{ background: COLOR_HEX[color] }}
+                  />
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </>
         )}
         <DropdownMenuItem onClick={onDownload}>
           <DownloadIcon />

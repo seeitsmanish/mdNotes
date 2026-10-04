@@ -1,3 +1,4 @@
+import type { NoteColor } from "./notes/colors";
 import type { NoteCounts, NoteDetail, NoteFilter, NoteListItem } from "./types";
 
 /** Thin client over the route handlers in app/api (docs/TECH-SPEC.md §5). */
@@ -34,8 +35,10 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 export function fetchNotes(options: {
   filter: NoteFilter;
   query?: string;
+  color?: NoteColor | null;
 }): Promise<{ notes: NoteListItem[]; counts: NoteCounts }> {
   const params = new URLSearchParams({ filter: options.filter });
+  if (options.color) params.set("color", options.color);
   if (options.query?.trim()) params.set("q", options.query.trim());
   return request(`/api/notes?${params}`);
 }
@@ -50,7 +53,7 @@ export function createNote(): Promise<{ note: NoteDetail }> {
 
 export function patchNote(
   id: string,
-  patch: { pinned?: boolean },
+  patch: { pinned?: boolean; archived?: boolean; color?: NoteColor | null; template?: boolean },
 ): Promise<{ note: NoteDetail }> {
   return request(`/api/notes/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
 }

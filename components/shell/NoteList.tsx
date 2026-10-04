@@ -11,6 +11,9 @@ import {
   Loader2Icon,
   ChevronDownIcon,
   type LucideIcon,
+  ArchiveIcon,
+  ArchiveRestoreIcon,
+  CalendarDaysIcon,
   PinIcon,
   PinOffIcon,
   PlusIcon,
@@ -27,6 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -39,6 +43,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { displayExcerpt, displayTitle } from "@/lib/markdown/derive";
 import { sectionNotes } from "@/lib/notes/sections";
 import { relativeTime } from "@/lib/time";
+import { COLOR_HEX, COLOR_LABEL, NOTE_COLORS } from "@/lib/notes/colors";
 import type { NoteCounts, NoteFilter, NoteListItem, SearchMatch } from "@/lib/types";
 
 /**
@@ -53,6 +58,8 @@ import type { NoteCounts, NoteFilter, NoteListItem, SearchMatch } from "@/lib/ty
 const FILTERS: Array<{ value: NoteFilter; label: string }> = [
   { value: "all", label: "Notes" },
   { value: "pinned", label: "Pinned" },
+  { value: "archive", label: "Archive" },
+  { value: "templates", label: "Templates" },
   { value: "trash", label: "Trash" },
 ];
 
@@ -79,6 +86,9 @@ interface NoteListProps {
   searchSignal?: number;
   onCreate: () => void;
   onEmptyTrash: () => void;
+  /** Today's daily note (PRD §4.65). */
+  onToday: () => void;
+  onArchive: (note: NoteListItem) => void;
 }
 
 export function NoteList({
@@ -101,7 +111,11 @@ export function NoteList({
   searchSignal = 0,
   onCreate,
   onEmptyTrash,
+  onToday,
+  onArchive,
 }: NoteListProps) {
+  const colorFilter = useUiStore((state) => state.colorFilter);
+  const setColorFilter = useUiStore((state) => state.setColorFilter);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
@@ -160,6 +174,13 @@ export function NoteList({
             <DropdownMenuTrigger
               render={
                 <Button variant="ghost" size="sm" className="-ml-1.5 gap-1 text-[0.95rem] font-semibold tracking-tight">
+                  {colorFilter && (
+                    <span
+                      aria-label={`${COLOR_LABEL[colorFilter]} only`}
+                      className="size-2.5 rounded-full"
+                      style={{ background: COLOR_HEX[colorFilter] }}
+                    />
+                  )}
                   {current.label}
                   <ChevronDownIcon className="opacity-55" />
                 </Button>
@@ -173,10 +194,36 @@ export function NoteList({
                 {FILTERS.map((entry) => (
                   <DropdownMenuRadioItem key={entry.value} value={entry.value} closeOnClick>
                     <span className="flex-1">{entry.label}</span>
-                    <span className="text-xs text-muted-foreground">{counts[entry.value]}</span>
+                    <span className="text-xs text-muted-foreground">{counts[entry.value] ?? 0}</span>
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              {/* Colour filter (PRD §4.65): narrows whichever list is shown. */}
+              <div className="px-2 pb-1 pt-1.5 text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                Colour
+              </div>
+              <div className="flex flex-wrap items-center gap-1 px-1.5 pb-1.5">
+                {NOTE_COLORS.map((color) => (
+                  <DropdownMenuItem
+                    key={color}
+                    aria-label={`Only ${COLOR_LABEL[color].toLowerCase()} notes${colorFilter === color ? " (on)" : ""}`}
+                    onClick={() => setColorFilter(colorFilter === color ? null : color)}
+                    className="size-7 justify-center rounded-full p-0"
+                  >
+                    <span
+                      aria-hidden
+                      className={`size-4 rounded-full ${colorFilter === color ? "ring-2 ring-ink ring-offset-2 ring-offset-popover" : ""}`}
+                      style={{ background: COLOR_HEX[color] }}
+                    />
+                  </DropdownMenuItem>
+                ))}
+                {colorFilter && (
+                  <DropdownMenuItem onClick={() => setColorFilter(null)} className="h-7 px-2 text-xs">
+                    Any
+                  </DropdownMenuItem>
+                )}
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -191,6 +238,12 @@ export function NoteList({
                 pending={pending.has("create")}
               />
             </div>
+            <IconAction
+              icon={CalendarDaysIcon}
+              label={pending.has("today") ? "Opening today’s note…" : "Today’s note"}
+              onClick={onToday}
+              pending={pending.has("today")}
+            />
             <IconAction
               icon={SearchIcon}
               label="Search (⌘F)"
@@ -266,7 +319,7 @@ export function NoteList({
       </header>
 
       {notes.length === 0 && !loading ? (
-        <EmptyState inTrash={inTrash} searching={searching} onCreate={onCreate} />
+        <EmptyState inTrash={inTrash} filter={filter} colored={colorFilter !== null} searching={searching} onCreate={onCreate} />
       ) : (
         <ul
           className="flex-1 overflow-y-auto px-3 pb-24 pt-1 @[900px]:pb-4"
@@ -337,6 +390,7 @@ export function NoteList({
                           note={note}
                           canShare={canShare}
                           onPin={() => onTogglePin(note)}
+                          onArchive={() => onArchive(note)}
                           onAction={(kind) => onRowAction(note, kind)}
                           onDone={() => setSwipedId(null)}
                         />
@@ -374,6 +428,13 @@ export function NoteList({
                     <span className="flex items-start gap-3">
                     <span className="block min-w-0 flex-1">
                     <span className="flex items-start gap-1.5">
+                      {note.color && (
+                        <span
+                          aria-label={`${COLOR_LABEL[note.color]} label`}
+                          className="mt-[0.38rem] size-2 flex-none rounded-full"
+                          style={{ background: COLOR_HEX[note.color] }}
+                        />
+                      )}
                       {note.pinned && (
                         <PinIcon
                           size={11}
@@ -579,18 +640,28 @@ function RowAction({
 
 function EmptyState({
   inTrash,
+  filter,
+  colored,
   searching,
   onCreate,
 }: {
   inTrash: boolean;
+  filter: NoteFilter;
+  colored: boolean;
   searching: boolean;
   onCreate: () => void;
 }) {
   const [title, hint] = searching
     ? ["No notes match", "Try fewer or different words."]
-    : inTrash
-      ? ["Trash is empty", "Notes you delete wait here for a while."]
-      : ["No notes yet", "Your first one is a tap away."];
+    : colored
+      ? ["No notes with this colour", "Give a note a colour from its ⋯ menu."]
+      : inTrash
+        ? ["Trash is empty", "Notes you delete wait here for a while."]
+        : filter === "archive"
+          ? ["Nothing archived", "Archive a finished note from its ⋯ menu to tidy the list without deleting it."]
+          : filter === "templates"
+            ? ["No templates yet", "Open a note and choose “Save as template” in its ⋯ menu."]
+            : ["No notes yet", "Your first one is a tap away."];
   return (
     <div className="ursa-fade-in flex flex-1 flex-col items-center justify-center gap-3 px-6 pb-10 text-center">
       <Illustration kind={searching ? "search" : inTrash ? "trash" : "notes"} size={112} />
@@ -598,7 +669,7 @@ function EmptyState({
         <p className="text-[0.88rem] font-semibold tracking-tight text-ink">{title}</p>
         <p className="text-[0.76rem] text-ink-faint">{hint}</p>
       </div>
-      {!inTrash && !searching && (
+      {filter !== "trash" && filter !== "archive" && filter !== "templates" && !searching && !colored && (
         <Button size="sm" onClick={onCreate}>
           <PlusIcon />
           New note
@@ -667,12 +738,14 @@ function SwipeMore({
   note,
   canShare,
   onPin,
+  onArchive,
   onAction,
   onDone,
 }: {
   note: NoteListItem;
   canShare: boolean;
   onPin: () => void;
+  onArchive: () => void;
   onAction: (kind: "copy" | "share" | "duplicate") => void;
   onDone: () => void;
 }) {
@@ -711,6 +784,10 @@ function SwipeMore({
         <DropdownMenuItem onClick={run(() => onAction("duplicate"))}>
           <CopyPlusIcon />
           Duplicate
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={run(onArchive)}>
+          {note.archivedAt ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
+          {note.archivedAt ? "Move back to Notes" : "Archive"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

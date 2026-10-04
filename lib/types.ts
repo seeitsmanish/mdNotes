@@ -1,6 +1,8 @@
 /** Shapes crossing the API boundary. Dates are ISO strings over the wire. */
 
-export type NoteFilter = "all" | "pinned" | "trash";
+import type { NoteColor } from "./notes/colors";
+
+export type NoteFilter = "all" | "pinned" | "archive" | "templates" | "trash";
 
 /** Row counts for the note list's filter control. */
 export type NoteCounts = Record<NoteFilter, number>;
@@ -21,6 +23,10 @@ export interface NoteListItem {
   todoDone: number;
   todoTotal: number;
   pinned: boolean;
+  /** Archived notes leave the main list but stay searchable (PRD §4.65). */
+  archivedAt: string | null;
+  color: NoteColor | null;
+  isTemplate: boolean;
   updatedAt: string;
   deletedAt: string | null;
   match?: SearchMatch;

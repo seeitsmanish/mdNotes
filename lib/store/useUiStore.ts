@@ -20,6 +20,7 @@ const guardedStorage = createJSONStorage(() => ({
   removeItem: (key: string) => localStorage.removeItem(key),
 }));
 import type { NoteFilter } from "@/lib/types";
+import type { NoteColor } from "@/lib/notes/colors";
 
 /**
  * UI state only. Notes are fetched, never mirrored here — a store that also
@@ -122,6 +123,8 @@ interface UiState {
   autoPrivacy: boolean;
   /** Fade every paragraph but the one being written (§4.64). */
   focusDim: boolean;
+  /** Show only notes with this colour label (§4.65). Not kept across reloads. */
+  colorFilter: NoteColor | null;
 
   theme: ThemeChoice;
   editorWidth: EditorWidth;
@@ -148,6 +151,7 @@ interface UiState {
   togglePrivacyMode: () => void;
   setAutoPrivacy: (on: boolean) => void;
   toggleFocusDim: () => void;
+  setColorFilter: (color: NoteColor | null) => void;
   setSettingsOpen: (open: boolean) => void;
   setTheme: (theme: ThemeChoice) => void;
   setEditorWidth: (width: EditorWidth) => void;
@@ -184,6 +188,7 @@ export const useUiStore = create<UiState>()(
       privacyMode: false,
       autoPrivacy: true,
       focusDim: false,
+      colorFilter: null,
 
       theme: "forest",
       editorWidth: "regular",
@@ -209,6 +214,7 @@ export const useUiStore = create<UiState>()(
       togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
       setAutoPrivacy: (autoPrivacy) => set({ autoPrivacy }),
       toggleFocusDim: () => set((state) => ({ focusDim: !state.focusDim })),
+      setColorFilter: (colorFilter) => set({ colorFilter, selectedNoteId: null, mobilePane: "list" }),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
       setTheme: (theme) => set({ theme }),
       setEditorWidth: (editorWidth) => set({ editorWidth }),

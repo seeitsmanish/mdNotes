@@ -45,3 +45,20 @@ describe("parseNotePatch", () => {
     expect(parseNotePatch(payload).ok).toBe(false);
   });
 });
+
+describe("parseNotePatch labels (PRD §4.65)", () => {
+  it("accepts archive, colour and template flags", () => {
+    expect(parseNotePatch({ archived: true, color: "blue", template: false })).toEqual({
+      ok: true,
+      patch: { archived: true, color: "blue", template: false },
+    });
+    expect(parseNotePatch({ color: null })).toEqual({ ok: true, patch: { color: null } });
+  });
+
+  it.each([[{ archived: "yes" }], [{ color: "#ff0000" }], [{ color: "pink" }], [{ template: 1 }]])(
+    "rejects %j",
+    (payload) => {
+      expect(parseNotePatch(payload).ok).toBe(false);
+    },
+  );
+});

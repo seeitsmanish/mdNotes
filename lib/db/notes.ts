@@ -9,6 +9,7 @@ import { rank, terms } from "@/lib/search/rank";
 import { CANDIDATE_CAP, mergeCandidates } from "@/lib/search/candidates";
 import { containsPattern, FOLD_FROM, FOLD_TO } from "@/lib/search/foldSql";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { isNoteColor, type NoteColor } from "@/lib/notes/colors";
 import type { NoteCounts, NoteDetail, NoteFilter, NoteListItem } from "@/lib/types";
 
 /**
@@ -25,6 +26,9 @@ const LIST_FIELDS = {
   todoDone: true,
   todoTotal: true,
   pinned: true,
+  archivedAt: true,
+  color: true,
+  isTemplate: true,
   updatedAt: true,
   deletedAt: true,
 } as const;
@@ -37,6 +41,9 @@ type ListRow = {
   todoDone: number;
   todoTotal: number;
   pinned: boolean;
+  archivedAt: Date | null;
+  color: string | null;
+  isTemplate: boolean;
   updatedAt: Date;
   deletedAt: Date | null;
 };
@@ -50,6 +57,9 @@ function toListItem(row: ListRow): NoteListItem {
     todoDone: row.todoDone,
     todoTotal: row.todoTotal,
     pinned: row.pinned,
+    archivedAt: row.archivedAt?.toISOString() ?? null,
+    color: isNoteColor(row.color) ? row.color : null,
+    isTemplate: row.isTemplate,
     updatedAt: row.updatedAt.toISOString(),
     deletedAt: row.deletedAt?.toISOString() ?? null,
   };
@@ -66,32 +76,58 @@ function toDetail(row: ListRow & { body: string; createdAt: Date; version: numbe
   };
 }
 
-function filterWhere(filter: NoteFilter) {
-  if (filter === "trash") return { deletedAt: { not: null } };
-  if (filter === "pinned") return { deletedAt: null, pinned: true };
-  return { deletedAt: null };
+/**
+ * Which notes a filter shows (PRD §4.65). The main list leaves out archived
+ * notes and templates; each has its own filter. A colour narrows any filter.
+ */
+function filterWhere(filter: NoteFilter, color: NoteColor | null = null) {
+  const tint = color ? { color } : {};
+  if (filter === "trash") return { deletedAt: { not: null }, ...tint };
+  if (filter === "archive") return { deletedAt: null, archivedAt: { not: null }, ...tint };
+  if (filter === "templates") return { deletedAt: null, isTemplate: true, ...tint };
+  const live = { deletedAt: null, archivedAt: null, isTemplate: false, ...tint };
+  if (filter === "pinned") return { ...live, pinned: true };
+  return live;
+}
+
+/** The same scopes as raw SQL, for search. Only fixed fragments; the colour is bound. */
+function filterSql(filter: NoteFilter, color: NoteColor | null) {
+  const base =
+    filter === "trash"
+      ? Prisma.sql`"deletedAt" IS NOT NULL`
+      : filter === "archive"
+        ? Prisma.sql`"deletedAt" IS NULL AND "archivedAt" IS NOT NULL`
+        : filter === "templates"
+          ? Prisma.sql`"deletedAt" IS NULL AND "isTemplate" = true`
+          : filter === "pinned"
+            ? Prisma.sql`"deletedAt" IS NULL AND "archivedAt" IS NULL AND "isTemplate" = false AND "pinned" = true`
+            : Prisma.sql`"deletedAt" IS NULL AND "archivedAt" IS NULL AND "isTemplate" = false`;
+  return color ? Prisma.sql`${base} AND "color" = ${color}` : base;
 }
 
 export async function countNotes(): Promise<NoteCounts> {
-  const [all, pinned, trash] = await Promise.all([
+  const [all, pinned, archive, templates, trash] = await Promise.all([
     prisma.note.count({ where: filterWhere("all") }),
     prisma.note.count({ where: filterWhere("pinned") }),
+    prisma.note.count({ where: filterWhere("archive") }),
+    prisma.note.count({ where: filterWhere("templates") }),
     prisma.note.count({ where: filterWhere("trash") }),
   ]);
-  return { all, pinned, trash };
+  return { all, pinned, archive, templates, trash };
 }
 
 export async function listNotes(options: {
   filter?: NoteFilter;
   query?: string | null;
+  color?: NoteColor | null;
 }): Promise<NoteListItem[]> {
-  const { filter = "all", query } = options;
+  const { filter = "all", query, color = null } = options;
   const queryTerms = terms(query ?? "");
 
   // No query: the plain, cheap path — ordered by pinned then recency.
   if (queryTerms.length === 0) {
     const rows = await prisma.note.findMany({
-      where: filterWhere(filter),
+      where: filterWhere(filter, color),
       orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
       select: LIST_FIELDS,
     });
@@ -111,15 +147,10 @@ export async function listNotes(options: {
   // terms are, and Prisma's `contains` cannot apply a function to the column
   // (R11.4). Every value is a bound parameter; only fixed fragments are spliced.
   const pattern = containsPattern(narrowest);
-  const scope =
-    filter === "trash"
-      ? Prisma.sql`"deletedAt" IS NOT NULL`
-      : filter === "pinned"
-        ? Prisma.sql`"deletedAt" IS NULL AND "pinned" = true`
-        : Prisma.sql`"deletedAt" IS NULL`;
+  const scope = filterSql(filter, color);
   const read = (column: Prisma.Sql) =>
     prisma.$queryRaw<Array<ListRow & { body: string }>>`
-      SELECT "id", "title", "excerpt", "cover", "todoDone", "todoTotal", "pinned", "updatedAt", "deletedAt", "body"
+      SELECT "id", "title", "excerpt", "cover", "todoDone", "todoTotal", "pinned", "archivedAt", "color", "isTemplate", "updatedAt", "deletedAt", "body"
       FROM "Note"
       WHERE ${scope}
         AND translate(${column}, ${FOLD_FROM}, ${FOLD_TO}) ILIKE ${pattern} ESCAPE '\\'
@@ -167,9 +198,15 @@ export async function updateNote(id: string, patch: NotePatch): Promise<UpdateRe
   if (!exists) return { status: "missing" };
 
   const copyId = await prisma.$transaction(async (tx) => {
-    if (patch.pinned !== undefined) {
-      await tx.note.update({ where: { id }, data: { pinned: patch.pinned } });
-    }
+    // Labels: they bump the edit time like pinning always has, which is how
+    // other devices' resync notices them (PRD §4.39).
+    const flags = {
+      ...(patch.pinned !== undefined ? { pinned: patch.pinned } : {}),
+      ...(patch.archived !== undefined ? { archivedAt: patch.archived ? new Date() : null } : {}),
+      ...(patch.color !== undefined ? { color: patch.color } : {}),
+      ...(patch.template !== undefined ? { isTemplate: patch.template } : {}),
+    };
+    if (Object.keys(flags).length > 0) await tx.note.update({ where: { id }, data: flags });
     if (patch.body === undefined) return null;
 
     const previous = await lockBody(tx, id);
