@@ -29,6 +29,7 @@ import { CommandPalette, type Command } from "./CommandPalette";
 import type { LabelPatch } from "./EditorPane";
 import type { BulkAction } from "./NoteList";
 import { ShareLinkDialog } from "./ShareLinkDialog";
+import { PasscodeDialog } from "./LockDialog";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { HistoryDialog } from "./HistoryDialog";
 import { createGate } from "@/lib/async/gate";
@@ -154,6 +155,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   }, [brandColor, radius, headingMode]);
 
   const [shareLinkOpen, setShareLinkOpen] = useState(false);
+  // Note-lock passcode dialog (PRD §4.69); `then` runs once a passcode is set.
+  const [passcodeDialog, setPasscodeDialog] = useState<{ changing: boolean; then?: () => void } | null>(null);
   const hapticsOn = useUiStore((state) => state.haptics);
   useEffect(() => setHapticsEnabled(hapticsOn), [hapticsOn]);
 
@@ -543,6 +546,11 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     } catch {
       return;
     }
+    // The unlock ran out while away: seal the open note now (PRD §4.69).
+    if (loaded.sealed && useUiStore.getState().selectedNoteId === id) {
+      setNote(loaded);
+      return;
+    }
     // Checked after the fetch too: typing may have started while it ran.
     const adopt =
       useUiStore.getState().selectedNoteId === id &&
@@ -611,8 +619,16 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
   /** Archive, colour and template flags (PRD §4.65). */
   const setLabels = useCallback(
-    (target: NoteListItem | NoteDetail, patch: LabelPatch) =>
+    (target: NoteListItem | NoteDetail, patch: LabelPatch): Promise<void> | undefined =>
       gate.run(`label:${target.id}`, async () => {
+        if (patch.locked === true) {
+          const status = await api.lockStatus();
+          if (!status.configured) {
+            // First lock: choose the passcode, then lock.
+            setPasscodeDialog({ changing: false, then: () => void setLabelsRef.current(target, patch) });
+            return;
+          }
+        }
         const { note: saved } = await api.patchNote(target.id, patch);
         setNote((prev) => (prev && prev.id === saved.id ? { ...saved, body: prev.body } : prev));
         await refreshList();
@@ -628,9 +644,27 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         if (patch.template === true) {
           toast(`${name} is now a template.`, { description: "Start a note from it in ⌘K, or from the Templates list." });
         }
+        if (patch.locked !== undefined) {
+          toast(patch.locked ? `${name} locked.` : `${name} is no longer locked.`, {
+            description: patch.locked ? "It stays open here until you lock notes again or 15 minutes pass." : undefined,
+          });
+        }
       }),
     [gate, refreshList],
   );
+  const setLabelsRef = useRef(setLabels);
+  setLabelsRef.current = setLabels;
+
+  /** Lock every note again now (PRD §4.69); the open one is sealed straight away. */
+  const lockNow = useCallback(async () => {
+    try {
+      await api.lockAction({ action: "lock" });
+      toast("Locked notes are locked.");
+      if (useUiStore.getState().selectedNoteId) setNoteReload((n) => n + 1);
+    } catch {
+      toast.error("Couldn’t lock notes. Try again.");
+    }
+  }, []);
 
   // Templates for ⌘K's "New from …" commands; re-read when the palette opens
   // so a renamed template shows its new name.
@@ -1027,8 +1061,13 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
    * §4.52). The open note uses the editor's live text; others are fetched.
    */
   const bodyOf = useCallback(
-    async (target: NoteListItem) =>
-      target.id === note?.id ? currentText() : (await api.fetchNote(target.id)).note.body,
+    async (target: NoteListItem) => {
+      if (target.id === note?.id && !note.sealed) return currentText();
+      const { note: loaded } = await api.fetchNote(target.id);
+      // A locked note's text never leaves it while locked (PRD §4.69).
+      if (loaded.sealed) throw new Error("This note is locked — open it and unlock it first.");
+      return loaded.body;
+    },
     [currentText, note],
   );
 
@@ -1190,6 +1229,19 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         label: `New from template: ${displayTitle(template.title)}`,
         run: () => void newFromTemplate(template),
       })),
+      { id: "lock-now", label: "Lock locked notes now", run: () => void lockNow() },
+      {
+        id: "passcode",
+        label: "Set or change the note passcode",
+        run: () =>
+          void api
+            .lockStatus()
+            .then((status) => setPasscodeDialog({ changing: status.configured }))
+            .catch(() => toast.error("Couldn’t reach the server.")),
+      },
+      ...(note && !note.deletedAt
+        ? [{ id: "lock-toggle", label: note.locked ? "Remove lock from note" : "Lock note", run: () => void setLabels(note, { locked: !note.locked }) }]
+        : []),
       { id: "filter-archive", label: "Show archived notes", run: () => setFilter("archive") },
       { id: "filter-templates", label: "Show templates", run: () => setFilter("templates") },
       ...(note && !note.deletedAt
@@ -1268,7 +1320,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         : []),
       ...themeCommands,
     ];
-  }, [openToday, templates, newFromTemplate, setLabels, setFilter, confirmEmptyTrash, copyHtml, exportPdf, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [lockNow, openToday, templates, newFromTemplate, setLabels, setFilter, confirmEmptyTrash, copyHtml, exportPdf, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1436,6 +1488,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
             onLabels={(patch) => note && void setLabels(note, patch)}
             onUseTemplate={() => note && void newFromTemplate(note)}
             onShareLink={() => setShareLinkOpen(true)}
+            onUnlocked={() => setNoteReload((n) => n + 1)}
             onShare={canShare ? () => void shareNote() : undefined}
             onDownload={exportCurrent}
             onTag={searchTag}
@@ -1445,6 +1498,18 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           />
         </div>
       </div>
+
+      <PasscodeDialog
+        open={passcodeDialog !== null}
+        changing={passcodeDialog?.changing ?? false}
+        onOpenChange={(open) => !open && setPasscodeDialog(null)}
+        onDone={() => {
+          const then = passcodeDialog?.then;
+          setPasscodeDialog(null);
+          toast("Passcode saved.");
+          then?.();
+        }}
+      />
 
       <ShareLinkDialog
         noteId={note?.id ?? null}

@@ -7,6 +7,8 @@ import {
   ChevronLeftIcon,
   PencilIcon,
   ArchiveIcon,
+  LockIcon,
+  LockOpenIcon,
   Link2Icon,
   ArchiveRestoreIcon,
   LayoutTemplateIcon,
@@ -42,6 +44,8 @@ import { Editor, type EditorStats, measure } from "@/components/editor/Editor";
 import { FormatBar } from "@/components/editor/FormatBar";
 import type { SaveStatus } from "@/components/editor/useAutosave";
 import { relativeTime } from "@/lib/time";
+import { LockedPanel } from "./LockDialog";
+import { displayTitle } from "@/lib/markdown/derive";
 import { COLOR_HEX, COLOR_LABEL, NOTE_COLORS, type NoteColor } from "@/lib/notes/colors";
 import { EDITOR_FONTS, EDITOR_PADDINGS, EDITOR_WIDTHS, useUiStore } from "@/lib/store/useUiStore";
 import type { NoteDetail } from "@/lib/types";
@@ -85,6 +89,8 @@ interface EditorPaneProps {
   onUseTemplate: () => void;
   /** Open the public-link dialog (PRD §4.68). */
   onShareLink: () => void;
+  /** The passcode was accepted: reload the note's text (PRD §4.69). */
+  onUnlocked: () => void;
   /** Absent where the browser has no share sheet. */
   onShare?: () => void;
   onDownload: () => void;
@@ -98,6 +104,7 @@ export interface LabelPatch {
   archived?: boolean;
   color?: NoteColor | null;
   template?: boolean;
+  locked?: boolean;
 }
 
 export function EditorPane({
@@ -122,6 +129,7 @@ export function EditorPane({
   onLabels,
   onUseTemplate,
   onShareLink,
+  onUnlocked,
   onShare,
   onDownload,
   onTag,
@@ -224,7 +232,7 @@ export function EditorPane({
               onCopy={onCopy}
               onCopyHtml={onCopyHtml}
               onPdf={onPdf}
-              labels={{ archived: Boolean(note.archivedAt), color: note.color ?? null, isTemplate: Boolean(note.isTemplate) }}
+              labels={{ archived: Boolean(note.archivedAt), color: note.color ?? null, isTemplate: Boolean(note.isTemplate), locked: Boolean(note.locked), sealed: Boolean(note.sealed) }}
               onLabels={onLabels}
               onShareLink={onShareLink}
               onShare={onShare}
@@ -268,7 +276,7 @@ export function EditorPane({
               onCopy={onCopy}
               onCopyHtml={onCopyHtml}
               onPdf={onPdf}
-              labels={{ archived: Boolean(note.archivedAt), color: note.color ?? null, isTemplate: Boolean(note.isTemplate) }}
+              labels={{ archived: Boolean(note.archivedAt), color: note.color ?? null, isTemplate: Boolean(note.isTemplate), locked: Boolean(note.locked), sealed: Boolean(note.sealed) }}
               onLabels={onLabels}
               onShareLink={onShareLink}
               onShare={onShare}
@@ -341,7 +349,9 @@ export function EditorPane({
           } as React.CSSProperties
         }
       >
-        {note ? (
+        {note?.sealed ? (
+          <LockedPanel title={displayTitle(note.title)} onUnlocked={onUnlocked} />
+        ) : note ? (
           <Editor
             noteId={note.id}
             initialBody={note.body}
@@ -398,7 +408,7 @@ export function EditorPane({
         <Backlinks noteId={note?.id ?? null} onOpen={onOpenNote} />
       </div>
 
-      {note && !inTrash && !readingMode && <FormatBar view={view} />}
+      {note && !inTrash && !readingMode && !note.sealed && <FormatBar view={view} />}
       {note && !inTrash && readingMode && (
         <button
           type="button"
@@ -451,7 +461,7 @@ function NoteMenu({
   onCopy: () => void;
   onCopyHtml: () => void;
   onPdf: () => void;
-  labels: { archived: boolean; color: NoteColor | null; isTemplate: boolean };
+  labels: { archived: boolean; color: NoteColor | null; isTemplate: boolean; locked: boolean; sealed: boolean };
   onLabels: (patch: LabelPatch) => void;
   onShareLink: () => void;
   onShare?: () => void;
@@ -492,6 +502,8 @@ function NoteMenu({
             <DropdownMenuSeparator />
           </>
         )}
+        {labels.sealed ? null : (
+          <>
         {onShare && (
           <DropdownMenuItem onClick={onShare}>
             <ShareIcon />
@@ -522,6 +534,12 @@ function NoteMenu({
             Duplicate
           </DropdownMenuItem>
         )}
+        <DropdownMenuItem onClick={onDownload}>
+          <DownloadIcon />
+          Download .md
+        </DropdownMenuItem>
+          </>
+        )}
         {!inTrash && (
           <>
             <DropdownMenuSeparator />
@@ -532,6 +550,10 @@ function NoteMenu({
             <DropdownMenuItem onClick={() => onLabels({ template: !labels.isTemplate })}>
               <LayoutTemplateIcon />
               {labels.isTemplate ? "Stop using as a template" : "Save as template"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onLabels({ locked: !labels.locked })}>
+              {labels.locked ? <LockOpenIcon /> : <LockIcon />}
+              {labels.locked ? "Remove lock" : "Lock note"}
             </DropdownMenuItem>
             {/* Colour labels (PRD §4.65): one row of dots, the current one ringed. */}
             <div className="flex items-center gap-1 px-2 py-1.5" role="group" aria-label="Colour label">
@@ -552,10 +574,6 @@ function NoteMenu({
             </div>
           </>
         )}
-        <DropdownMenuItem onClick={onDownload}>
-          <DownloadIcon />
-          Download .md
-        </DropdownMenuItem>
         {compact && !inTrash && (
           <>
             <DropdownMenuSeparator />

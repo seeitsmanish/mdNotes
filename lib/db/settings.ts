@@ -9,22 +9,28 @@ import { type AppSettings, DEFAULT_SETTINGS } from "../settings/schema";
 
 const SINGLETON = "singleton";
 
+/**
+ * Only the appearance columns, by name. The row also holds server secrets —
+ * the session epoch and the note-lock passcode hash (PRD §4.69) — and a
+ * deny-list would send the next one added to every browser.
+ */
+const APPEARANCE = Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map((key) => [key, true])) as Record<
+  keyof AppSettings,
+  true
+>;
+
 export async function getSettings(): Promise<AppSettings> {
-  const row = await prisma.settings.findUnique({ where: { id: SINGLETON } });
-  if (!row) return DEFAULT_SETTINGS;
-  // sessionEpoch is a server secret of sorts, not appearance: never sent on.
-  const { id: _id, updatedAt: _updatedAt, sessionEpoch: _epoch, ...settings } = row;
-  return settings;
+  const row = await prisma.settings.findUnique({ where: { id: SINGLETON }, select: APPEARANCE });
+  return row ?? DEFAULT_SETTINGS;
 }
 
 export async function saveSettings(patch: Partial<AppSettings>): Promise<AppSettings> {
-  const row = await prisma.settings.upsert({
+  return prisma.settings.upsert({
     where: { id: SINGLETON },
     update: patch,
     create: { id: SINGLETON, ...DEFAULT_SETTINGS, ...patch },
+    select: APPEARANCE,
   });
-  const { id: _id, updatedAt: _updatedAt, sessionEpoch: _epoch, ...settings } = row;
-  return settings;
 }
 
 /**
@@ -58,3 +64,18 @@ export async function bumpSessionEpoch(): Promise<number> {
   });
   return row.sessionEpoch;
 }
+
+/** The note-lock passcode hash (PRD §4.69), or null when none is set. Server only. */
+export async function getLockHash(): Promise<string | null> {
+  const row = await prisma.settings.findUnique({ where: { id: SINGLETON }, select: { lockHash: true } });
+  return row?.lockHash ?? null;
+}
+
+export async function setLockHash(lockHash: string): Promise<void> {
+  await prisma.settings.upsert({
+    where: { id: SINGLETON },
+    update: { lockHash },
+    create: { id: SINGLETON, ...DEFAULT_SETTINGS, lockHash },
+  });
+}
+

@@ -62,3 +62,10 @@ describe("parseNotePatch labels (PRD §4.65)", () => {
     },
   );
 });
+
+describe("parseNotePatch lock (PRD §4.69)", () => {
+  it("accepts a boolean lock and nothing else", () => {
+    expect(parseNotePatch({ locked: true })).toEqual({ ok: true, patch: { locked: true } });
+    expect(parseNotePatch({ locked: "yes" }).ok).toBe(false);
+  });
+});

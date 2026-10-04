@@ -12,6 +12,8 @@ export interface NotePatch {
   color?: NoteColor | null;
   /** Mark as a template, or back to an ordinary note. */
   template?: boolean;
+  /** Lock behind the note passcode, or remove the lock (PRD §4.69). */
+  locked?: boolean;
   /** The version `body` was edited from (PRD R18.2). Absent → unconditional. */
   baseVersion?: number;
 }
@@ -24,7 +26,7 @@ export function parseNotePatch(payload: unknown): ParsedPatch {
   if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
     return { ok: false, error: "Body must be a JSON object." };
   }
-  const { body, pinned, baseVersion, archived, color, template } = payload as Record<string, unknown>;
+  const { body, pinned, baseVersion, archived, color, template, locked } = payload as Record<string, unknown>;
 
   if (body !== undefined && typeof body !== "string") {
     return { ok: false, error: "`body` must be a string." };
@@ -34,6 +36,9 @@ export function parseNotePatch(payload: unknown): ParsedPatch {
   }
   if (archived !== undefined && typeof archived !== "boolean") {
     return { ok: false, error: "`archived` must be a boolean." };
+  }
+  if (locked !== undefined && typeof locked !== "boolean") {
+    return { ok: false, error: "`locked` must be a boolean." };
   }
   if (template !== undefined && typeof template !== "boolean") {
     return { ok: false, error: "`template` must be a boolean." };
@@ -54,6 +59,7 @@ export function parseNotePatch(payload: unknown): ParsedPatch {
   if (pinned !== undefined) patch.pinned = pinned;
   if (archived !== undefined) patch.archived = archived;
   if (template !== undefined) patch.template = template;
+  if (locked !== undefined) patch.locked = locked;
   if (color !== undefined) patch.color = color as NoteColor | null;
   // A version without a body has nothing to guard, so it is dropped rather
   // than turning a pin toggle into something that can conflict (R18.1).

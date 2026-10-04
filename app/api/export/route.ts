@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import { guarded } from "@/lib/auth/session";
-import { listNotesForExport } from "@/lib/db/notes";
+import { countLocked, listNotesForExport } from "@/lib/db/notes";
+import { isUnlocked } from "@/lib/lock/state";
 import { createNamer } from "@/lib/export/filename";
 import { serialise } from "@/lib/export/frontmatter";
 import { getAttachments } from "@/lib/db/attachments";
@@ -20,6 +21,11 @@ async function handleGET(request: Request) {
   // Metadata can be turned off for exports headed somewhere that would show it
   // as text.
   const withMeta = params.get("meta") !== "false";
+
+  // A backup carries locked notes' text, so it needs them unlocked (PRD §4.69).
+  if ((await countLocked()) > 0 && !(await isUnlocked())) {
+    return Response.json({ error: "Unlock your locked notes to export everything." }, { status: 423 });
+  }
 
   const notes = await listNotesForExport({ includeTrashed });
 

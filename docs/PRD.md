@@ -1351,6 +1351,10 @@ Owner question: can changing the theme recolour the favicon?
   indents them; Shift-Tab outdents. In a code block it is always a tab.
   Ctrl-M (Shift-Alt-M on a Mac) switches Tab back to moving focus, for
   keyboard users leaving the editor.
+- R61.7 *(v1.56.0)* Settings showed no visible choice: the shared toggle's
+  pressed fill was a grey barely different from its neighbours. The chosen
+  option is now tinted and outlined in the accent with bold text; the chosen
+  accent swatch gets a ring in the text colour, which reads on any accent.
 - R61.6 Esc was re-checked in a browser: it closes the settings panel, ⌘K, menus
   and the image viewer, and leaves the open note alone.
 
@@ -1526,4 +1530,36 @@ Owner picks 21 and 23. Schema (additive, rehearsed): `NoteShare` table, plus
 - R68.5 A trashed or locked note's link stops opening (404) without being
   revoked; restoring or unlocking brings it back. Locked notes cannot get a
   link.
+
+### 4.69 Lock a note
+
+Owner pick 20. Against someone using your already signed-in device: a locked
+note's text needs a second secret.
+
+- R69.1 One passcode (4+ characters) for every locked note, set the first time
+  a note is locked or from ⌘K. Stored as an scrypt hash in the settings row;
+  the settings API now returns appearance columns by name only, so neither
+  this nor the session epoch can reach a browser. It cannot be recovered;
+  changing it needs the current one.
+- R69.2 Unlocking sets a 15-minute httpOnly, SameSite=Strict cookie, HMAC-
+  signed over its expiry and a fingerprint of the passcode hash — changing
+  the passcode ends every unlock. Writing to a locked note restarts the 15
+  minutes, so a long edit is never cut off. ⌘K "Lock locked notes now" ends
+  it at once. Wrong passcodes: 10 per 10 minutes per IP, then refused.
+- R69.3 While locked the server never sends the text: the list shows the
+  title with "Locked" (no preview, thumbnail or to-do count); opening shows a
+  passcode screen; the note API sends it sealed (no body); search matches the
+  title only and never the text; tags, backlink previews and share links
+  leave it out; history and restore refuse (423); writing or removing the
+  lock refuses (423); a stale save's conflicted copy stays locked; exporting
+  everything needs unlocking while any note is locked.
+- R69.4 Locked notes are never kept in the offline copy: their responses
+  carry `x-ursa-sensitive`, and the service worker drops them, deleting any
+  copy kept before.
+- R69.5 Locking a note leaves it open on this device until the unlock runs
+  out or "Lock now"; returning to the app after that seals the open note.
+  Pin, archive, colour and template labels work without unlocking.
+- R69.6 Not end-to-end encryption: the text is stored as before, and anyone
+  with the database could read it. The lock protects against the device,
+  not the server.
 

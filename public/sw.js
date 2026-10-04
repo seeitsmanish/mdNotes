@@ -71,8 +71,10 @@ async function networkFirst(request, key) {
   const cache = await caches.open(DATA);
   try {
     const response = await fetch(request);
-    // Only a real, signed-in answer is kept: not an error, not a redirect.
-    if (response.ok && !response.redirected) await cache.put(key, response.clone());
+    // Only a real, signed-in answer is kept: not an error, not a redirect,
+    // and never a locked note (PRD §4.69) — any copy already kept goes.
+    if (response.headers.get("x-ursa-sensitive")) await cache.delete(key);
+    else if (response.ok && !response.redirected) await cache.put(key, response.clone());
     return response;
   } catch (error) {
     const hit = await cache.match(key);

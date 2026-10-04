@@ -181,6 +181,8 @@ export function SettingsPanel() {
   const setAutoPrivacy = useUiStore((s) => s.setAutoPrivacy);
   const brandColor = useUiStore((s) => s.brandColor);
   const setBrandColor = useUiStore((s) => s.setBrandColor);
+  const customAccent =
+    brandColor !== null && !BRAND_SWATCHES.some((swatch) => swatch.value.toLowerCase() === brandColor.toLowerCase());
   const radius = useUiStore((s) => s.radius);
   const setRadius = useUiStore((s) => s.setRadius);
   const headingMode = useUiStore((s) => s.headingMode);
@@ -215,7 +217,7 @@ export function SettingsPanel() {
           {BRAND_SWATCHES.map((swatch) => (
             <Swatch
               key={swatch.value}
-              active={brandColor === swatch.value}
+              active={brandColor?.toLowerCase() === swatch.value.toLowerCase()}
               onClick={() => setBrandColor(swatch.value)}
               title={swatch.label}
             >
@@ -224,8 +226,10 @@ export function SettingsPanel() {
           ))}
 
           <label
-            className="relative size-7 cursor-pointer overflow-hidden rounded-md border border-border"
-            title="Custom colour"
+            className={`relative size-7 cursor-pointer overflow-hidden rounded-md border ${
+              customAccent ? "border-transparent ring-2 ring-ink ring-offset-2 ring-offset-popover" : "border-border"
+            }`}
+            title={customAccent ? `Custom colour (${brandColor})` : "Custom colour"}
           >
             <span className="sr-only">Custom accent colour</span>
             <span
@@ -236,6 +240,14 @@ export function SettingsPanel() {
                   "conic-gradient(from 180deg, #f87171, #fbbf24, #34d399, #60a5fa, #a78bfa, #f87171)",
               }}
             />
+            {/* A custom pick shows its own colour in the middle, so the chosen accent is visible. */}
+            {customAccent && (
+              <span
+                aria-hidden
+                className="absolute inset-[5px] rounded-full ring-2 ring-white/80"
+                style={{ background: brandColor ?? undefined }}
+              />
+            )}
             <input
               type="color"
               value={brandColor ?? "#6ee7a8"}
@@ -464,7 +476,9 @@ function OptionGroup<T extends string>({
           <ToggleGroupItem
             key={option.value}
             value={option.value}
-            className="text-xs"
+            // The chosen option must be obvious at a glance (PRD R61.7): the
+            // shared toggle's pressed fill is a near-invisible grey.
+            className="text-xs aria-pressed:border-brand aria-pressed:bg-brand-soft aria-pressed:font-semibold aria-pressed:text-brand data-[pressed]:border-brand data-[pressed]:bg-brand-soft data-[pressed]:font-semibold data-[pressed]:text-brand"
             style={option.css ? { fontFamily: option.css } : undefined}
           >
             {option.label}
@@ -505,7 +519,7 @@ function Swatch({
       aria-pressed={active}
       aria-label={title}
       className={`flex size-7 items-center justify-center rounded-md border transition-colors ${
-        active ? "border-brand ring-2 ring-brand/35" : "border-border hover:border-border-strong"
+        active ? "border-transparent ring-2 ring-ink ring-offset-2 ring-offset-popover" : "border-border hover:border-border-strong"
       }`}
     >
       {children}

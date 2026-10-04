@@ -52,6 +52,8 @@ type ListRow = {
 };
 
 function toListItem(row: ListRow): NoteListItem {
+  // A locked note lists by title only: no preview, thumbnail or to-do count (PRD §4.69).
+  if (row.locked) row = { ...row, excerpt: "", cover: null, todoDone: 0, todoTotal: 0 };
   return {
     id: row.id,
     title: row.title,
@@ -152,19 +154,22 @@ export async function listNotes(options: {
   // (R11.4). Every value is a bound parameter; only fixed fragments are spliced.
   const pattern = containsPattern(narrowest);
   const scope = filterSql(filter, color);
-  const read = (column: Prisma.Sql) =>
+  // A locked note is found by its title only; its text never matches or
+  // supplies a snippet (PRD §4.69).
+  const read = (column: Prisma.Sql, unlockedOnly = false) =>
     prisma.$queryRaw<Array<ListRow & { body: string }>>`
       SELECT "id", "title", "excerpt", "cover", "todoDone", "todoTotal", "pinned", "archivedAt", "color", "isTemplate", "locked", "updatedAt", "deletedAt", "body"
       FROM "Note"
       WHERE ${scope}
+        ${unlockedOnly ? Prisma.sql`AND "locked" = false` : Prisma.empty}
         AND translate(${column}, ${FOLD_FROM}, ${FOLD_TO}) ILIKE ${pattern} ESCAPE '\\'
       ORDER BY "updatedAt" DESC, "id" ASC
       LIMIT ${CANDIDATE_CAP}`;
   const [byTitle, byBody] = await Promise.all([
     read(Prisma.sql`"title"`),
-    read(Prisma.sql`"body"`),
+    read(Prisma.sql`"body"`, true),
   ]);
-  const candidates = mergeCandidates(byTitle, byBody);
+  const candidates = mergeCandidates(byTitle, byBody).map((row) => (row.locked ? { ...row, body: "" } : row));
 
   const byId = new Map(candidates.map((row) => [row.id, row]));
   return rank(candidates, query ?? "").flatMap((hit) => {
@@ -209,6 +214,7 @@ export async function updateNote(id: string, patch: NotePatch): Promise<UpdateRe
       ...(patch.archived !== undefined ? { archivedAt: patch.archived ? new Date() : null } : {}),
       ...(patch.color !== undefined ? { color: patch.color } : {}),
       ...(patch.template !== undefined ? { isTemplate: patch.template } : {}),
+      ...(patch.locked !== undefined ? { locked: patch.locked } : {}),
     };
     if (Object.keys(flags).length > 0) await tx.note.update({ where: { id }, data: flags });
     if (patch.body === undefined) return null;
@@ -225,6 +231,9 @@ export async function updateNote(id: string, patch: NotePatch): Promise<UpdateRe
     // Stale save. The text is kept, in the same transaction, so it survives
     // even when nobody reads this response — a closing tab's last save (R18.3).
     const copy = await insertBody(tx, conflictCopyBody(patch.body));
+    // A locked note's stale text stays locked in its copy (PRD §4.69).
+    const original = await tx.note.findUnique({ where: { id }, select: { locked: true } });
+    if (original?.locked) await tx.note.update({ where: { id: copy.id }, data: { locked: true } });
     return copy.id;
   });
 
@@ -329,14 +338,14 @@ export async function backlinksFor(
       id: { not: noteId },
       body: { contains: "[[", mode: "insensitive" },
     },
-    select: { id: true, title: true, excerpt: true, body: true },
+    select: { id: true, title: true, excerpt: true, body: true, locked: true },
     orderBy: { updatedAt: "desc" },
     take: 200,
   });
 
   return candidates
     .filter((note) => linksTo(note.body, title))
-    .map(({ id, title: noteTitle, excerpt }) => ({ id, title: noteTitle, excerpt }));
+    .map(({ id, title: noteTitle, excerpt, locked }) => ({ id, title: noteTitle, excerpt: locked ? "" : excerpt }));
 }
 
 /**
@@ -357,11 +366,21 @@ export async function emptyTrash(): Promise<number> {
  */
 export async function tagsByNote(): Promise<string[][]> {
   const rows = await prisma.note.findMany({
-    where: { deletedAt: null, isTemplate: false, body: { contains: "#" } },
+    where: { deletedAt: null, isTemplate: false, locked: false, body: { contains: "#" } },
     select: { body: true },
     orderBy: { updatedAt: "desc" },
     take: 5000,
   });
   return rows.map((row) => extractTags(row.body));
+}
+
+/** Whether a note is locked; false when it does not exist. */
+export async function isNoteLocked(id: string): Promise<boolean> {
+  const row = await prisma.note.findUnique({ where: { id }, select: { locked: true } });
+  return row?.locked ?? false;
+}
+
+export async function countLocked(): Promise<number> {
+  return prisma.note.count({ where: { locked: true } });
 }
 

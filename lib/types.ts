@@ -39,4 +39,6 @@ export interface NoteDetail extends NoteListItem {
   createdAt: string;
   /** Body revision, for conflict detection on save (PRD §4.18). */
   version: number;
+  /** A locked note sent without its text: unlock to read it (PRD §4.69). */
+  sealed?: boolean;
 }

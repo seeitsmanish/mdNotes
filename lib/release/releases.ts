@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.56.0",
+    date: "2026-10-04",
+    title: "Lock a note",
+    changes: [
+      "Lock note in a note's ⋯ menu hides it behind a passcode: the list shows only its title, and opening it asks for the passcode. Search, tags and previews never show its text.",
+      "Unlocked notes lock again after 15 minutes, or straight away with ⌘K → Lock locked notes now.",
+      "The passcode can't be recovered, so pick one you'll remember.",
+      "Fixed: in Settings you couldn't tell which option was chosen. The current one is now highlighted.",
+    ],
+  },
+  {
     version: "1.55.0",
     date: "2026-10-04",
     title: "Share a note by link, and hide titles when idle",

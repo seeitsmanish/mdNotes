@@ -14,6 +14,7 @@ import {
   ArchiveIcon,
   ArchiveRestoreIcon,
   CalendarDaysIcon,
+  LockIcon,
   RefreshCwIcon,
   PaletteIcon,
   CheckIcon,
@@ -620,7 +621,12 @@ export function NoteList({
                     </span>
 
                     <span className="mt-1 line-clamp-2 block text-[0.76rem] leading-snug text-ink-soft">
-                      {note.match ? (
+                      {note.locked ? (
+                        <span className="inline-flex items-center gap-1 text-ink-faint">
+                          <LockIcon className="size-3" aria-hidden />
+                          Locked
+                        </span>
+                      ) : note.match ? (
                         <Highlighted match={note.match} />
                       ) : (
                         displayExcerpt(note.excerpt) || "No additional text"
