@@ -613,6 +613,44 @@ input[type="search"]::-webkit-search-cancel-button {
   box-shadow: inset 2px 0 0 var(--border-strong);
 }
 
+/* Drag to reorder (PRD §4.70). The grip fades in beside a line; on touch
+   screens it is always shown for the caret's line, and big enough to hold. */
+.ursa-grip {
+  position: absolute;
+  z-index: 5;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--ink-faint);
+  font-size: 12px;
+  letter-spacing: -2px;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  opacity: 0.55;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+.ursa-grip:hover { opacity: 1; background: var(--row-hover); color: var(--ink); }
+.ursa-grip[hidden] { display: none; }
+.ursa-dragging .ursa-grip { cursor: grabbing; opacity: 1; color: var(--brand); }
+.ursa-dragging .cm-content { cursor: grabbing; }
+.ursa-drop-line {
+  position: absolute;
+  z-index: 5;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand-soft);
+  pointer-events: none;
+}
+.ursa-drop-line[hidden] { display: none; }
+@media (hover: none) {
+  .ursa-grip { width: 28px; height: 28px; opacity: 0.85; background: var(--raised); border: 1px solid var(--border); }
+}
+
 /* Diagrams (PRD §4.64). */
 .ursa-mermaid {
   margin: 0.4em var(--line-pad);

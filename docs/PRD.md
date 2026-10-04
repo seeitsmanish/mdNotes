@@ -1563,3 +1563,19 @@ note's text needs a second secret.
   with the database could read it. The lock protects against the device,
   not the server.
 
+### 4.70 Drag to reorder
+
+Owner pick 5.
+
+- R70.1 A grip (⋮⋮) shows beside the block under the mouse, or on a touch
+  screen beside the caret's block at the right edge (a phone has no margin to
+  its left). Dragging it shows a drop line between lines; letting go moves
+  the block there. Esc cancels. Near the top or bottom edge the note scrolls.
+- R70.2 A block is what reads as one thing: a list item with everything
+  nested under it, a heading, a whole fenced code block, or a paragraph.
+  Blank lines are never picked up, and a drop inside the block itself is
+  nothing.
+- R70.3 One transaction replacing only the lines touched, so one undo puts it
+  back and the caret lands on the moved block. Off in reading mode and Trash.
+- R70.4 Alt-↑/↓ already moves the current line from the keyboard.
+

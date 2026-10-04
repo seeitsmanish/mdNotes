@@ -21,6 +21,7 @@ import { calcField } from "./calcField";
 import { imagePaste } from "./imagePaste";
 import { linkTitles } from "./linkTitles";
 import { currentParagraph } from "./currentParagraph";
+import { dragHandle } from "./dragHandle";
 
 /**
  * The single-pane markdown editor.
@@ -186,6 +187,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       smartPaste,
       linkTitles,
       currentParagraph,
+      dragHandle,
       imagePaste,
       slashMenu,
       currentNoteId.of(handlers.current.noteId),

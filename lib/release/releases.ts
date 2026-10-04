@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.57.0",
+    date: "2026-10-04",
+    title: "Drag to reorder",
+    changes: [
+      "Grab the ⋮⋮ grip beside a line to drag it somewhere else. A list item brings its sub-items along; paragraphs and code blocks move whole. Undo puts it back.",
+      "On a phone, the grip sits at the right edge of the line you're on.",
+    ],
+  },
+  {
     version: "1.56.0",
     date: "2026-10-04",
     title: "Lock a note",
