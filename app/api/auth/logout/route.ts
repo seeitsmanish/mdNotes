@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { hasSession } from "@/lib/auth/session";
 import { SESSION_COOKIE } from "@/lib/auth/token";
+import { UNLOCK_COOKIE } from "@/lib/lock/passcode";
 import { bumpSessionEpoch } from "@/lib/db/settings";
 import { crossSiteRefusal, isCrossSiteWrite } from "@/lib/security/origin";
 
@@ -25,6 +26,14 @@ export async function POST(request: Request) {
     maxAge: 0,
     httpOnly: true,
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+  // A note unlocked in this browser locks again on sign-out (PRD §4.69).
+  response.cookies.set(UNLOCK_COOKIE, "", {
+    path: "/",
+    maxAge: 0,
+    httpOnly: true,
+    sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
   });
   return response;

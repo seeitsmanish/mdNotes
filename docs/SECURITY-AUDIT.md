@@ -184,6 +184,57 @@ Not done: the session cookie keeps its name rather than taking the `__Host-`
 prefix, because renaming it signs every device out; it is already host-only,
 `Secure` and `httpOnly`.
 
+### A12–A16 — Audit after the feature rounds (v1.65.1)
+
+Everything added since v1.50 was reviewed: link titles, share links, note
+lock, two-step sign-in, import from other apps, quick capture, backups, and
+the settings and attachment routes. Voice memos had already been removed;
+the four audio files left in production (60 KB, referenced by no note,
+revision or backup) were deleted.
+
+- **A12 — DNS rebinding in link titles (fixed).** The server resolved a
+  pasted link's host, checked the addresses, then let the HTTP client resolve
+  it again to connect. A hostile DNS server could answer the second lookup
+  with an internal address. The request now uses its own DNS lookup that
+  refuses any non-public address at connect time, so the address checked is
+  the address connected to; literal IPs are checked before connecting.
+  Verified with a public name that resolves to 127.0.0.1 and a server
+  listening there: refused, while the server itself answered directly.
+- **A13 — Unlock survived sign-out (fixed).** Signing out cleared the session
+  cookie but not the note-unlock cookie, so a note unlocked in that browser
+  stayed readable for up to 15 minutes to the next person who signed in
+  there. Sign-out now clears both.
+- **A14 — Dependency advisories (fixed where a fix exists).** `mysql2`
+  (pulled in by the Prisma CLI; the app uses Postgres through the pg adapter
+  and never loads it) and `deepmerge-ts` (Prisma's config loader) are pinned
+  to patched versions with pnpm overrides; Vitest is upgraded to 4.1.11.
+  Remaining: `braces` via the `shadcn` CLI, which has no patched release; it
+  is a ReDoS in glob matching used only by that CLI, never at runtime.
+- **A15 — Server-only settings (sound).** The settings row now holds the
+  session epoch, the passcode hash and the two-step secret, recovery hashes
+  and last step. Reads for the browser select appearance columns by name, and
+  writes go through a whitelist sanitiser, so none can be read or written
+  through `/api/settings`. Checked by test against a live server.
+- **A16 — Reviewed and sound.** Every API route except sign-in, sign-out,
+  health and shared-note images is wrapped in `guarded` (session + cross-site
+  write check). Share tokens are 128 random bits; shared pages are escaped,
+  uncached, unindexed and `no-referrer`, and serve only images their note
+  links. Locked notes are sealed in every API that returns text, refused in
+  history, export, backups and share, and kept out of the offline cache.
+  Two-step codes follow RFC 6238 with atomic replay protection; recovery
+  codes are hashed and single use; wrong codes and passcodes share the
+  per-address limit. Imports parse XML and JSON without executing anything,
+  check every attachment's bytes, and stay inside the 50 MB budget.
+
+Accepted, with reasons:
+- The two-step secret is stored in the database unencrypted. It protects
+  against a leaked password; anyone who can read the database can already
+  read every note, so encrypting it with a key from `AUTH_SECRET` would add
+  a lockout risk on secret rotation for little gain.
+- Sign-in attempts are limited per address, not globally, so a distributed
+  guesser is not slowed. A global limit would let anyone lock the owner out;
+  two-step sign-in is the answer to that threat.
+
 ## Checked and sound
 
 - **Tokens:** HMAC-SHA256 over the expiry, verified with a constant-time

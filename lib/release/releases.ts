@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.65.1",
+    date: "2026-10-04",
+    title: "Security fixes",
+    changes: [
+      "Link previews can no longer be tricked into reaching addresses inside the server's network.",
+      "Signing out now also locks any note you had unlocked in that browser.",
+      "Updated third-party packages with security fixes.",
+    ],
+  },
+  {
     version: "1.65.0",
     date: "2026-10-04",
     title: "Voice features removed",
