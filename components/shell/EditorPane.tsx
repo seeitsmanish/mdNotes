@@ -155,7 +155,6 @@ export function EditorPane({
   const editorFont = useUiStore((s) => s.editorFont);
   const focusDim = useUiStore((s) => s.focusDim);
   const typewriterMode = useUiStore((s) => s.typewriterMode);
-  const vimMode = useUiStore((s) => s.vimMode);
 
   const inTrash = note?.deletedAt != null;
   const measureRem = EDITOR_WIDTHS.find((o) => o.value === editorWidth)?.rem ?? 44;
@@ -366,7 +365,6 @@ export function EditorPane({
             highlight={highlight}
             onReady={setView}
             typewriterMode={typewriterMode}
-            vimMode={vimMode}
           />
         ) : loadError ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 px-8 pb-16 text-center" role="alert">

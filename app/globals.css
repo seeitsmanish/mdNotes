@@ -615,9 +615,6 @@ input[type="search"]::-webkit-search-cancel-button {
 
 /* Typewriter scrolling (PRD §4.71): room below the text so its last line can sit mid-screen. */
 .cm-content[data-ursa-typewriter] { padding-bottom: 45vh; }
-/* Vim's status line, in the theme. */
-.cm-vim-panel { background: var(--raised); color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.78rem; padding: 2px 8px; }
-.cm-fat-cursor { background: color-mix(in srgb, var(--brand) 55%, transparent) !important; }
 
 /* Copy button on code blocks (PRD §4.71). */
 .cm-editor .cm-line.ursa-code-top { position: relative; }

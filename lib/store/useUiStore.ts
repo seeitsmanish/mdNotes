@@ -131,8 +131,6 @@ interface UiState {
   idleHideMinutes: number;
   /** Keep the line being typed centred (§4.71). */
   typewriterMode: boolean;
-  /** Vim-style editing keys (§4.71). */
-  vimMode: boolean;
 
   theme: ThemeChoice;
   editorWidth: EditorWidth;
@@ -163,7 +161,6 @@ interface UiState {
   setHaptics: (on: boolean) => void;
   setIdleHideMinutes: (minutes: number) => void;
   setTypewriterMode: (on: boolean) => void;
-  setVimMode: (on: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
   setTheme: (theme: ThemeChoice) => void;
   setEditorWidth: (width: EditorWidth) => void;
@@ -204,7 +201,6 @@ export const useUiStore = create<UiState>()(
       haptics: true,
       idleHideMinutes: 5,
       typewriterMode: false,
-      vimMode: false,
 
       theme: "forest",
       editorWidth: "regular",
@@ -233,7 +229,6 @@ export const useUiStore = create<UiState>()(
       setHaptics: (haptics) => set({ haptics }),
       setIdleHideMinutes: (idleHideMinutes) => set({ idleHideMinutes }),
       setTypewriterMode: (typewriterMode) => set({ typewriterMode }),
-      setVimMode: (vimMode) => set({ vimMode }),
       setColorFilter: (colorFilter) => set({ colorFilter, selectedNoteId: null, mobilePane: "list" }),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
       setTheme: (theme) => set({ theme }),
@@ -278,7 +273,6 @@ export const useUiStore = create<UiState>()(
         haptics: state.haptics,
         idleHideMinutes: state.idleHideMinutes,
         typewriterMode: state.typewriterMode,
-        vimMode: state.vimMode,
       }),
     },
   ),

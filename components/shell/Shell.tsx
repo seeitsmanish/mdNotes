@@ -1360,7 +1360,6 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       { id: "shortcuts", label: "Keyboard shortcuts", hint: "⌘/", run: () => setShortcutsOpen(true) },
       { id: "outline", label: "Toggle outline", hint: "⌘⇧O", run: toggleOutline },
       { id: "typewriter", label: "Toggle typewriter scrolling (keep the line centred)", run: () => { const st = useUiStore.getState(); st.setTypewriterMode(!st.typewriterMode); } },
-      { id: "vim", label: "Toggle Vim keys", run: () => { const st = useUiStore.getState(); st.setVimMode(!st.vimMode); toast(st.vimMode ? "Vim keys off." : "Vim keys on — Esc for normal mode, i to type."); } },
       { id: "focus-dim", label: "Toggle focus dimming (fade other paragraphs)", run: () => useUiStore.getState().toggleFocusDim() },
       { id: "reading", label: "Toggle reading mode", run: () => useUiStore.getState().toggleReadingMode() },
       {

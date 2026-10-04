@@ -18,6 +18,12 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.59.1",
+    date: "2026-10-04",
+    title: "Vim keys removed",
+    changes: ["The Vim keys option has been removed from Settings and ⌘K."],
+  },
+  {
     version: "1.59.0",
     date: "2026-10-04",
     title: "Voice typing and table tools",

@@ -23,7 +23,6 @@ import { linkTitles } from "./linkTitles";
 import { currentParagraph } from "./currentParagraph";
 import { dragHandle } from "./dragHandle";
 import { typewriter } from "./typewriter";
-import { vim } from "@replit/codemirror-vim";
 
 /**
  * The single-pane markdown editor.
@@ -53,8 +52,6 @@ interface EditorProps {
   onReady?: (view: EditorView | null) => void;
   /** Keep the caret's line centred (PRD §4.71). */
   typewriterMode?: boolean;
-  /** Vim-style keys (PRD §4.71). */
-  vimMode?: boolean;
 }
 
 export function Editor({
@@ -69,7 +66,6 @@ export function Editor({
   highlight = "",
   onReady,
   typewriterMode = false,
-  vimMode = false,
 }: EditorProps) {
   const host = useRef<HTMLDivElement | null>(null);
   const view = useRef<EditorView | null>(null);
@@ -77,8 +73,8 @@ export function Editor({
   // Callbacks live in a ref so changing one never rebuilds the editor state.
   const handlers = useRef({ onChange, onBlur, onStats, onWikiLink, onTag, noteId });
   handlers.current = { onChange, onBlur, onStats, onWikiLink, onTag, noteId };
-  const modesRef = useRef({ typewriterMode, vimMode });
-  modesRef.current = { typewriterMode, vimMode };
+  const modesRef = useRef({ typewriterMode });
+  modesRef.current = { typewriterMode };
 
   useEffect(() => {
     if (!host.current) return;
@@ -125,13 +121,10 @@ export function Editor({
     view.current?.dispatch({ effects: editability.reconfigure(editable(readOnly)) });
   }, [readOnly]);
 
-  // Typewriter and Vim switch in place, like read-only.
+  // Typewriter scrolling switches in place, like read-only.
   useEffect(() => {
     view.current?.dispatch({ effects: typewriterSlot.reconfigure(typewriter(typewriterMode)) });
   }, [typewriterMode]);
-  useEffect(() => {
-    view.current?.dispatch({ effects: vimSlot.reconfigure(vimMode ? vim({ status: true }) : []) });
-  }, [vimMode]);
 
   // The search changing while a note is open re-marks it without moving the caret.
   useEffect(() => {
@@ -170,7 +163,6 @@ export function measure(body: string): EditorStats {
 
 const editability = new Compartment();
 const typewriterSlot = new Compartment();
-const vimSlot = new Compartment();
 
 function editable(readOnly: boolean): Extension {
   return [
@@ -184,13 +176,11 @@ function buildState(
   body: string,
   readOnly: boolean,
   handlers: Handlers,
-  modes: { typewriterMode: boolean; vimMode: boolean },
+  modes: { typewriterMode: boolean },
 ): EditorState {
   return EditorState.create({
     doc: body,
     extensions: [
-      // Vim first: its keys must win over the editor's own (PRD §4.71).
-      vimSlot.of(modes.vimMode ? vim({ status: true }) : []),
       typewriterSlot.of(typewriter(modes.typewriterMode)),
       history(),
       // markdownKeymap first: it owns Enter, so lists and quotes continue onto

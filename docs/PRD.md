@@ -1598,9 +1598,9 @@ Owner picks 3, 23, 24 and 26 from round 2.
 - R71.2 Typewriter scrolling (Settings or ⌘K): typing or moving the caret
   keeps its line centred; the text gets room below so its last line can be
   centred too. Device-only.
-- R71.3 Vim keys (Settings or ⌘K), via @replit/codemirror-vim, ahead of the
-  editor's own keys; a status line shows the mode. Off by default;
-  device-only.
+- R71.3 *(Removed in v1.59.1 at the owner's request.)* Vim keys were offered
+  in Settings and ⌘K, via @replit/codemirror-vim; the option, the package
+  and its styles are gone.
 - R71.4 Starter templates: "Add starter templates" (Templates' empty list,
   or ⌘K) adds Meeting notes, Weekly review, Packing list, Recipe, Journal,
   Project plan and Daily note as ordinary templates — edit or delete them.
