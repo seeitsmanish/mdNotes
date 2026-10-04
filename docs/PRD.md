@@ -978,3 +978,19 @@ Bear habit.
 
 Built on CodeMirror's autocomplete (already installed with the markdown
 language; now a direct dependency).
+
+### 4.42 Up to date when you come back
+
+The installed phone app stays in the background for hours and a laptop tab for
+days. Coming back showed the list and the open note as they were — so the
+first keystroke on a note changed elsewhere became a conflicted copy (§4.18).
+
+- R42.1 When the app becomes visible after at least 10 seconds away, or the
+  connection returns, the list is refetched and the open note is checked.
+- R42.2 The open note takes the server's text only if this client holds
+  nothing unsaved and the server's version is newer than the one this
+  client's text was built on — checked again after the fetch, since typing
+  may have started meanwhile. Unsaved text always wins; a stale save of it
+  still becomes a conflicted copy, as before.
+- R42.3 If the text changed, a toast says it was updated from another device.
+  An unchanged note is not touched, so the caret and scroll stay put.

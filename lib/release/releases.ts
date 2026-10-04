@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.30.0",
+    date: "2026-10-04",
+    title: "Fresh when you come back",
+    changes: [
+      "Switching back to mdNotes — on your phone or another tab — now picks up changes made elsewhere: the list refreshes, and an open note you have not edited shows its latest text.",
+    ],
+  },
+  {
     version: "1.29.0",
     date: "2026-10-04",
     title: "Type / to add a block",

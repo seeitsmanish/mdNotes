@@ -8,6 +8,7 @@ import { safeStem } from "@/lib/export/filename";
 import { normaliseTitle } from "@/lib/markdown/wikilink";
 import { conflictCopyBody } from "@/lib/notes/conflict";
 import { duplicateBody } from "@/lib/notes/duplicate";
+import { shouldAdopt, shouldResync } from "@/lib/notes/resync";
 import { LIST_BOUNDS, THEMES, type SyncedSettings, useUiStore } from "@/lib/store/useUiStore";
 import { useSettingsSync } from "@/lib/store/useSettingsSync";
 import type { Clock } from "@/lib/clock";
@@ -324,6 +325,56 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       // A failed cleanup is harmless — the note stays as an empty row.
     }
   }, [selectNote]);
+
+  // --- coming back (PRD §4.42) -----------------------------------------------
+
+  // A phone app sits in the background for hours; a laptop tab for days. On
+  // return the list and the open note may be stale, and typing into a stale
+  // note only to have it become a conflicted copy is the wrong first moment.
+  const resync = useCallback(async () => {
+    await refreshList().catch(() => undefined);
+    const id = useUiStore.getState().selectedNoteId;
+    if (!id) return;
+    let loaded: NoteDetail;
+    try {
+      ({ note: loaded } = await api.fetchNote(id));
+    } catch {
+      return;
+    }
+    // Checked after the fetch too: typing may have started while it ran.
+    const adopt =
+      useUiStore.getState().selectedNoteId === id &&
+      shouldAdopt({
+        hasUnsaved: unsavedBodyRef.current(id) !== undefined,
+        localVersion: versions.current.get(id),
+        serverVersion: loaded.version,
+      });
+    if (!adopt) return;
+    const changed = liveBody.current.get(id) !== loaded.body;
+    versions.current.set(id, loaded.version);
+    liveBody.current.set(id, loaded.body);
+    setNote((prev) => (prev && prev.id === id ? loaded : prev));
+    if (changed) toast("Updated with changes from another device.");
+  }, [refreshList]);
+
+  useEffect(() => {
+    let hiddenAt: number | null = null;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        return;
+      }
+      if (shouldResync(hiddenAt, Date.now())) void resync();
+      hiddenAt = null;
+    };
+    const onOnline = () => void resync();
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("online", onOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [resync]);
 
   // --- actions -------------------------------------------------------------
 
