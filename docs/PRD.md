@@ -1121,3 +1121,17 @@ save, search, export and sync like any other text.
   glyphs, and on Android it would then draw plain numbers.
 - R49.4 A curated ~250 emoji, not the full 3,700: the ones notes use, a small
   bundle, unique shortcodes (tested).
+
+### 4.50 Tap an image to see it
+
+A screenshot in a note is shown at the column's width — on a phone, too small
+to read — and tapping it revealed its markdown instead of the picture.
+
+- R50.1 Tapping an image opens a full-screen viewer: dark backdrop, the
+  image as large as fits, its alt text as a caption. It fades and scales in.
+- R50.2 Tapping the image toggles a zoomed view at its natural size, which
+  scrolls; ✕, Esc or a tap outside closes the viewer. Esc is the viewer's
+  alone — it never also reaches the editor.
+- R50.3 "Edit" closes the viewer and puts the caret on the image's line,
+  revealing its markdown — the old tap behaviour, one step away. "Open"
+  opens the original in a new tab. Broken images do not open the viewer.

@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.38.0",
+    date: "2026-10-04",
+    title: "Tap an image to see it",
+    changes: [
+      "Tap any image in a note to see it full screen; tap it again to zoom in. Close with ✕, Esc or a tap outside.",
+      "To change the image's markdown, tap Edit in the viewer.",
+    ],
+  },
+  {
     version: "1.37.0",
     date: "2026-10-04",
     title: "Emoji",

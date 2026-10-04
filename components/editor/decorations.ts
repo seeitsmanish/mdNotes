@@ -10,6 +10,7 @@ import {
 } from "@codemirror/view";
 import { safeExternalUrl } from "@/lib/security/urls";
 import { hangingPrefix } from "./hangingIndent";
+import { openLightbox } from "./lightbox";
 
 let measureCanvas: CanvasRenderingContext2D | null = null;
 
@@ -176,6 +177,21 @@ class ImageWidget extends WidgetType {
     // The line's height changes when the image arrives; tell the editor.
     img.addEventListener("load", () => view.requestMeasure());
     img.addEventListener("error", () => wrap.classList.add("ursa-image-broken"));
+    // A tap opens the viewer instead of revealing the markdown (PRD §4.50).
+    img.addEventListener("mousedown", (event) => {
+      if (event.button !== 0 || wrap.classList.contains("ursa-image-broken")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      openLightbox({
+        src: this.src,
+        alt: this.alt,
+        onEdit: () => {
+          const at = view.posAtDOM(wrap);
+          view.dispatch({ selection: { anchor: view.state.doc.lineAt(at).to }, scrollIntoView: true });
+          view.focus();
+        },
+      });
+    });
     wrap.append(img);
     return wrap;
   }
