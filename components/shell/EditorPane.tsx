@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import {
   ChevronLeftIcon,
+  CodeXmlIcon,
   CopyIcon,
   CopyPlusIcon,
   DownloadIcon,
@@ -68,11 +69,14 @@ interface EditorPaneProps {
   onCreate?: () => void;
   onDuplicate: () => void;
   onCopy: () => void;
+  onCopyHtml: () => void;
   /** Absent where the browser has no share sheet. */
   onShare?: () => void;
   onDownload: () => void;
   onTag: (tag: string) => void;
   highlight?: string;
+  loadError?: string | null;
+  onRetry?: () => void;
 }
 
 export function EditorPane({
@@ -92,10 +96,13 @@ export function EditorPane({
   onCreate,
   onDuplicate,
   onCopy,
+  onCopyHtml,
   onShare,
   onDownload,
   onTag,
   highlight,
+  loadError,
+  onRetry,
 }: EditorPaneProps) {
   const [stats, setStats] = useState<EditorStats>(() => measure(note?.body ?? ""));
   const [view, setView] = useState<EditorView | null>(null);
@@ -182,6 +189,7 @@ export function EditorPane({
               onTrash={onTrash}
               onDuplicate={onDuplicate}
               onCopy={onCopy}
+              onCopyHtml={onCopyHtml}
               onShare={onShare}
               onDownload={onDownload}
             />
@@ -219,6 +227,7 @@ export function EditorPane({
               onTrash={onTrash}
               onDuplicate={onDuplicate}
               onCopy={onCopy}
+              onCopyHtml={onCopyHtml}
               onShare={onShare}
               onDownload={onDownload}
             />
@@ -276,6 +285,17 @@ export function EditorPane({
             highlight={highlight}
             onReady={setView}
           />
+        ) : loadError ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 px-8 pb-16 text-center" role="alert">
+            <p className="text-[0.95rem] font-semibold tracking-tight text-ink">Couldn’t open this note</p>
+            <p className="max-w-80 text-[0.78rem] text-ink-faint">{loadError}</p>
+            {onRetry && (
+              <Button size="sm" variant="outline" onClick={onRetry}>
+                <RotateCcwIcon />
+                Try again
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-8 pb-16 text-center">
             <NotesMark size={52} className="opacity-90" />
@@ -329,6 +349,7 @@ function NoteMenu({
   onTrash,
   onDuplicate,
   onCopy,
+  onCopyHtml,
   onShare,
   onDownload,
 }: {
@@ -342,6 +363,7 @@ function NoteMenu({
   onTrash: () => void;
   onDuplicate: () => void;
   onCopy: () => void;
+  onCopyHtml: () => void;
   onShare?: () => void;
   onDownload: () => void;
 }) {
@@ -378,6 +400,10 @@ function NoteMenu({
         <DropdownMenuItem onClick={onCopy}>
           <CopyIcon />
           Copy as Markdown
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onCopyHtml}>
+          <CodeXmlIcon />
+          Copy as HTML
         </DropdownMenuItem>
         {!inTrash && (
           <DropdownMenuItem disabled={duplicating} onClick={onDuplicate}>

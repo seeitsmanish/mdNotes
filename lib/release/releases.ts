@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.35.0",
+    date: "2026-10-04",
+    title: "Copy as HTML",
+    changes: [
+      "Copy as HTML (in a note's ⋯ menu) pastes into Gmail, Google Docs or Slack with its headings, lists, links, tables and code intact — or as HTML source into a code editor.",
+      "If a note fails to open, it now says so with Try again, instead of quietly showing the empty screen.",
+      "Code blocks line up with the text around them instead of sticking out to the left.",
+    ],
+  },
+  {
     version: "1.34.0",
     date: "2026-10-04",
     title: "Tighter security headers",

@@ -8,6 +8,7 @@ import { safeStem } from "@/lib/export/filename";
 import { normaliseTitle } from "@/lib/markdown/wikilink";
 import { conflictCopyBody } from "@/lib/notes/conflict";
 import { duplicateBody } from "@/lib/notes/duplicate";
+import { markdownToHtml } from "@/lib/export/toHtml";
 import { shouldAdopt, shouldResync } from "@/lib/notes/resync";
 import { LIST_BOUNDS, THEMES, type SyncedSettings, useUiStore } from "@/lib/store/useUiStore";
 import { useSettingsSync } from "@/lib/store/useSettingsSync";
@@ -89,6 +90,10 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   const [historyOpen, setHistoryOpen] = useState(false);
   /** A note is being fetched after a switch (PRD §4.25). */
   const [noteLoading, setNoteLoading] = useState(false);
+  // A note that failed to open says so, with Retry, instead of silently
+  // showing the empty "Pick a note" screen (PRD R25.5).
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [noteReload, setNoteReload] = useState(0);
 
   // Network actions run one at a time per key, show while they run, and say
   // when they fail (PRD §4.25).
@@ -176,6 +181,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   }, [refreshList]);
 
   useEffect(() => {
+    setNoteError(null);
     if (!selectedNoteId) {
       setNote(null);
       return;
@@ -186,8 +192,15 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     let cancelled = false;
     setNoteLoading(true);
 
-    api
-      .fetchNote(selectedNoteId, controller.signal)
+    // One quiet retry: a request cut off by the browser (Safari's Esc stops
+    // loading) or a blip on a phone network should not lose the note.
+    const load = () =>
+      api.fetchNote(selectedNoteId, controller.signal).catch(async (error: unknown) => {
+        if (controller.signal.aborted) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        return api.fetchNote(selectedNoteId, controller.signal);
+      });
+    load()
       .then(({ note: loaded }) => {
         if (cancelled) return;
         // If this client still holds text the server has not acknowledged, the
@@ -205,8 +218,10 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         liveBody.current.set(adopted.id, adopted.body);
         setNote(adopted);
       })
-      .catch(() => {
-        if (!cancelled) setNote(null);
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setNote(null);
+        setNoteError(error instanceof Error ? error.message : "Couldn’t open this note.");
       })
       .finally(() => {
         if (!cancelled) setNoteLoading(false);
@@ -216,7 +231,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       cancelled = true;
       controller.abort();
     };
-  }, [selectedNoteId]);
+  }, [selectedNoteId, noteReload]);
 
   // --- saving --------------------------------------------------------------
 
@@ -566,6 +581,30 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     }
   }, [currentText, note]);
 
+  /**
+   * Rich HTML for editors that take it (Gmail, Docs, Slack), and the HTML
+   * source as plain text for those that don't (PRD §4.47).
+   */
+  const copyHtml = useCallback(async () => {
+    if (!note) return;
+    const html = markdownToHtml(currentText(), { origin: window.location.origin });
+    try {
+      if (typeof ClipboardItem === "function" && navigator.clipboard.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([html], { type: "text/plain" }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(html);
+      }
+      toast("Copied as HTML.", { description: "Paste into an email or doc to keep the formatting." });
+    } catch {
+      toast.error("Couldn’t copy — the browser refused clipboard access.");
+    }
+  }, [currentText, note]);
+
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   const shareNote = useCallback(async () => {
@@ -721,6 +760,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         ? [
             { id: "duplicate", label: "Duplicate note", run: () => void duplicateNote() },
             { id: "copy-md", label: "Copy note as Markdown", run: () => void copyMarkdown() },
+            { id: "copy-html", label: "Copy note as HTML", run: () => void copyHtml() },
           ]
         : []),
       ...(installMode !== "installed"
@@ -739,7 +779,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         : []),
       ...themeCommands,
     ];
-  }, [confirmEmptyTrash, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [confirmEmptyTrash, copyHtml, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -884,9 +924,12 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
             onCreate={() => void createNote()}
             onDuplicate={() => void duplicateNote()}
             onCopy={() => void copyMarkdown()}
+            onCopyHtml={() => void copyHtml()}
             onShare={canShare ? () => void shareNote() : undefined}
             onDownload={exportCurrent}
             onTag={searchTag}
+            loadError={noteError}
+            onRetry={() => setNoteReload((n) => n + 1)}
             highlight={debouncedQuery}
           />
         </div>

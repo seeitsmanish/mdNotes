@@ -587,6 +587,10 @@ server woke up made three notes; a failure was swallowed without a word.
 - R25.3 A note being opened dims the editor until it arrives.
 - R25.4 A failure says so — what failed and the server's reason — instead of
   disappearing into the console.
+- R25.5 *(v1.35.0)* Opening a note retries once after a failure; if it still
+  fails the editor says "Couldn't open this note" with Try again, rather than
+  silently showing the empty "Pick a note" screen. Reported as "Esc closes the
+  note": Safari's Esc stops loading, which can cut off the request.
 
 ### 4.26 Phones
 
@@ -1060,3 +1064,21 @@ and its fixes are in SECURITY-AUDIT.md A9–A11.
   handler runs — every guarded route, plus sign-in and sign-out.
 - R46.4 Signed-in responses are `Cache-Control: no-store` unless the route
   chose otherwise (images: private, immutable).
+
+### 4.47 Copy as HTML
+
+Notes end up in emails, docs and chat. Copy as Markdown gives `**` and `#` to
+anyone who pastes it into Gmail.
+
+- R47.1 "Copy as HTML" in the ⋯ menu and the palette puts the note on the
+  clipboard twice: as HTML (rich editors keep headings, bold, lists,
+  to-dos as ☐/☑, links, tables, code blocks, images) and as the HTML source in
+  plain text (a code editor or CMS gets the markup).
+- R47.2 Rendered from the editor's own Lezer parse. All note text is escaped;
+  raw HTML in a note is copied as text, never markup; links keep only
+  http(s)/mailto; app images get absolute URLs. Spoilers, wiki-links and tags
+  are copied as their text.
+
+*Also in v1.35.0 —* R2.11: a fenced code block's box now starts on the text
+column, aligned with headings and paragraphs, with its code indented inside;
+it used to fill the line's gutter padding and stick out to the left.
