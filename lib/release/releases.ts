@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.29.0",
+    date: "2026-10-04",
+    title: "Type / to add a block",
+    changes: [
+      "Type / at the start of a line for a menu of headings, to-dos, lists, quotes, code, tables, dividers, spoilers, links and images. Keep typing to narrow it — /todo, /table, /h2.",
+    ],
+  },
+  {
     version: "1.28.0",
     date: "2026-10-04",
     title: "Share, copy and duplicate a note",

@@ -10,6 +10,7 @@ import { syntaxHighlighting } from "@codemirror/language";
 import { BearMarkup } from "./bearMarkup";
 import { ursaHighlightStyle } from "./highlightStyle";
 import { markdownStyling } from "./decorations";
+import { slashMenu } from "./slashMenu";
 import { tableField } from "./tableField";
 import { smartPaste, ursaKeymap } from "./commands";
 import { calcField } from "./calcField";
@@ -129,6 +130,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       }),
       smartPaste,
       imagePaste,
+      slashMenu,
       EditorView.lineWrapping,
       // The editable surface is a textbox to assistive tech; give it a name.
       EditorView.contentAttributes.of({ "aria-label": "Note text" }),

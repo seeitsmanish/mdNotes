@@ -958,3 +958,23 @@ Getting a note out of the app, or starting one from another, meant export
 - R40.4 On a phone these live in the ⋯ menu with History, Outline and Trash;
   on a desktop a ⋯ menu sits next to Trash. Duplicate and Copy are also in the
   command palette.
+
+### 4.41 The `/` menu
+
+On a phone there is no ⌘B, and the format bar holds a dozen controls at most.
+Typing `/` at the start of a line opens a list of blocks — the Notion and
+Bear habit.
+
+- R41.1 Opens on `/` as the first thing on a line (indentation allowed), never
+  mid-line, so paths (`a/b`, `/usr`) and URLs are untouched; never in code.
+- R41.2 Typing narrows it — label words first, then keywords (`/check` →
+  To-do, `/hr` → Divider); a space or no match closes it. Arrow keys and Enter,
+  or a tap, choose; Escape dismisses.
+- R41.3 Items: Heading 1–3, To-do, Bulleted list, Numbered list, Quote, Code
+  block, Table, Divider, Spoiler, Link, Link to note, Image (opens the picker,
+  then uploads as in §4.24). Each replaces the `/query` with the same markdown
+  the keyboard would write and puts the caret where typing continues.
+- R41.4 Larger targets on touch screens; themed like the rest of the app.
+
+Built on CodeMirror's autocomplete (already installed with the markdown
+language; now a direct dependency).

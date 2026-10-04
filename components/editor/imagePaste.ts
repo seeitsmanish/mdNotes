@@ -68,3 +68,17 @@ export const imagePaste = EditorView.domEventHandlers({
     return insertImages(view, files, view.state.doc.lineAt(pos).to);
   },
 });
+
+/** Opens the file picker and inserts what is chosen at `at` (the `/` menu, §4.41). */
+export function pickImages(view: EditorView, at: number): void {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/png,image/jpeg,image/gif,image/webp,image/heic,image/avif";
+  input.multiple = true;
+  input.addEventListener("change", () => {
+    const files = [...(input.files ?? [])];
+    if (files.length > 0) insertImages(view, files, at);
+    view.focus();
+  });
+  input.click();
+}
