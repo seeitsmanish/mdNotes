@@ -22,14 +22,29 @@ export function clipperCode(origin: string): string {
 export function WebClipper() {
   const link = useRef<HTMLAnchorElement | null>(null);
   const [code, setCode] = useState("");
+  // Phones cannot drag or run a bookmarklet; there the Share sheet does this.
+  const [touch, setTouch] = useState(false);
 
   useEffect(() => {
+    setTouch(window.matchMedia("(hover: none) and (pointer: coarse)").matches);
     const value = clipperCode(window.location.origin);
     setCode(value);
     // React refuses javascript: hrefs in markup; a bookmarklet is exactly
     // one, so it is set on the element directly.
     link.current?.setAttribute("href", value);
   }, []);
+
+  if (touch) {
+    return (
+      <div className="flex flex-col gap-1 rounded-lg border border-border px-2.5 py-2">
+        <p className="text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground">Save web pages</p>
+        <p className="text-[0.76rem] text-ink-soft">
+          On a page in your browser, tap <b>Share</b> and choose <b>mdNotes</b>. Select text first to include it. (On a
+          computer, Settings has a bookmark button for this.)
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-border px-2.5 py-2">
@@ -65,7 +80,6 @@ export function WebClipper() {
           Copy code
         </Button>
       </div>
-      <p className="text-[0.7rem] text-ink-faint">On a phone, use your browser’s Share button → mdNotes instead.</p>
     </div>
   );
 }

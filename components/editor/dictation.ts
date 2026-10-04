@@ -13,6 +13,8 @@ interface RecognitionResult {
 }
 interface Recognition {
   lang: string;
+  /** Chrome's on-device recognition, where available. */
+  processLocally?: boolean;
   continuous: boolean;
   interimResults: boolean;
   start(): void;
@@ -43,7 +45,8 @@ const ERRORS: Record<string, string> = {
   "not-allowed": "The microphone is blocked. Allow it for this site in your browser's settings.",
   "service-not-allowed": "Voice typing isn't available in this browser.",
   "audio-capture": "No microphone was found.",
-  network: "Voice typing needs a connection.",
+  network:
+    "This browser couldn't reach its speech service. Use the microphone on your keyboard instead — it works in any app.",
 };
 
 /** Starts listening; returns a function that stops. */
@@ -78,8 +81,21 @@ export function startDictation(view: EditorView, onState: (state: DictationState
     }
     onState({ listening: true, interim: interim.trim() });
   };
+  let triedLocal = false;
   recognition.onerror = (event) => {
     if (event.error === "no-speech" || event.error === "aborted") return;
+    // The browser's online speech service is unreachable (some Chromium
+    // browsers ship without it): try its on-device recognition once.
+    if (event.error === "network" && !triedLocal && "processLocally" in recognition) {
+      triedLocal = true;
+      recognition.processLocally = true;
+      return; // onend restarts it, now on the device
+    }
+    if (event.error === "network" && !navigator.onLine) {
+      wanted = false;
+      onState({ listening: false, interim: "", error: "You're offline. Voice typing needs a connection here." });
+      return;
+    }
     wanted = false;
     onState({ listening: false, interim: "", error: ERRORS[event.error] ?? "Voice typing stopped." });
   };

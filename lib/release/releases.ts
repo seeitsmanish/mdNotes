@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.61.1",
+    date: "2026-10-04",
+    title: "Voice typing and clipper fixes",
+    changes: [
+      "Voice typing now tries your device's own speech recognition when the browser's online service can't be reached, and tells you clearly when neither works.",
+      "On phones, Settings explains saving web pages with the Share button instead of showing a bookmark button that can't work there.",
+    ],
+  },
+  {
     version: "1.61.0",
     date: "2026-10-04",
     title: "Voice memos",

@@ -1618,6 +1618,12 @@ Owner picks 4 and 6 from round 2.
   Phones end a session after a pause, so it restarts until stopped; leaving
   the note stops it. Language follows the browser's. Blocked or missing
   microphones say so.
+- R72.1a *(v1.61.1)* Reported: "Voice typing needs a connection" on tapping
+  the microphone. That is the browser's own speech service failing
+  (`network`), which some Chromium browsers do not ship. It now retries once
+  with the browser's on-device recognition where it exists; otherwise it
+  says the service could not be reached and points to the keyboard's own
+  microphone. Offline says so.
 - R72.2 `Permissions-Policy` now allows the microphone for this site itself
   (`microphone=(self)`); nothing embedded can ask for it. Camera, location
   and payment stay off.
@@ -1652,6 +1658,10 @@ Owner picks 15 and 16 from round 2.
   link and the selected text as a quote. Nothing is saved until Save — a GET
   never writes, as before — and the window closes itself after saving. Signed
   out, it goes through sign-in and back. Phones use the Share sheet instead.
+- R73.4 *(v1.61.1)* Reported: on a phone the bookmark button "goes back to the
+  list" — a bookmarklet cannot be dragged or run there, and tapping it only
+  closed Settings. On touch screens the button is replaced by how to use the
+  Share sheet.
 
 ### 4.74 Voice memos
 
