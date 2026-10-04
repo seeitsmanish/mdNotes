@@ -1266,3 +1266,14 @@ longer overwrite anything, so the rule becomes: never *prefer* a copy.
 
 Trade-off, stated plainly: notes you opened are stored on the device (the
 browser's Cache Storage) until you sign out. On a shared computer, sign out.
+
+### 4.57 Jump back
+
+Going back to the note you were just in meant finding it in the list again.
+
+- R57.1 ⌘K opens with a **Recent** group first: the last six notes opened,
+  newest first, without the one open now — so ⌘K then Enter returns to the
+  previous note, and pressing it again swaps back.
+- R57.2 Kept on the device (last ten), filtered to notes that still exist in
+  the list; typing in the palette filters them like everything else.
+- R57.3 The palette's note excerpts are tidied like the list's (§4.38).

@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.45.0",
+    date: "2026-10-04",
+    title: "Jump back to your last note",
+    changes: [
+      "⌘K now lists the notes you opened recently at the top. ⌘K then Enter takes you straight back to the note you were just in — press it again to swap back.",
+    ],
+  },
+  {
     version: "1.44.0",
     date: "2026-10-04",
     title: "Open mdNotes with no connection",

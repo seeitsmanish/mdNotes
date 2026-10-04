@@ -1,6 +1,6 @@
 "use client";
 
-import { FileTextIcon, SquareSlashIcon } from "lucide-react";
+import { FileTextIcon, HistoryIcon, SquareSlashIcon } from "lucide-react";
 import {
   Command,
   CommandDialog,
@@ -12,7 +12,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { displayTitle } from "@/lib/markdown/derive";
+import { displayExcerpt, displayTitle } from "@/lib/markdown/derive";
 import type { NoteListItem } from "@/lib/types";
 
 /**
@@ -36,6 +36,8 @@ export interface Command {
 interface CommandPaletteProps {
   open: boolean;
   notes: NoteListItem[];
+  /** Recently opened notes, newest first, without the open one (PRD §4.57). */
+  recent: NoteListItem[];
   commands: Command[];
   onSelectNote: (id: string) => void;
   onOpenChange: (open: boolean) => void;
@@ -44,6 +46,7 @@ interface CommandPaletteProps {
 export function CommandPalette({
   open,
   notes,
+  recent,
   commands,
   onSelectNote,
   onOpenChange,
@@ -67,6 +70,24 @@ export function CommandPalette({
         <CommandInput placeholder="Jump to a note, or run a command…" />
         <CommandList>
         <CommandEmpty>Nothing matches.</CommandEmpty>
+
+        {recent.length > 0 && (
+          <>
+            <CommandGroup heading="Recent">
+              {recent.map((note) => (
+                <CommandItem
+                  key={`recent-${note.id}`}
+                  value={`recent ${note.id} ${displayTitle(note.title)}`}
+                  onSelect={() => choose(() => onSelectNote(note.id))}
+                >
+                  <HistoryIcon className="text-muted-foreground" />
+                  <span className="truncate">{displayTitle(note.title)}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
 
         <CommandGroup heading="Commands">
           {commands.map((command) => (
@@ -96,7 +117,7 @@ export function CommandPalette({
                   <span className="truncate">{displayTitle(note.title)}</span>
                   {note.excerpt && (
                     <span className="ml-auto max-w-[45%] truncate text-xs text-muted-foreground">
-                      {note.excerpt}
+                      {displayExcerpt(note.excerpt)}
                     </span>
                   )}
                 </CommandItem>

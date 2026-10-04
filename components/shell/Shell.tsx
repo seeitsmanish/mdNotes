@@ -11,6 +11,7 @@ import { duplicateBody } from "@/lib/notes/duplicate";
 import { markdownToHtml } from "@/lib/export/toHtml";
 import { shouldAdopt, shouldResync } from "@/lib/notes/resync";
 import { createOutbox, replayPlan, UNKNOWN_BASE } from "@/lib/notes/outbox";
+import { loadRecent, pushRecent, recentNotes, saveRecent } from "@/lib/notes/recent";
 import { LIST_BOUNDS, THEMES, type SyncedSettings, useUiStore } from "@/lib/store/useUiStore";
 import { useSettingsSync } from "@/lib/store/useSettingsSync";
 import type { Clock } from "@/lib/clock";
@@ -250,6 +251,17 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
    */
   const versions = useRef(new Map<string, number>());
   const online = useOnline();
+  // Recently opened notes for ⌘K (PRD §4.57).
+  const [recentIds, setRecentIds] = useState<string[]>([]);
+  useEffect(() => setRecentIds(loadRecent()), []);
+  useEffect(() => {
+    if (!selectedNoteId) return;
+    setRecentIds((prev) => {
+      const next = pushRecent(prev, selectedNoteId);
+      saveRecent(next);
+      return next;
+    });
+  }, [selectedNoteId]);
 
   /** Unconfirmed edits kept on the device (PRD §4.55); a ref for callbacks made earlier. */
   const outbox = useMemo(
@@ -1089,6 +1101,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       <CommandPalette
         open={paletteOpen}
         notes={notes}
+        recent={recentNotes(recentIds, notes, selectedNoteId)}
         commands={commands}
         onSelectNote={onSelectNote}
         onOpenChange={setPaletteOpen}
