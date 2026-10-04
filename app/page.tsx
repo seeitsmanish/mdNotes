@@ -1,9 +1,11 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { hasSession } from "@/lib/auth/session";
 import { Shell } from "@/components/shell/Shell";
 import { countNotes, listNotes } from "@/lib/db/notes";
 import { getSettingsForRequest } from "@/lib/db/settings";
 import type { NoteCounts, NoteListItem } from "@/lib/types";
+import { CLOCK_COOKIE, parseClockCookie } from "@/lib/clock";
 import type { SyncedSettings } from "@/lib/store/useUiStore";
 
 /**
@@ -41,8 +43,16 @@ export default async function Home() {
 
   if (dbError) return <DatabaseDown detail={dbError} />;
 
+  // Dates in the list are rendered in the browser's timezone and locale, and
+  // at this instant, so hydration sees the same text (PRD R38.6).
+  // Before the browser has said, both sides use UTC and en-US explicitly: an
+  // unset zone means "this machine's", which differs between the two.
+  const saved = parseClockCookie((await cookies()).get(CLOCK_COOKIE)?.value);
+  const clock = { now: Date.now(), timeZone: saved.timeZone ?? "UTC", locale: saved.locale ?? "en-US" };
+
   return (
     <Shell
+      initialClock={clock}
       initialNotes={initialNotes}
       initialCounts={initialCounts}
       initialSettings={initialSettings}

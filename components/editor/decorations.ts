@@ -40,6 +40,26 @@ function prefixWidth(view: EditorView, text: string, extraEm: number): number {
 
 const HIDE = Decoration.replace({});
 
+/**
+ * Where a hidden mark's replacement ends. An opening `## ` takes its space
+ * with it: left behind, that space — set at the heading's larger size — pushed
+ * every heading a few pixels right of the paragraphs under it.
+ */
+export function headingMarkEnd(
+  doc: { lineAt(pos: number): { from: number; to: number; text: string } },
+  name: string,
+  from: number,
+  to: number,
+): number {
+  if (name !== "HeaderMark") return to;
+  const line = doc.lineAt(from);
+  // Only the opening mark: the first non-blank thing on its line.
+  if (line.text.slice(0, from - line.from).trim() !== "") return to;
+  let end = to;
+  while (end < line.to && (line.text[end - line.from] === " " || line.text[end - line.from] === "\t")) end += 1;
+  return end;
+}
+
 /** Punctuation that disappears when the caret is elsewhere. */
 const HIDDEN_MARKS = new Set([
   "HeaderMark",
@@ -378,7 +398,7 @@ function buildDecorations(view: EditorView): DecorationSet {
         }
 
         if (HIDDEN_MARKS.has(name) && node.to > node.from && !isRevealed(node.from, node.to)) {
-          ranges.push(HIDE.range(node.from, node.to));
+          ranges.push(HIDE.range(node.from, headingMarkEnd(doc, name, node.from, node.to)));
         }
       },
     });

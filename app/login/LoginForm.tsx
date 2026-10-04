@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { safeNextPath } from "@/lib/security/urls";
-import { LockIcon } from "lucide-react";
+import { NotesMark } from "@/components/brand/NotesMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,10 +59,8 @@ export function LoginForm() {
         className="w-full max-w-72 rounded-xl border border-border bg-raised p-5 shadow-[var(--shadow)]"
       >
         <div className="mb-4 flex flex-col items-center gap-2 text-center">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-brand-soft text-brand">
-            <LockIcon size={17} />
-          </span>
-          <h1 className="text-[0.95rem] font-semibold tracking-tight text-ink">myNotes</h1>
+          <NotesMark size={44} className="mb-1" />
+          <h1 className="text-[1.15rem] font-semibold tracking-tight text-ink">myNotes</h1>
           <p className="text-[0.76rem] text-ink-faint">Enter the password to continue.</p>
         </div>
 

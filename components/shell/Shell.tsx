@@ -9,6 +9,7 @@ import { normaliseTitle } from "@/lib/markdown/wikilink";
 import { conflictCopyBody } from "@/lib/notes/conflict";
 import { LIST_BOUNDS, THEMES, type SyncedSettings, useUiStore } from "@/lib/store/useUiStore";
 import { useSettingsSync } from "@/lib/store/useSettingsSync";
+import type { Clock } from "@/lib/clock";
 import type { NoteCounts, NoteDetail, NoteListItem } from "@/lib/types";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -19,6 +20,7 @@ import { HistoryDialog } from "./HistoryDialog";
 import { createGate } from "@/lib/async/gate";
 import { installApp, registerServiceWorker, useInstallMode } from "@/lib/pwa/install";
 import { installGlobalReporting, reportError } from "@/lib/report/client";
+import { ClockProvider } from "./ClockProvider";
 import { EditorPane } from "./EditorPane";
 import { NoteList } from "./NoteList";
 import { PaneDivider } from "./PaneDivider";
@@ -30,6 +32,7 @@ import { PaneDivider } from "./PaneDivider";
 
 interface ShellProps {
   initialNotes: NoteListItem[];
+  initialClock: Clock;
   initialCounts: NoteCounts;
   initialSettings: SyncedSettings | null;
 }
@@ -47,7 +50,7 @@ const FAILURE: Record<string, string> = {
   link: "Couldn’t create the linked note.",
 };
 
-export function Shell({ initialNotes, initialCounts, initialSettings }: ShellProps) {
+export function Shell({ initialNotes, initialCounts, initialSettings, initialClock }: ShellProps) {
   const filter = useUiStore((state) => state.filter);
   const setFilter = useUiStore((state) => state.setFilter);
   const query = useUiStore((state) => state.query);
@@ -694,6 +697,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
   const listHidden = focusMode || mobilePane !== "list";
 
   return (
+    <ClockProvider initial={initialClock}>
     <div className="ursa-shell @container flex h-dvh w-full overflow-hidden">
       <div
         ref={listRef}
@@ -759,6 +763,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
             pending={pending}
             loading={noteLoading}
             onHistory={openHistory}
+            onCreate={() => void createNote()}
           />
         </div>
       </div>
@@ -795,6 +800,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings }: ShellPro
 
       <Toaster position="bottom-center" />
     </div>
+    </ClockProvider>
   );
 }
 

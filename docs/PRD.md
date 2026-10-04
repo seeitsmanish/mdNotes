@@ -895,3 +895,37 @@ replacing the Big Dipper, which said nothing about notes. Internal names
 them would churn every file for nothing a user sees. An installed copy picks
 up the new icon when the browser next refreshes its manifest; on an iPhone,
 remove and re-add it to the home screen.
+
+### 4.38 A clearer list, aligned headings
+
+A design pass after the rename, prompted by the owner's "enhance the UI" and a
+screenshot of a heading sitting right of its paragraph.
+
+- R38.1 The note list is grouped under small sticky headers — Pinned, Today,
+  Yesterday, Previous 7 days, Previous 30 days, then month names this year and
+  years before — by local calendar day, as Apple Notes and Bear do. Not over
+  search results, whose order is about the match.
+- R38.2 Previews read as prose: a table row shows its cells joined with " · "
+  instead of pipes, divider rows are skipped, and an image shows its alt text
+  (or "Image"). Stored excerpts are tidied on display too, so older notes look
+  right without being re-saved; a spoiler in a table cell stays masked.
+- R38.3 On a phone, New note is a floating button at the bottom right, within
+  a thumb's reach; the header's New note icon gives way to it (it stays in
+  the trash view, where the floating button is hidden). The list pads its end
+  so the button never covers the last note.
+- R38.4 Headings start exactly where paragraph text does. Hiding an opening
+  `##` left its trailing space behind, set at the heading's larger size, so
+  every heading sat a few pixels right; the space is now hidden with the mark.
+- R38.5 The sign-in page and the empty editor show the app's mark, drawn in
+  theme colours; the empty editor offers a New note button above the
+  shortcuts.
+- R38.6 Dates in the list render identically on the server and in the
+  browser. The list is server-rendered in UTC and was hydrated in the
+  owner's timezone and locale, so "Today"/"Yesterday", "3 Oct" vs "Oct 3",
+  and a "17m ago" that ticked over between the two renders disagreed — React
+  then throws away the server HTML and renders the page again (reproduced as
+  error #418 in an Asia/Kolkata browser). The browser now stores its
+  timezone and locale in a cookie (`ursa-clock`, validated by Intl on read);
+  the server renders with them (UTC/en-US before the first visit sets it)
+  and its render time, and the browser hydrates with exactly that before
+  switching to its live clock, which ticks every 30 seconds.

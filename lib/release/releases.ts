@@ -18,6 +18,19 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.26.0",
+    date: "2026-10-04",
+    title: "A tidier list, and headings that line up",
+    changes: [
+      "Headings now line up exactly with the text under them. A hidden space was nudging them a little to the right.",
+      "The note list is grouped by when you last edited: Pinned, Today, Yesterday, Previous 7 days and so on.",
+      "Previews read as text: a table shows \"Company · Round · Result\" instead of pipes, and an image shows its name.",
+      "On a phone, New note is a round button at the bottom right, where your thumb already is.",
+      "The sign-in page and the empty screen show the new myNotes mark, and the empty screen has a New note button.",
+      "Dates follow your own timezone — a note edited just after midnight is under Today, not Yesterday — and \"just now\" keeps counting while the app is open. This also stops the page quietly redrawing itself as it loads.",
+    ],
+  },
+  {
     version: "1.25.0",
     date: "2026-10-04",
     title: "myNotes, and a better phone layout",

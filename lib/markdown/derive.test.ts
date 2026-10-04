@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveExcerpt, deriveTitle, displayTitle } from "./derive";
+import { deriveExcerpt, deriveTitle, displayExcerpt, displayTitle } from "./derive";
 
 describe("deriveTitle", () => {
   it("uses the first heading when the note opens with one", () => {
@@ -65,5 +65,33 @@ describe("spoilers in derived text", () => {
     const body = "Capital of France? ||Paris||\n\nThe answer is ||Paris|| too.";
     expect(deriveTitle(body)).toBe("Capital of France? ▒▒▒");
     expect(deriveExcerpt(body)).not.toContain("Paris");
+  });
+});
+
+describe("previews of tables and images (PRD R38.2)", () => {
+  it("reads a table row as its cells", () => {
+    expect(deriveExcerpt("# T\n\n| Company | Round |\n|---|:--:|\n| Google | Phone |")).toBe("Company · Round");
+  });
+
+  it("skips the divider row", () => {
+    expect(deriveExcerpt("# T\n\n|---|---|\n| a | b |")).toBe("a · b");
+  });
+
+  it("names an image by its alt text, or as Image", () => {
+    expect(deriveExcerpt("# T\n\n![whiteboard](/api/attachments/x)")).toBe("whiteboard");
+    expect(deriveExcerpt("# T\n\n![](/api/attachments/x)")).toBe("Image");
+  });
+
+  it("tidies an old stored excerpt, even one cut short", () => {
+    expect(displayExcerpt("| Company | Round | Question asked | Answer…")).toBe("Company · Round · Question asked · Answer…");
+    expect(displayExcerpt("plain words")).toBe("plain words");
+  });
+
+  it("still hides a spoiler inside a table row", () => {
+    expect(displayExcerpt("| Q | ||answer|| |")).toBe("Q · ▒▒▒");
+  });
+
+  it("leaves a lone pipe in prose alone", () => {
+    expect(displayExcerpt("a | b")).toBe("a | b");
   });
 });

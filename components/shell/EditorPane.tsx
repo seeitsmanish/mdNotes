@@ -11,9 +11,11 @@ import {
   type LucideIcon,
   PanelLeftIcon,
   PinIcon,
+  PlusIcon,
   RotateCcwIcon,
   Trash2Icon,
 } from "lucide-react";
+import { NotesMark } from "@/components/brand/NotesMark";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,6 +35,7 @@ import type { NoteDetail } from "@/lib/types";
 import { Backlinks } from "./Backlinks";
 import { Outline } from "./Outline";
 import { AppearanceButton } from "./AppearanceButton";
+import { useClock } from "./ClockProvider";
 
 /**
  * The right pane: a status strip above the editor, and the floating format bar
@@ -58,6 +61,7 @@ interface EditorPaneProps {
   pending: ReadonlySet<string>;
   loading: boolean;
   onHistory: () => void;
+  onCreate?: () => void;
 }
 
 export function EditorPane({
@@ -74,9 +78,11 @@ export function EditorPane({
   pending,
   loading,
   onHistory,
+  onCreate,
 }: EditorPaneProps) {
   const [stats, setStats] = useState<EditorStats>(() => measure(note?.body ?? ""));
   const [view, setView] = useState<EditorView | null>(null);
+  const clock = useClock();
 
   const focusMode = useUiStore((s) => s.focusMode);
   const outlineOpen = useUiStore((s) => s.outlineOpen);
@@ -109,7 +115,7 @@ export function EditorPane({
         <span className="ml-1.5 min-w-0 flex-1 truncate text-[0.72rem] text-ink-faint">
           {note && (
             <>
-              Edited {relativeTime(note.updatedAt)}
+              Edited {relativeTime(note.updatedAt, clock.now, clock)}
               <span className="hidden @[480px]:inline">
                 <span className="mx-1.5 opacity-40">·</span>
                 {stats.words.toLocaleString()} {stats.words === 1 ? "word" : "words"}
@@ -257,9 +263,19 @@ export function EditorPane({
             onReady={setView}
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
-            <p className="text-[0.85rem] font-medium text-ink-soft">No note selected</p>
-            <dl className="flex flex-col gap-1.5 text-[0.75rem] text-ink-faint">
+          <div className="flex h-full flex-col items-center justify-center gap-4 px-8 pb-16 text-center">
+            <NotesMark size={52} className="opacity-90" />
+            <div className="flex flex-col gap-1">
+              <p className="text-[0.95rem] font-semibold tracking-tight text-ink">Pick a note, or start one</p>
+              <p className="text-[0.78rem] text-ink-faint">Everything saves as you type.</p>
+            </div>
+            {onCreate && (
+              <Button size="sm" onClick={onCreate} disabled={pending.has("create")}>
+                {pending.has("create") ? <Loader2Icon className="animate-spin" /> : <PlusIcon />}
+                New note
+              </Button>
+            )}
+            <dl className="mt-2 flex flex-col gap-1.5 text-[0.75rem] text-ink-faint">
               <Shortcut keys="⌘N" label="New note" />
               <Shortcut keys="⌘K" label="Command palette" />
               <Shortcut keys="⌘F" label="Search" />

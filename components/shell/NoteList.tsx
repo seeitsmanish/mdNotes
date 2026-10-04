@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import {
   Loader2Icon,
   ChevronDownIcon,
   type LucideIcon,
   PinIcon,
   PinOffIcon,
+  PlusIcon,
   RotateCcwIcon,
   SearchIcon,
   SquarePenIcon,
@@ -23,8 +24,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { AppearanceButton } from "./AppearanceButton";
+import { useClock } from "./ClockProvider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { displayTitle } from "@/lib/markdown/derive";
+import { displayExcerpt, displayTitle } from "@/lib/markdown/derive";
+import { sectionNotes } from "@/lib/notes/sections";
 import { relativeTime } from "@/lib/time";
 import type { NoteCounts, NoteFilter, NoteListItem, SearchMatch } from "@/lib/types";
 
@@ -102,8 +105,17 @@ export function NoteList({
     searchRef.current?.focus();
   }, [searchOpen]);
 
+  const clock = useClock();
   const inTrash = filter === "trash";
   const current = FILTERS.find((entry) => entry.value === filter) ?? FILTERS[0]!;
+
+  // Section headers (PRD R38.1) — not over search results, whose order is
+  // about the match rather than the date.
+  const searching = query.trim().length > 0;
+  const sectionStarts = new Map<string, string>();
+  if (!searching) {
+    for (const section of sectionNotes(notes, clock.now, clock)) sectionStarts.set(section.items[0]!.id, section.label);
+  }
 
   // Search stays reachable from the keyboard even while it is collapsed.
   useEffect(() => {
@@ -122,7 +134,7 @@ export function NoteList({
   }, []);
 
   return (
-    <div className="flex h-full flex-col bg-list">
+    <div className="relative flex h-full flex-col bg-list">
       <header className="flex-none px-3 pb-1 pt-3">
         <div className="flex items-center justify-between gap-1">
           <DropdownMenu>
@@ -150,12 +162,16 @@ export function NoteList({
           </DropdownMenu>
 
           <div className="flex items-center gap-0.5">
-            <IconAction
-              icon={SquarePenIcon}
-              label={pending.has("create") ? "Creating a note…" : "New note (⌘N)"}
-              onClick={onCreate}
-              pending={pending.has("create")}
-            />
+            {/* On a phone the floating button below does this; in the trash,
+                where that button is hidden, this stays. */}
+            <div className={inTrash ? "contents" : "hidden @[900px]:contents"}>
+              <IconAction
+                icon={SquarePenIcon}
+                label={pending.has("create") ? "Creating a note…" : "New note (⌘N)"}
+                onClick={onCreate}
+                pending={pending.has("create")}
+              />
+            </div>
             <IconAction
               icon={SearchIcon}
               label="Search (⌘F)"
@@ -212,13 +228,25 @@ export function NoteList({
       </header>
 
       {notes.length === 0 && !loading ? (
-        <EmptyState inTrash={inTrash} searching={query.trim().length > 0} onCreate={onCreate} />
+        <EmptyState inTrash={inTrash} searching={searching} onCreate={onCreate} />
       ) : (
-        <ul className="flex-1 overflow-y-auto px-3 pb-4 pt-1" onKeyDown={moveFocusOnArrows}>
+        <ul className="flex-1 overflow-y-auto px-3 pb-24 pt-1 @[900px]:pb-4" onKeyDown={moveFocusOnArrows}>
           {notes.map((note, index) => {
             const selected = note.id === selectedNoteId;
+            const section = sectionStarts.get(note.id);
+            const nextStartsSection = sectionStarts.has(notes[index + 1]?.id ?? "");
             return (
-              <li key={note.id} className="group relative">
+              <Fragment key={note.id}>
+              {section && (
+                <li
+                  role="presentation"
+                  className="sticky top-0 z-10 bg-list/95 px-4 pb-1.5 pt-3 text-[0.68rem] font-semibold uppercase tracking-wider text-ink-faint backdrop-blur first:pt-1"
+                  data-ursa-section=""
+                >
+                  {section}
+                </li>
+              )}
+              <li className="group relative">
                 <button
                   type="button"
                   data-ursa-row=""
@@ -255,12 +283,12 @@ export function NoteList({
                     {note.match ? (
                       <Highlighted match={note.match} />
                     ) : (
-                      note.excerpt || "No additional text"
+                      displayExcerpt(note.excerpt) || "No additional text"
                     )}
                   </span>
 
                   <span className="mt-1.5 block text-[0.7rem] tabular-nums text-ink-faint">
-                    {relativeTime(note.updatedAt)}
+                    {relativeTime(note.updatedAt, clock.now, clock)}
                   </span>
                 </button>
 
@@ -310,13 +338,29 @@ export function NoteList({
                     underline, so it drops out on both sides of the selection. */}
                 {index < notes.length - 1 &&
                   !selected &&
+                  !nextStartsSection &&
                   notes[index + 1]?.id !== selectedNoteId && (
                     <span aria-hidden className="mx-4 block h-px bg-border" />
                   )}
               </li>
+              </Fragment>
             );
           })}
         </ul>
+      )}
+
+      {/* Phones: New note where a thumb is, not in the top corner (PRD R38.3). */}
+      {!inTrash && (
+        <Button
+          size="icon"
+          onClick={onCreate}
+          disabled={pending.has("create")}
+          aria-label="New note"
+          data-ursa-fab=""
+          className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 size-14 rounded-2xl bg-brand text-canvas shadow-[var(--shadow)] hover:bg-brand/90 @[900px]:hidden [&_svg:not([class*='size-'])]:size-6"
+        >
+          {pending.has("create") ? <Loader2Icon className="animate-spin" /> : <PlusIcon />}
+        </Button>
       )}
     </div>
   );
