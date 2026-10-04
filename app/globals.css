@@ -1042,6 +1042,12 @@ input[type="search"]::-webkit-search-cancel-button {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 45%, transparent);
 }
 
+/* Emoji (PRD §4.49): the colour emoji fonts first, so a system with a text
+   font that also has the glyph does not draw a monochrome outline. */
+.ursa-emoji-picker button {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
+}
+
 /* The `/` menu (PRD §4.41). CodeMirror's own tooltip theme is scoped with
    generated classes, so these rules carry .cm-editor and the tooltip class to
    outrank it. */

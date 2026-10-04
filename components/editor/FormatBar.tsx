@@ -13,6 +13,7 @@ import {
   LinkIcon,
   ListIcon,
   type LucideIcon,
+  SmileIcon,
   SquareCheckIcon,
   TableIcon,
 } from "lucide-react";
@@ -23,7 +24,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { EMOJI_GROUPS } from "@/lib/emoji/emoji";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { insertImages } from "./imagePaste";
 import {
@@ -171,6 +174,12 @@ export function FormatBar({ view }: FormatBarProps) {
             view.focus();
           }}
         />
+        <EmojiPicker
+          onPick={(emoji) => {
+            view.dispatch(view.state.replaceSelection(emoji), { userEvent: "input" });
+            view.focus();
+          }}
+        />
         <Action icon={TableIcon} label="Table" onClick={() => run(insertTable)} />
         <Action icon={CodeIcon} label="Code block" onClick={() => run(insertCodeBlock)} />
       </div>
@@ -238,5 +247,63 @@ function Menu({
         {children}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/**
+ * A tappable emoji grid (PRD §4.49) — on a phone, typing `:fire` is slower
+ * than finding the flame. Grouped, scrollable, and it keeps the caret: focus
+ * returns to the note with the emoji inserted where it was.
+ */
+function EmojiPicker({ onPick }: { onPick: (emoji: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Emoji"
+            onMouseDown={(event) => event.preventDefault()}
+            className={open ? "bg-brand-soft text-brand" : "text-ink-soft"}
+          >
+            <SmileIcon />
+          </Button>
+        }
+      />
+      <PopoverContent
+        side="top"
+        align="center"
+        className="ursa-emoji-picker max-h-[min(20rem,var(--available-height))] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain p-2"
+        initialFocus={false}
+      >
+        {EMOJI_GROUPS.map((group) => (
+          <section key={group.name} className="mb-2 last:mb-0">
+            <h3 className="sticky top-0 z-10 bg-popover/95 px-1 pb-1 pt-0.5 text-[0.64rem] font-semibold uppercase tracking-wider text-ink-faint backdrop-blur">
+              {group.name}
+            </h3>
+            <div className="grid grid-cols-8 gap-0.5">
+              {group.items.map((emoji) => (
+                <button
+                  key={emoji.n}
+                  type="button"
+                  title={`:${emoji.n}`}
+                  aria-label={emoji.n.replace(/_/g, " ")}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    onPick(emoji.e);
+                    setOpen(false);
+                  }}
+                  className="flex aspect-square items-center justify-center rounded-md text-[1.3rem] leading-none transition-transform duration-100 hover:scale-110 hover:bg-raised active:scale-95"
+                >
+                  {emoji.e}
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }

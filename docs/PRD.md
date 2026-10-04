@@ -1101,3 +1101,23 @@ jumped between list and note, empty states were a line of grey text.
   button.
 - R48.6 All motion is short and eased, and none of it plays for anyone with
   reduced motion turned on in their system settings.
+
+### 4.49 Emoji
+
+Owner feedback asked for something richer than text — stickers, images.
+Emoji are the stickers a markdown note can hold: plain characters, so they
+save, search, export and sync like any other text.
+
+- R49.1 Typing `:` then two or more letters after a space or at the start of
+  a line suggests emoji by shortcode and keyword (`:fire` 🔥, `:done` ✅);
+  choosing one replaces the code. Times (`10:30`), URLs, `::highlight::` and
+  `:)` never trigger it.
+- R49.2 A smiley button in the format bar opens a grouped, scrollable grid —
+  Smileys, Gestures, Marks, Work, Life — that inserts at the caret and keeps
+  the keyboard's place.
+- R49.3 The picker lists colour emoji fonts first, so a system whose text
+  font also has the glyph does not draw a monochrome outline. The app's text
+  font stacks are left alone: Noto Color Emoji also holds digit and `#`
+  glyphs, and on Android it would then draw plain numbers.
+- R49.4 A curated ~250 emoji, not the full 3,700: the ones notes use, a small
+  bundle, unique shortcodes (tested).

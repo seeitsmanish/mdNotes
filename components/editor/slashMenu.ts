@@ -8,6 +8,7 @@ import {
 import { syntaxTree } from "@codemirror/language";
 import type { EditorView } from "@codemirror/view";
 import { pickImages } from "./imagePaste";
+import { emojiSource } from "./emojiComplete";
 import { noteTitles, peekTitles, wikiSource } from "./wikiComplete";
 
 /**
@@ -128,9 +129,9 @@ export function slashSource(context: CompletionContext): CompletionResult | null
   return { from, options, filter: false };
 }
 
-/** The editor's one autocomplete: the `/` menu and `[[` note titles (§4.45). */
+/** The editor's one autocomplete: `/` blocks, `[[` titles (§4.45), `:` emoji (§4.49). */
 export const slashMenu = autocompletion({
-  override: [slashSource, wikiSource(noteTitles, peekTitles)],
+  override: [slashSource, wikiSource(noteTitles, peekTitles), emojiSource],
   icons: false,
   closeOnBlur: true,
   activateOnTyping: true,

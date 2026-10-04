@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.37.0",
+    date: "2026-10-04",
+    title: "Emoji",
+    changes: [
+      "Type a colon and a word — :fire, :done, :idea — to drop in an emoji 🔥✅💡.",
+      "Or tap the smiley in the formatting bar for a grid of them, grouped and easy to browse on a phone.",
+    ],
+  },
+  {
     version: "1.36.0",
     date: "2026-10-04",
     title: "A livelier mdNotes",
