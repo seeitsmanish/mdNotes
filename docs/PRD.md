@@ -967,8 +967,10 @@ Bear habit.
 
 - R41.1 Opens on `/` as the first thing on a line (indentation allowed), never
   mid-line, so paths (`a/b`, `/usr`) and URLs are untouched; never in code.
-- R41.2 Typing narrows it — label words first, then keywords (`/check` →
-  To-do, `/hr` → Divider); a space or no match closes it. Arrow keys and Enter,
+- R41.2 Typing narrows it — every word typed must start a word of an item's
+  label or keywords (`/check` → To-do, `/hr` → Divider, `/link to` → Link to
+  note), label matches first; no match, or a space straight after `/`,
+  closes it. Arrow keys and Enter,
   or a tap, choose; Escape dismisses.
 - R41.3 Items: Heading 1–3, To-do, Bulleted list, Numbered list, Quote, Code
   block, Table, Divider, Spoiler, Link, Link to note, Image (opens the picker,
@@ -1027,3 +1029,18 @@ Reading one section meant scrolling past all the others.
   macOS); Ctrl+Alt+[ / ] fold and unfold all.
 - R44.4 Folds belong to the open view: switching notes or reloading shows the
   note unfolded.
+
+### 4.45 `[[` suggests note titles
+
+A wiki-link (§4.10) works only when its text matches a title, and titles are
+easy to misremember — "Google onsite" or "Google on-site"?
+
+- R45.1 Typing `[[` lists note titles; typing more narrows them, prefix
+  matches first, then matches anywhere in the title, ignoring case and
+  accents. Trashed notes, and the note being edited, are not offered.
+- R45.2 Choosing one writes the exact title and closes the link (`]]`),
+  reusing a `]]` already there rather than doubling it, and leaves the caret
+  after the link.
+- R45.3 The `/` menu's "Link to note" goes straight on to the title list.
+- R45.4 Titles are fetched once and kept for 30 seconds, independent of any
+  search filtering the list on screen.

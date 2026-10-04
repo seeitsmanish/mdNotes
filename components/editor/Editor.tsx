@@ -13,6 +13,7 @@ import { markdownStyling } from "./decorations";
 import { headingFold } from "./headingFold";
 import { searchHighlight, highlightSearch } from "./searchHighlight";
 import { slashMenu } from "./slashMenu";
+import { currentNoteId } from "./wikiComplete";
 import { tableField } from "./tableField";
 import { smartPaste, ursaKeymap } from "./commands";
 import { calcField } from "./calcField";
@@ -148,6 +149,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       smartPaste,
       imagePaste,
       slashMenu,
+      currentNoteId.of(handlers.current.noteId),
       EditorView.lineWrapping,
       // The editable surface is a textbox to assistive tech; give it a name.
       EditorView.contentAttributes.of({ "aria-label": "Note text" }),

@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.33.0",
+    date: "2026-10-04",
+    title: "Link to a note without remembering its title",
+    changes: [
+      "Type [[ and pick from your notes' titles — keep typing to narrow the list. The link is written exactly, so it always opens the right note.",
+    ],
+  },
+  {
     version: "1.32.0",
     date: "2026-10-04",
     title: "Fold a section",

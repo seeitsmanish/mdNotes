@@ -1,5 +1,6 @@
 import {
   autocompletion,
+  startCompletion,
   type Completion,
   type CompletionContext,
   type CompletionResult,
@@ -7,6 +8,7 @@ import {
 import { syntaxTree } from "@codemirror/language";
 import type { EditorView } from "@codemirror/view";
 import { pickImages } from "./imagePaste";
+import { noteTitles, peekTitles, wikiSource } from "./wikiComplete";
 
 /**
  * The `/` menu (PRD §4.41): type `/` at the start of a line for a list of
@@ -26,6 +28,8 @@ export interface SlashItem {
   insert?: string;
   /** Instead of text: something that needs the view, like a file picker. */
   run?: (view: EditorView, at: number) => void;
+  /** Runs after the insert — Link to note goes straight on to its titles. */
+  then?: (view: EditorView) => void;
 }
 
 export const SLASH_ITEMS: SlashItem[] = [
@@ -41,26 +45,33 @@ export const SLASH_ITEMS: SlashItem[] = [
   { id: "divider", label: "Divider", keywords: "hr rule line separator", insert: "---\n‸" },
   { id: "spoiler", label: "Spoiler", keywords: "hide answer secret", insert: "||‸||" },
   { id: "link", label: "Link", keywords: "url", insert: "[‸](url)" },
-  { id: "wikilink", label: "Link to note", keywords: "wiki note backlink", insert: "[[‸]]" },
+  { id: "wikilink", label: "Link to note", keywords: "wiki note backlink", insert: "[[‸]]", then: startCompletion },
   { id: "image", label: "Image", keywords: "picture photo upload", run: (view, at) => pickImages(view, at) },
 ];
 
 /** Where the query starts and what it is, or null if `/` is not opening a line. */
 export function slashQuery(textBeforeCaret: string): { offset: number; query: string } | null {
-  const match = /^(\s*)\/([\w-]*)$/.exec(textBeforeCaret);
+  // Words may follow (`/link to`), but not a space straight after the slash.
+  const match = /^(\s*)\/((?:[\w-]+ ?)*)$/.exec(textBeforeCaret);
   if (!match) return null;
   return { offset: match[1]!.length, query: match[2]!.toLowerCase() };
 }
 
-/** Items matching a query: label words first, then keywords. */
+/**
+ * Items matching a query. Every word typed must start a word of the item's
+ * label or keywords; items whose label matches the first word come first.
+ */
 export function matchItems(query: string, items: SlashItem[] = SLASH_ITEMS): SlashItem[] {
-  if (!query) return items;
+  const typed = query.trim().split(/\s+/).filter(Boolean);
+  if (typed.length === 0) return items;
   const words = (s: string) => s.toLowerCase().split(/[\s-]+/);
-  const byLabel = items.filter((item) => words(item.label).some((w) => w.startsWith(query)));
-  const byKeyword = items.filter(
-    (item) => !byLabel.includes(item) && words(item.keywords).some((w) => w.startsWith(query)),
-  );
-  return [...byLabel, ...byKeyword];
+  const matches = items.filter((item) => {
+    const all = [...words(item.label), ...words(item.keywords)];
+    return typed.every((t) => all.some((w) => w.startsWith(t)));
+  });
+  const first = typed[0]!;
+  const byLabel = matches.filter((item) => words(item.label).some((w) => w.startsWith(first)));
+  return [...byLabel, ...matches.filter((item) => !byLabel.includes(item))];
 }
 
 /**
@@ -85,7 +96,7 @@ function inCode(context: CompletionContext): boolean {
   return false;
 }
 
-function slashSource(context: CompletionContext): CompletionResult | null {
+export function slashSource(context: CompletionContext): CompletionResult | null {
   const line = context.state.doc.lineAt(context.pos);
   const found = slashQuery(line.text.slice(0, context.pos - line.from));
   if (!found || inCode(context)) return null;
@@ -107,6 +118,8 @@ function slashSource(context: CompletionContext): CompletionResult | null {
         scrollIntoView: true,
         userEvent: "input.format",
       });
+      // After this completion has closed, or the new one would be swallowed.
+      if (item.then) setTimeout(() => item.then?.(view), 0);
     },
   }));
   if (options.length === 0) return null;
@@ -115,8 +128,9 @@ function slashSource(context: CompletionContext): CompletionResult | null {
   return { from, options, filter: false };
 }
 
+/** The editor's one autocomplete: the `/` menu and `[[` note titles (§4.45). */
 export const slashMenu = autocompletion({
-  override: [slashSource],
+  override: [slashSource, wikiSource(noteTitles, peekTitles)],
   icons: false,
   closeOnBlur: true,
   activateOnTyping: true,

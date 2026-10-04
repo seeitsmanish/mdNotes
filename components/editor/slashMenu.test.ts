@@ -11,7 +11,7 @@ describe("slashQuery", () => {
     expect(slashQuery("a/b")).toBeNull();
     expect(slashQuery("see /usr")).toBeNull();
     expect(slashQuery("https://x/")).toBeNull();
-    expect(slashQuery("/to do")).toBeNull();
+    expect(slashQuery("/ x")).toBeNull();
   });
 });
 
@@ -25,6 +25,12 @@ describe("matchItems", () => {
     expect(matchItems("check").map((i) => i.id)).toEqual(["todo"]);
     expect(matchItems("hr").map((i) => i.id)).toEqual(["divider"]);
     expect(matchItems("list")[0]!.id).toBe("bullet");
+  });
+
+  it("takes several words, each narrowing", () => {
+    expect(slashQuery("/link to")).toEqual({ offset: 0, query: "link to" });
+    expect(matchItems("link to").map((i) => i.id)).toEqual(["wikilink"]);
+    expect(matchItems("link").map((i) => i.id)).toEqual(["link", "wikilink"]);
   });
 
   it("returns nothing for nonsense", () => {
