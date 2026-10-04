@@ -60,7 +60,7 @@ export function LoginForm() {
       >
         <div className="mb-4 flex flex-col items-center gap-2 text-center">
           <NotesMark size={44} className="mb-1" />
-          <h1 className="text-[1.15rem] font-semibold tracking-tight text-ink">myNotes</h1>
+          <h1 className="text-[1.15rem] font-semibold tracking-tight text-ink">mdNotes</h1>
           <p className="text-[0.76rem] text-ink-faint">Enter the password to continue.</p>
         </div>
 

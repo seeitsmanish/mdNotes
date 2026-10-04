@@ -27,7 +27,7 @@ export function SharePreview({ initialBody }: { initialBody: string }) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col gap-4 bg-canvas px-4 pb-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <h1 className="text-[1.05rem] font-semibold text-heading">Save to myNotes</h1>
+      <h1 className="text-[1.05rem] font-semibold text-heading">Save to mdNotes</h1>
       <textarea
         aria-label="Note to save"
         value={body}

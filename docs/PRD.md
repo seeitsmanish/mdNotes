@@ -929,3 +929,10 @@ screenshot of a heading sitting right of its paragraph.
   the server renders with them (UTC/en-US before the first visit sets it)
   and its render time, and the browser hydrates with exactly that before
   switching to its live clock, which ticks every 30 seconds.
+
+### 4.39 Named mdNotes, at www.mdnotes.in
+
+Renamed again by the owner (v1.27.0), to match the domain they own. Every
+user-visible "myNotes" from §4.37 now reads "mdNotes", and exports are named
+`mdnotes-<date>.zip`; the icon is unchanged. The domain is attached in Vercel
+and DNS, not in code — steps in DEPLOYMENT.md §9.

@@ -606,7 +606,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       ...(note ? [{ id: "export-one", label: "Export this note (.md)", run: exportCurrent }] : []),
       ...(note ? [{ id: "history", label: "Note history…", run: openHistory }] : []),
       ...(installMode !== "installed"
-        ? [{ id: "install", label: "Install myNotes as an app", run: () => void installApp() }]
+        ? [{ id: "install", label: "Install mdNotes as an app", run: () => void installApp() }]
         : []),
       ...(note && !note.deletedAt
         ? [

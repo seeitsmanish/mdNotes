@@ -138,6 +138,29 @@ runs Next 16 works. If you move it:
 
 ---
 
+## 9. Custom domain (www.mdnotes.in)
+
+The app needs no code change for a domain: the CSP, cookies and share target
+are all relative to whatever host serves it.
+
+1. Vercel → the project → **Settings → Domains** → add `www.mdnotes.in`, then
+   add `mdnotes.in` and choose **Redirect to www.mdnotes.in** (308).
+2. At the registrar's DNS for `mdnotes.in`:
+   - `A` record, host `@`, value `76.76.21.21`
+   - `CNAME` record, host `www`, value `cname.vercel-dns.com`
+
+   Remove any other `A`/`AAAA`/`CNAME` records on `@` and `www` (parking
+   pages). Use the exact values Vercel shows on the Domains page if they
+   differ — Vercel sometimes issues a project-specific CNAME.
+3. Wait for both rows on the Domains page to show **Valid Configuration**;
+   Vercel issues the HTTPS certificate itself.
+4. Sign in once on the new domain — a session cookie belongs to the host it
+   was set on. On a phone, remove the installed app and install it again from
+   `https://www.mdnotes.in`: an installed app is tied to its origin.
+
+The `*.vercel.app` address keeps working. `pnpm backup` now defaults to
+`https://www.mdnotes.in`; set `URSA_URL` to back up from another host.
+
 ## Troubleshooting
 
 | Symptom | Cause |

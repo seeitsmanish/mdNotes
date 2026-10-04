@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.27.0",
+    date: "2026-10-04",
+    title: "mdNotes",
+    changes: [
+      "The app is now called mdNotes, and will live at www.mdnotes.in. Backups are named mdnotes-<date>.zip.",
+      "On the new address you will sign in once, and an installed phone app should be removed and installed again from there.",
+    ],
+  },
+  {
     version: "1.26.0",
     date: "2026-10-04",
     title: "A tidier list, and headings that line up",

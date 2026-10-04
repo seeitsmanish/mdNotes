@@ -63,7 +63,7 @@ export default async function Home() {
 function DatabaseDown({ detail }: { detail: string }) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-4 px-6 py-10">
-      <h1 className="text-lg font-semibold">myNotes can’t reach its database</h1>
+      <h1 className="text-lg font-semibold">mdNotes can’t reach its database</h1>
       <p className="text-[0.85rem] leading-relaxed text-ink-soft">
         Postgres runs in Docker for local development. Start it, push the schema, then reload:
       </p>

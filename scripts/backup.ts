@@ -14,7 +14,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const DEFAULT_URL = process.env.URSA_URL ?? "https://ursa-murex.vercel.app";
+const DEFAULT_URL = process.env.URSA_URL ?? "https://www.mdnotes.in";
 const OUT_DIR = process.env.URSA_BACKUP_DIR ?? "backups";
 
 async function main() {
