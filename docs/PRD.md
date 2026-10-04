@@ -1010,3 +1010,20 @@ the word you searched for could be three screens down.
 - R43.4 Positions are computed on text folded one character at a time, so an
   emoji or a character that folds to two letters never shifts a mark. At most
   500 hits are marked.
+
+### 4.44 Fold a section
+
+Question banks run to hundreds of lines, one heading per company or topic.
+Reading one section meant scrolling past all the others.
+
+- R44.1 Every heading that has text under it gets a small chevron after its
+  text. Tapping it collapses everything up to the next heading of the same or
+  a higher level; the heading then ends in a "…" chip that expands it again.
+- R44.2 The chevron is quiet until the heading is hovered on a desktop, always
+  faintly visible on touch screens (where nothing hovers), shown fully on a
+  folded heading, and never moves the heading text (§4.38's alignment).
+- R44.3 Folding never edits the note and keeps the caret where it was.
+  Keyboard: ⌘⌥[ / ⌘⌥] fold and unfold at the caret (Ctrl+Shift+[ / ] off
+  macOS); Ctrl+Alt+[ / ] fold and unfold all.
+- R44.4 Folds belong to the open view: switching notes or reloading shows the
+  note unfolded.

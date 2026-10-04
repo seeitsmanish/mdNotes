@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.32.0",
+    date: "2026-10-04",
+    title: "Fold a section",
+    changes: [
+      "Collapse everything under a heading with the small arrow after it, and tap the … to open it again — handy in long notes with a section per topic.",
+    ],
+  },
+  {
     version: "1.31.0",
     date: "2026-10-04",
     title: "Search takes you to the words",

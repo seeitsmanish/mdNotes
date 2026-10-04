@@ -6,10 +6,11 @@ import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
-import { syntaxHighlighting } from "@codemirror/language";
+import { foldKeymap, syntaxHighlighting } from "@codemirror/language";
 import { BearMarkup } from "./bearMarkup";
 import { ursaHighlightStyle } from "./highlightStyle";
 import { markdownStyling } from "./decorations";
+import { headingFold } from "./headingFold";
 import { searchHighlight, highlightSearch } from "./searchHighlight";
 import { slashMenu } from "./slashMenu";
 import { tableField } from "./tableField";
@@ -128,7 +129,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       history(),
       // markdownKeymap first: it owns Enter, so lists and quotes continue onto
       // the next line instead of dropping their marker.
-      keymap.of([...ursaKeymap, ...markdownKeymap, ...historyKeymap, ...defaultKeymap]),
+      keymap.of([...ursaKeymap, ...markdownKeymap, ...historyKeymap, ...foldKeymap, ...defaultKeymap]),
       markdown({
         base: markdownLanguage,
         codeLanguages: languages,
@@ -138,6 +139,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       syntaxHighlighting(ursaHighlightStyle),
       tableField,
       searchHighlight,
+      headingFold,
       calcField,
       markdownStyling({
         onWikiLink: (title) => handlers.current.onWikiLink?.(title),
