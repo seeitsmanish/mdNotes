@@ -994,3 +994,19 @@ first keystroke on a note changed elsewhere became a conflicted copy (§4.18).
   still becomes a conflicted copy, as before.
 - R42.3 If the text changed, a toast says it was updated from another device.
   An unchanged note is not touched, so the caret and scroll stay put.
+
+### 4.43 Search lands on the match
+
+Search found the note, then dropped you at its top: in a long question bank
+the word you searched for could be three screens down.
+
+- R43.1 While a search is active, every occurrence of its words in the open
+  note is marked, folding case and accents exactly as search does (`cafe`
+  marks "Café").
+- R43.2 Opening a note from a search selects the first hit and scrolls it to
+  the middle of the screen.
+- R43.3 Changing the search re-marks the open note without moving the caret;
+  clearing it removes the marks. Marks follow edits.
+- R43.4 Positions are computed on text folded one character at a time, so an
+  emoji or a character that folds to two letters never shifts a mark. At most
+  500 hits are marked.

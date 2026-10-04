@@ -866,6 +866,14 @@ input[type="search"]::-webkit-search-cancel-button {
   background: color-mix(in srgb, var(--ink) 3%, transparent);
 }
 
+/* Search hits in the open note (PRD §4.43): the highlight colour, with an
+   outline so a hit inside ::highlighted:: text still stands out. */
+.cm-editor .ursa-search-hit {
+  background: color-mix(in srgb, var(--brand) 28%, transparent);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 45%, transparent);
+}
+
 /* The `/` menu (PRD §4.41). CodeMirror's own tooltip theme is scoped with
    generated classes, so these rules carry .cm-editor and the tooltip class to
    outrank it. */

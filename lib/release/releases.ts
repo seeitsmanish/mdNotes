@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.31.0",
+    date: "2026-10-04",
+    title: "Search takes you to the words",
+    changes: [
+      "Opening a note from a search now jumps to the first place your words appear, and highlights every other one — no more scrolling a long note to find them.",
+    ],
+  },
+  {
     version: "1.30.0",
     date: "2026-10-04",
     title: "Fresh when you come back",

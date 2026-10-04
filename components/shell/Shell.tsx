@@ -887,6 +887,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
             onShare={canShare ? () => void shareNote() : undefined}
             onDownload={exportCurrent}
             onTag={searchTag}
+            highlight={debouncedQuery}
           />
         </div>
       </div>

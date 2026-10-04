@@ -10,6 +10,7 @@ import { syntaxHighlighting } from "@codemirror/language";
 import { BearMarkup } from "./bearMarkup";
 import { ursaHighlightStyle } from "./highlightStyle";
 import { markdownStyling } from "./decorations";
+import { searchHighlight, highlightSearch } from "./searchHighlight";
 import { slashMenu } from "./slashMenu";
 import { tableField } from "./tableField";
 import { smartPaste, ursaKeymap } from "./commands";
@@ -38,6 +39,8 @@ interface EditorProps {
   onStats?: (stats: EditorStats) => void;
   onWikiLink?: (title: string) => void;
   onTag?: (tag: string) => void;
+  /** The active search, whose hits are marked and jumped to on open (§4.43). */
+  highlight?: string;
   /** Hands the live view out so the format bar can run commands against it. */
   onReady?: (view: EditorView | null) => void;
 }
@@ -51,6 +54,7 @@ export function Editor({
   onStats,
   onWikiLink,
   onTag,
+  highlight = "",
   onReady,
 }: EditorProps) {
   const host = useRef<HTMLDivElement | null>(null);
@@ -80,13 +84,23 @@ export function Editor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const highlightRef = useRef(highlight);
+  highlightRef.current = highlight;
+
   useEffect(() => {
     const instance = view.current;
     if (!instance) return;
     instance.setState(buildState(initialBody, readOnly, handlers));
     handlers.current.onStats?.(measure(initialBody));
+    // Opened from a search: land on the first hit rather than the top.
+    if (highlightRef.current.trim()) highlightSearch(instance, highlightRef.current, true);
     if (!readOnly && noteId) instance.focus();
   }, [noteId, initialBody, readOnly]);
+
+  // The search changing while a note is open re-marks it without moving the caret.
+  useEffect(() => {
+    if (view.current) highlightSearch(view.current, highlight, false);
+  }, [highlight]);
 
   return <div ref={host} className="h-full overflow-hidden" tabIndex={-1} data-ursa-editor="" />;
 }
@@ -123,6 +137,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       }),
       syntaxHighlighting(ursaHighlightStyle),
       tableField,
+      searchHighlight,
       calcField,
       markdownStyling({
         onWikiLink: (title) => handlers.current.onWikiLink?.(title),

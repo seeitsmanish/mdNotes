@@ -72,6 +72,7 @@ interface EditorPaneProps {
   onShare?: () => void;
   onDownload: () => void;
   onTag: (tag: string) => void;
+  highlight?: string;
 }
 
 export function EditorPane({
@@ -94,6 +95,7 @@ export function EditorPane({
   onShare,
   onDownload,
   onTag,
+  highlight,
 }: EditorPaneProps) {
   const [stats, setStats] = useState<EditorStats>(() => measure(note?.body ?? ""));
   const [view, setView] = useState<EditorView | null>(null);
@@ -271,6 +273,7 @@ export function EditorPane({
             onStats={setStats}
             onWikiLink={onWikiLink}
             onTag={onTag}
+            highlight={highlight}
             onReady={setView}
           />
         ) : (
