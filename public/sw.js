@@ -1,5 +1,5 @@
 /*
- * Ursa's service worker (PRD §4.27).
+ * The service worker (PRD §4.27).
  *
  * Deliberately small. It caches nothing that belongs to you: a cached note is
  * a stale note, and a stale note written back is a lost edit. It exists so the
@@ -10,7 +10,7 @@
 const OFFLINE_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ursa — offline</title>
+<title>myNotes — offline</title>
 <style>
   :root { color-scheme: dark; }
   body { margin: 0; min-height: 100dvh; display: grid; place-items: center;
@@ -22,7 +22,7 @@ const OFFLINE_HTML = `<!doctype html>
 </style></head>
 <body><main>
   <h1>You’re offline</h1>
-  <p>Ursa keeps your notes on the server, so it needs a connection to open them. Nothing has been lost.</p>
+  <p>myNotes keeps your notes on the server, so it needs a connection to open them. Nothing has been lost.</p>
   <button onclick="location.reload()">Try again</button>
 </main></body></html>`;
 

@@ -62,7 +62,7 @@ export function LoginForm() {
           <span className="flex size-9 items-center justify-center rounded-lg bg-brand-soft text-brand">
             <LockIcon size={17} />
           </span>
-          <h1 className="text-[0.95rem] font-semibold tracking-tight text-ink">Ursa</h1>
+          <h1 className="text-[0.95rem] font-semibold tracking-tight text-ink">myNotes</h1>
           <p className="text-[0.76rem] text-ink-faint">Enter the password to continue.</p>
         </div>
 

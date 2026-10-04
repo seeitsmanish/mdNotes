@@ -7,8 +7,8 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Ursa",
-    short_name: "Ursa",
+    name: "myNotes",
+    short_name: "myNotes",
     description: "Markdown notes that style themselves as you type.",
     start_url: "/",
     scope: "/",
@@ -17,7 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     // The forest theme's canvas, so the launch screen matches the default app.
     background_color: "#11161d",
     theme_color: "#11161d",
-    // The phone's share sheet lists Ursa; what is shared opens as a preview
+    // The phone's share sheet lists myNotes; what is shared opens as a preview
     // to save (PRD §4.31). GET, because a share carries no files here.
     share_target: {
       action: "/share",

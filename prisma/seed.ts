@@ -10,7 +10,7 @@ import { applyBody } from "../lib/db/write";
 const NOTES: Array<{ body: string; pinned?: boolean; trashed?: boolean }> = [
   {
     pinned: true,
-    body: `# Welcome to Ursa
+    body: `# Welcome to myNotes
 
 A web clone of Bear. There is no preview pane — markdown styles itself as you type, and the syntax markers appear only on the line you are editing.
 

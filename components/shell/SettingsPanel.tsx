@@ -171,6 +171,9 @@ export function SettingsPanel() {
 
   return (
     <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
+      {/* First, not last: below the fold of a long panel nobody found it. */}
+      <WhatsNew unseen={unseen} onOpen={markSeen} />
+      <Separator className="-mt-2" />
       <OptionGroup
         label="Theme"
         value={theme}
@@ -371,8 +374,6 @@ export function SettingsPanel() {
         <MonitorSmartphoneIcon />
         Sign out everywhere
       </Button>
-
-      <WhatsNew unseen={unseen} onOpen={markSeen} />
     </div>
   );
 }

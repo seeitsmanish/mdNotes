@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 /**
- * Installing Ursa as an app (PRD §4.27).
+ * Installing myNotes as an app (PRD §4.27).
  *
  * Chromium browsers (Android, desktop Chrome/Edge/Brave) fire
  * `beforeinstallprompt` once the app is installable; holding on to it lets
@@ -92,17 +92,17 @@ export function registerServiceWorker(): void {
 export async function installApp(): Promise<void> {
   if (await promptInstall()) return;
   if (snapshot() === "installed") {
-    toast("Ursa is already installed on this device.");
+    toast("myNotes is already installed on this device.");
     return;
   }
   if (isIOS()) {
-    toast("Install Ursa on your iPhone", {
+    toast("Install myNotes on your iPhone", {
       description: "In Safari, tap Share (the square with an arrow), then “Add to Home Screen”.",
       duration: 15_000,
     });
     return;
   }
-  toast("Install Ursa", {
+  toast("Install myNotes", {
     description: "Open your browser’s menu and choose “Install app” or “Add to Home screen”.",
     duration: 12_000,
   });

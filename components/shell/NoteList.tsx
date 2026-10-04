@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { AppearanceButton } from "./AppearanceButton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { displayTitle } from "@/lib/markdown/derive";
 import { relativeTime } from "@/lib/time";
@@ -85,6 +86,7 @@ export function NoteList({
 }: NoteListProps) {
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
 
   // Focus once the field exists: requesting it in the same tick as opening
   // the field ran before the field had rendered (PRD §4.31).
@@ -165,6 +167,11 @@ export function NoteList({
                 else onQueryChange("");
               }}
             />
+            {/* On a phone the editor's toolbar is out of sight until a note is
+                open, so Appearance (and What's new, sign out…) lives here too. */}
+            <div className="contents @[900px]:hidden">
+              <AppearanceButton open={appearanceOpen} onOpenChange={setAppearanceOpen} />
+            </div>
           </div>
         </div>
 

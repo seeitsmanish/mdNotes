@@ -4,18 +4,24 @@ import { useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import {
   ChevronLeftIcon,
+  EllipsisIcon,
   HistoryIcon,
   Loader2Icon,
   ListTreeIcon,
   type LucideIcon,
-  PaletteIcon,
   PanelLeftIcon,
   PinIcon,
   RotateCcwIcon,
   Trash2Icon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Editor, type EditorStats, measure } from "@/components/editor/Editor";
@@ -26,8 +32,7 @@ import { EDITOR_PADDINGS, EDITOR_WIDTHS, useUiStore } from "@/lib/store/useUiSto
 import type { NoteDetail } from "@/lib/types";
 import { Backlinks } from "./Backlinks";
 import { Outline } from "./Outline";
-import { SettingsPanel } from "./SettingsPanel";
-import { useUnseenRelease } from "./WhatsNew";
+import { AppearanceButton } from "./AppearanceButton";
 
 /**
  * The right pane: a status strip above the editor, and the floating format bar
@@ -72,7 +77,6 @@ export function EditorPane({
 }: EditorPaneProps) {
   const [stats, setStats] = useState<EditorStats>(() => measure(note?.body ?? ""));
   const [view, setView] = useState<EditorView | null>(null);
-  const { unseen } = useUnseenRelease();
 
   const focusMode = useUiStore((s) => s.focusMode);
   const outlineOpen = useUiStore((s) => s.outlineOpen);
@@ -106,8 +110,10 @@ export function EditorPane({
           {note && (
             <>
               Edited {relativeTime(note.updatedAt)}
-              <span className="mx-1.5 opacity-40">·</span>
-              {stats.words.toLocaleString()} {stats.words === 1 ? "word" : "words"}
+              <span className="hidden @[480px]:inline">
+                <span className="mx-1.5 opacity-40">·</span>
+                {stats.words.toLocaleString()} {stats.words === 1 ? "word" : "words"}
+              </span>
               {inTrash && <span className="ml-2 text-brand">In trash — read only</span>}
             </>
           )}
@@ -117,7 +123,7 @@ export function EditorPane({
         </span>
 
         {note && (
-          <>
+          <div className="hidden @[900px]:contents">
             {inTrash ? (
               <IconAction
                 icon={RotateCcwIcon}
@@ -144,57 +150,86 @@ export function EditorPane({
               </>
             )}
             <Separator orientation="vertical" className="mx-1 !h-4" />
-          </>
+          </div>
+        )}
+        {/* Phones get the most-used action and a menu: seven 40px targets did
+            not fit beside the status line (PRD R26.7). */}
+        {note && (
+          <div className="contents @[900px]:hidden">
+            {inTrash ? (
+              <IconAction
+                icon={RotateCcwIcon}
+                label="Restore note"
+                onClick={onRestore}
+                pending={pending.has(`restore:${note.id}`)}
+              />
+            ) : (
+              <IconAction
+                icon={PinIcon}
+                label={note.pinned ? "Unpin note" : "Pin note"}
+                active={note.pinned}
+                onClick={onTogglePin}
+                pending={pending.has(`pin:${note.id}`)}
+              />
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="ghost" size="icon-sm" aria-label="More actions" className="text-ink-faint">
+                    {pending.has(`trash:${note.id}`) ? <Loader2Icon className="animate-spin" /> : <EllipsisIcon />}
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="end" className="min-w-48">
+                <DropdownMenuItem onClick={onHistory}>
+                  <HistoryIcon />
+                  History
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={toggleOutline}>
+                  <ListTreeIcon />
+                  {outlineOpen ? "Hide outline" : "Show outline"}
+                </DropdownMenuItem>
+                {!inTrash && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant="destructive"
+                      disabled={pending.has(`trash:${note.id}`)}
+                      onClick={onTrash}
+                    >
+                      <Trash2Icon />
+                      Move to trash
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
 
-        <IconAction
-          icon={ListTreeIcon}
-          label={outlineOpen ? "Hide outline (⌘⇧O)" : "Show outline (⌘⇧O)"}
-          active={outlineOpen}
-          onClick={toggleOutline}
-        />
-
-        <IconAction
-          icon={PanelLeftIcon}
-          label={focusMode ? "Exit focus mode (⌘.)" : "Focus mode (⌘.)"}
-          active={focusMode}
-          onClick={toggleFocusMode}
-        />
-
-        <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <PopoverTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={unseen ? "Appearance — new release notes" : "Appearance"}
-                className={`relative ${settingsOpen ? "bg-brand-soft text-brand" : "text-ink-faint"}`}
-              >
-                <PaletteIcon />
-                {unseen && (
-                  <span
-                    aria-hidden
-                    className="absolute right-1 top-1 size-1.5 rounded-full bg-brand ring-2 ring-canvas"
-                  />
-                )}
-              </Button>
-            }
+        <div className="hidden @[900px]:contents">
+          <IconAction
+            icon={ListTreeIcon}
+            label={outlineOpen ? "Hide outline (⌘⇧O)" : "Show outline (⌘⇧O)"}
+            active={outlineOpen}
+            onClick={toggleOutline}
           />
-          {/* Capped at the space the screen actually has, and scrollable: the
-              panel outgrew a phone, and a 720px laptop, as actions were added,
-              leaving sign-out and export unreachable below the fold. */}
-          <PopoverContent
-            align="end"
-            className="max-h-[min(var(--available-height),85dvh)] w-76 overflow-y-auto overscroll-contain"
-          >
-            <SettingsPanel />
-          </PopoverContent>
-        </Popover>
+        </div>
+
+        <div className="hidden @[900px]:contents">
+          <IconAction
+            icon={PanelLeftIcon}
+            label={focusMode ? "Exit focus mode (⌘.)" : "Focus mode (⌘.)"}
+            active={focusMode}
+            onClick={toggleFocusMode}
+          />
+          <AppearanceButton open={settingsOpen} onOpenChange={setSettingsOpen} />
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
       <div
-        className={`ursa-editor-host min-h-0 flex-1 transition-opacity duration-150 ${loading ? "opacity-55" : ""}`}
+        className={`ursa-editor-host min-h-0 min-w-0 flex-1 transition-opacity duration-150 ${loading ? "opacity-55" : ""}`}
         aria-busy={loading}
         style={
           {

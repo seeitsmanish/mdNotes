@@ -18,6 +18,18 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.25.0",
+    date: "2026-10-04",
+    title: "myNotes, and a better phone layout",
+    changes: [
+      "The app is now called myNotes, with a new icon: a page of notes. On an iPhone, remove the home-screen icon and add it again to get the new one.",
+      "On a phone, an open note's top bar is just Back, Pin and a ⋯ menu (History, Outline, Move to trash), so it is no longer crowded.",
+      "The Appearance button is on the note list too, so What's new, export and sign out are there without opening a note. What's new is now first in the panel.",
+      "Wide tables scroll sideways inside their frame instead of squeezing every column to one word per line.",
+      "The formatting bar scrolls all the way to its last buttons, and its fade moves to show which way there is more.",
+    ],
+  },
+  {
     version: "1.24.0",
     date: "2026-10-04",
     title: "Spoilers",

@@ -10,11 +10,11 @@ import type { HeadingMode } from "@/lib/store/useUiStore";
 import { appearanceVars, DARK_THEMES, isDarkTheme } from "@/lib/theme";
 
 export const metadata: Metadata = {
-  title: "Ursa",
+  title: "myNotes",
   description: "Markdown notes that style themselves as you type.",
   // iOS ignores most of the manifest; these make "Add to Home Screen" open
   // full-screen with the right name (PRD §4.27).
-  appleWebApp: { capable: true, title: "Ursa", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "myNotes", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {

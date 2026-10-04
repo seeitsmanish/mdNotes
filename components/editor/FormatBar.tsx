@@ -78,9 +78,38 @@ function useKeyboardInset(): number {
   return inset;
 }
 
+/**
+ * Which ends of a sideways-scrolling strip have more to show. The fade that
+ * hints at more must follow the scroll: a fixed one at the right edge left the
+ * last buttons faded out even once scrolled all the way to them.
+ */
+function useScrollEdges(mounted: unknown) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const start = el.scrollLeft > 1;
+      const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+      setEdges((prev) => (prev.start === start && prev.end === end ? prev : { start, end }));
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [mounted]);
+  return { ref, edges };
+}
+
 export function FormatBar({ view }: FormatBarProps) {
   const filePicker = useRef<HTMLInputElement | null>(null);
   const keyboardInset = useKeyboardInset();
+  const strip = useScrollEdges(view);
   if (!view) return null;
 
   const run = (command: (view: EditorView) => boolean) => {
@@ -93,7 +122,11 @@ export function FormatBar({ view }: FormatBarProps) {
       className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4"
       style={keyboardInset ? { bottom: `calc(0.5rem + ${keyboardInset}px)` } : undefined}
     >
-      <div className="ursa-format-bar pointer-events-auto flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-raised/95 px-1.5 py-1.5 shadow-[var(--shadow)] backdrop-blur">
+      <div
+        ref={strip.ref}
+        data-more-start={strip.edges.start ? "" : undefined}
+        data-more-end={strip.edges.end ? "" : undefined}
+        className="ursa-format-bar pointer-events-auto flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-raised/95 px-1.5 py-1.5 shadow-[var(--shadow)] backdrop-blur">
         <Menu icon={HeadingIcon} label="Headings">
           {[1, 2, 3].map((level) => (
             <DropdownMenuItem key={level} onClick={() => run(setHeading(level))}>

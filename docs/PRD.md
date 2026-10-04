@@ -615,6 +615,21 @@ covered, and a back gesture that left the app.
   back gesture and Android's back button return to the list instead of
   leaving the app; the in-app back button uses the same entry so history
   stays balanced. Unsaved text is flushed on the way back.
+- R26.7 *(v1.25.0)* Below 900px the editor's top bar is Back, the status
+  line, Pin (or Restore) and a ⋯ menu with History, Outline and Move to
+  trash. Seven 40px buttons left the status line as "Edited ju…". Focus mode
+  is desktop-only (on a phone the list is already hidden); the word count
+  hides below 480px.
+- R26.8 *(v1.25.0)* Table columns are never narrower than 7.5rem; a table
+  wider than the pane scrolls sideways inside its own frame. Before, columns
+  squeezed to a word per line, and the editor content (a flex item with an
+  automatic minimum width) stretched past the screen edge.
+- R26.9 *(v1.25.0)* The format bar's fade follows its scroll position: right
+  edge while there is more to the right, left edge once scrolled to the end.
+  A fixed fade kept the last buttons faded out even when fully scrolled.
+- R26.10 *(v1.25.0)* On a phone the note list carries the Appearance button,
+  so What's new, export, install and sign out do not wait on opening a note.
+  What's new is the first item in the panel.
 
 ### 4.27 Install as an app
 
@@ -868,3 +883,15 @@ root while the range input lives in the thumb.
 - Trash is never auto-emptied. Should it expire at 30 days like Bear's?
 - `/italic/` and `::highlight::` are Bear-isms that cost parser complexity. Worth
   keeping, or should they become a flag?
+
+### 4.37 Named myNotes
+
+The owner renamed the app from Ursa (v1.25.0). Every user-visible name —
+page title, installed-app name, share sheet entry, sign-in page, offline page,
+install prompts, export file name (`mynotes-<date>.zip`) — says myNotes. The
+icon is a page of notes with a folded corner in the forest theme's colours,
+replacing the Big Dipper, which said nothing about notes. Internal names
+(`ursa-*` CSS classes, the database, the package) are unchanged: renaming
+them would churn every file for nothing a user sees. An installed copy picks
+up the new icon when the browser next refreshes its manifest; on an iPhone,
+remove and re-add it to the home screen.

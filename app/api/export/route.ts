@@ -68,7 +68,7 @@ async function handleGET(request: Request) {
   return new Response(archive, {
     headers: {
       "content-type": "application/zip",
-      "content-disposition": `attachment; filename="ursa-notes-${stamp}.zip"`,
+      "content-disposition": `attachment; filename="mynotes-${stamp}.zip"`,
       "cache-control": "no-store",
     },
   });
