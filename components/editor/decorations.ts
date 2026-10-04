@@ -87,6 +87,9 @@ const HEADING_LINE: Record<string, string> = {
   SetextHeading2: "ursa-h2",
 };
 
+/** The box just clicked, so its replacement widget can pop (PRD §4.48). */
+let lastToggle: { from: number; at: number } | null = null;
+
 class CheckboxWidget extends WidgetType {
   constructor(
     readonly checked: boolean,
@@ -106,9 +109,13 @@ class CheckboxWidget extends WidgetType {
     box.className = "ursa-checkbox";
     box.checked = this.checked;
     box.setAttribute("aria-label", this.checked ? "Mark as not done" : "Mark as done");
+    if (this.checked && lastToggle && lastToggle.from === this.from && Date.now() - lastToggle.at < 600) {
+      box.classList.add("ursa-pop");
+    }
 
     box.addEventListener("mousedown", (event) => {
       event.preventDefault();
+      lastToggle = { from: this.from, at: Date.now() };
       view.dispatch({
         changes: { from: this.from, to: this.to, insert: this.checked ? "[ ]" : "[x]" },
       });

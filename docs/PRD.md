@@ -1082,3 +1082,22 @@ anyone who pastes it into Gmail.
 *Also in v1.35.0 —* R2.11: a fenced code block's box now starts on the text
 column, aligned with headings and paragraphs, with its code indented inside;
 it used to fill the line's gutter padding and stick out to the left.
+
+### 4.48 Motion and illustrations
+
+Owner feedback: "no rich images, no animations, no transitions". The app
+changed state by snapping: a note replaced the last in one frame, a phone
+jumped between list and note, empty states were a line of grey text.
+
+- R48.1 Opening a different note glides it in (220ms fade and rise).
+- R48.2 On a phone the note slides in from the right and the list back from
+  the left (280ms), each pane animating as it is shown.
+- R48.3 List rows rise in when they first appear, lightly staggered; rows and
+  the floating New note button respond to a press; the button springs in.
+- R48.4 Ticking a to-do pops its box.
+- R48.5 Empty states — no notes, empty trash, no search matches, no note
+  open — have a small illustration in theme colours, floating gently with
+  twinkling sparkles, plus a title, a hint and (where it helps) a New note
+  button.
+- R48.6 All motion is short and eased, and none of it plays for anyone with
+  reduced motion turned on in their system settings.

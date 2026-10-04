@@ -728,6 +728,105 @@ input[type="search"]::-webkit-search-cancel-button {
   text-decoration: underline wavy;
 }
 
+/* --- motion (PRD §4.48) ---------------------------------------------------
+   Short, eased, and only where something changes: a note arriving, panes
+   swapping on a phone, a row appearing, a box being ticked. The global
+   prefers-reduced-motion rule above flattens all of it. */
+
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* List rows rise in, lightly staggered, when they first appear. */
+.ursa-row-in {
+  animation: ursa-row-in 260ms var(--ease-out) both;
+}
+@keyframes ursa-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.ursa-fab-in {
+  animation: ursa-pop-in 320ms var(--ease-spring) both;
+  animation-delay: 120ms;
+}
+@keyframes ursa-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+/* Phones: the note slides in from the right, the list back from the left.
+   Each pane animates on going from hidden to shown, so there is nothing to
+   coordinate. */
+@media (max-width: 899px) {
+  .ursa-pane-editor {
+    animation: ursa-slide-from-right 280ms var(--ease-out) both;
+  }
+  .ursa-pane-list {
+    animation: ursa-slide-from-left 280ms var(--ease-out) both;
+  }
+}
+@keyframes ursa-slide-from-right {
+  from {
+    opacity: 0.4;
+    transform: translateX(28%);
+  }
+}
+@keyframes ursa-slide-from-left {
+  from {
+    opacity: 0.4;
+    transform: translateX(-18%);
+  }
+}
+
+/* A ticked box pops; its line's strike-through fades in with it. */
+.ursa-checkbox.ursa-pop {
+  animation: ursa-check-pop 320ms var(--ease-spring);
+}
+@keyframes ursa-check-pop {
+  0% {
+    transform: scale(0.7);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Empty-state illustrations: a slow float and twinkling sparkles. */
+.ursa-illustration .ursa-float {
+  animation: ursa-float 4.5s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes ursa-float {
+  50% {
+    transform: translateY(-4px) rotate(-1deg);
+  }
+}
+.ursa-illustration .ursa-twinkle {
+  animation: ursa-twinkle 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes ursa-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    scale: 0.7;
+  }
+  50% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
 /* --- chrome --- */
 
 .ursa-fade-in {

@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Illustration } from "@/components/brand/Illustration";
 import { AppearanceButton } from "./AppearanceButton";
 import { useClock } from "./ClockProvider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -152,7 +153,7 @@ export function NoteList({
                 onValueChange={(value) => onFilterChange(value as NoteFilter)}
               >
                 {FILTERS.map((entry) => (
-                  <DropdownMenuRadioItem key={entry.value} value={entry.value}>
+                  <DropdownMenuRadioItem key={entry.value} value={entry.value} closeOnClick>
                     <span className="flex-1">{entry.label}</span>
                     <span className="text-xs text-muted-foreground">{counts[entry.value]}</span>
                   </DropdownMenuRadioItem>
@@ -246,13 +247,22 @@ export function NoteList({
                   {section}
                 </li>
               )}
-              <li className="group relative">
+              <li
+                className="ursa-row-in group relative"
+                style={{ animationDelay: `${Math.min(index, 12) * 18}ms` }}
+                // Once only: a phone re-showing the list pane would replay it
+                // for every row. React leaves the class alone afterwards, as
+                // the className prop itself does not change.
+                onAnimationEnd={(event) => {
+                  if (event.target === event.currentTarget) event.currentTarget.classList.remove("ursa-row-in");
+                }}
+              >
                 <button
                   type="button"
                   data-ursa-row=""
                   aria-current={selected ? "true" : undefined}
                   onClick={() => onSelect(note.id)}
-                  className={`relative block w-full rounded-lg py-2.5 pl-4 pr-3 text-left transition-colors ${
+                  className={`relative block w-full rounded-lg py-2.5 pl-4 pr-3 text-left transition-[background-color,transform] duration-150 active:scale-[0.985] ${
                     selected ? "bg-row-active" : "hover:bg-row-hover"
                   }`}
                 >
@@ -357,7 +367,7 @@ export function NoteList({
           disabled={pending.has("create")}
           aria-label="New note"
           data-ursa-fab=""
-          className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 size-14 rounded-2xl bg-brand text-canvas shadow-[var(--shadow)] hover:bg-brand/90 @[900px]:hidden [&_svg:not([class*='size-'])]:size-6"
+          className="ursa-fab-in absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 size-14 rounded-2xl bg-brand text-canvas shadow-[var(--shadow)] transition-transform duration-150 hover:bg-brand/90 active:scale-90 @[900px]:hidden [&_svg:not([class*='size-'])]:size-6"
         >
           {pending.has("create") ? <Loader2Icon className="animate-spin" /> : <PlusIcon />}
         </Button>
@@ -472,13 +482,21 @@ function EmptyState({
   searching: boolean;
   onCreate: () => void;
 }) {
+  const [title, hint] = searching
+    ? ["No notes match", "Try fewer or different words."]
+    : inTrash
+      ? ["Trash is empty", "Notes you delete wait here for a while."]
+      : ["No notes yet", "Your first one is a tap away."];
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 pb-10 text-center">
-      <p className="text-[0.78rem] text-ink-faint">
-        {searching ? "No notes match." : inTrash ? "Trash is empty." : "No notes yet."}
-      </p>
+    <div className="ursa-fade-in flex flex-1 flex-col items-center justify-center gap-3 px-6 pb-10 text-center">
+      <Illustration kind={searching ? "search" : inTrash ? "trash" : "notes"} size={112} />
+      <div className="flex flex-col gap-0.5">
+        <p className="text-[0.88rem] font-semibold tracking-tight text-ink">{title}</p>
+        <p className="text-[0.76rem] text-ink-faint">{hint}</p>
+      </div>
       {!inTrash && !searching && (
-        <Button variant="outline" size="sm" onClick={onCreate}>
+        <Button size="sm" onClick={onCreate}>
+          <PlusIcon />
           New note
         </Button>
       )}

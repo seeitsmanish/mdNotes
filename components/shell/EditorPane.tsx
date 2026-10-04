@@ -20,7 +20,7 @@ import {
   ShareIcon,
   Trash2Icon,
 } from "lucide-react";
-import { NotesMark } from "@/components/brand/NotesMark";
+import { Illustration } from "@/components/brand/Illustration";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -297,8 +297,8 @@ export function EditorPane({
             )}
           </div>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-4 px-8 pb-16 text-center">
-            <NotesMark size={52} className="opacity-90" />
+          <div className="ursa-fade-in flex h-full flex-col items-center justify-center gap-4 px-8 pb-16 text-center">
+            <Illustration kind="write" size={132} />
             <div className="flex flex-col gap-1">
               <p className="text-[0.95rem] font-semibold tracking-tight text-ink">Pick a note, or start one</p>
               <p className="text-[0.78rem] text-ink-faint">Everything saves as you type.</p>

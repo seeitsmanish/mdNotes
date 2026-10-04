@@ -86,6 +86,7 @@ export function Editor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const shownNote = useRef<string | null>(noteId);
   const highlightRef = useRef(highlight);
   highlightRef.current = highlight;
 
@@ -94,6 +95,9 @@ export function Editor({
     if (!instance) return;
     instance.setState(buildState(initialBody, readOnly, handlers));
     handlers.current.onStats?.(measure(initialBody));
+    // A different note glides in rather than snapping (PRD §4.48).
+    if (noteId && noteId !== shownNote.current) glide(instance.dom);
+    shownNote.current = noteId;
     // Opened from a search: land on the first hit rather than the top.
     if (highlightRef.current.trim()) highlightSearch(instance, highlightRef.current, true);
     if (!readOnly && noteId) instance.focus();
@@ -117,6 +121,17 @@ type Handlers = {
     noteId: string | null;
   };
 };
+
+function glide(element: HTMLElement): void {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  element.animate(
+    [
+      { opacity: 0, transform: "translateY(8px)" },
+      { opacity: 1, transform: "none" },
+    ],
+    { duration: 220, easing: "cubic-bezier(0.16, 1, 0.3, 1)" },
+  );
+}
 
 export function measure(body: string): EditorStats {
   const words = body.trim().length === 0 ? 0 : body.trim().split(/\s+/).length;

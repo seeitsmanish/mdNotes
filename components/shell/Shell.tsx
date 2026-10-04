@@ -860,7 +860,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       <div
         ref={listRef}
         style={{ "--pane": `${listWidth}px` } as React.CSSProperties}
-        className={`${mobilePane === "list" ? "flex" : "hidden"} w-full flex-none flex-col ${
+        className={`ursa-pane-list ${mobilePane === "list" ? "flex" : "hidden"} w-full flex-none flex-col ${
           focusMode ? "@[900px]:hidden" : "@[900px]:flex @[900px]:w-[var(--pane)]"
         }`}
       >
@@ -899,7 +899,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
       <div
         ref={editorRef}
-        className={`${
+        className={`ursa-pane-editor ${
           mobilePane === "editor" ? "flex" : "hidden"
         } min-w-0 flex-1 @[900px]:flex @[900px]:min-w-[420px]`}
       >

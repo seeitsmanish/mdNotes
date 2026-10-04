@@ -18,6 +18,18 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.36.0",
+    date: "2026-10-04",
+    title: "A livelier mdNotes",
+    changes: [
+      "Notes glide in when you open them, and on your phone the note and the list slide past each other instead of jumping.",
+      "Rows rise into the list, buttons respond to a press, and ticking a to-do gives a small pop.",
+      "Empty screens have illustrations instead of a line of grey text.",
+      "If your device is set to reduce motion, all of this stays still.",
+      "Choosing Notes, Pinned or Trash now closes that menu.",
+    ],
+  },
+  {
     version: "1.35.0",
     date: "2026-10-04",
     title: "Copy as HTML",
