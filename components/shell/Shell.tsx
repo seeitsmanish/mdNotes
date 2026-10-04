@@ -18,6 +18,7 @@ import type { Clock } from "@/lib/clock";
 import type { NoteCounts, NoteDetail, NoteListItem } from "@/lib/types";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import { applyFavicon } from "@/lib/favicon";
 import { applyAppearance } from "@/lib/theme";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { ShortcutsDialog } from "./ShortcutsDialog";
@@ -133,6 +134,27 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   useEffect(() => {
     applyAppearance(document.documentElement, { brandColor, radius, headingMode });
   }, [brandColor, radius, headingMode]);
+
+  // The tab icon follows the theme and accent (PRD §4.60). Only once the saved
+  // settings are back, or a reload would flash the default icon.
+  useEffect(() => {
+    const apply = () => {
+      const state = useUiStore.getState();
+      applyFavicon(document, state.theme, state.brandColor);
+    };
+    if (useUiStore.persist.hasHydrated()) apply();
+    const unsubscribe = useUiStore.persist.onFinishHydration(apply);
+    // Next streams its metadata icon links in after mount; recolour those too,
+    // or the static icon declared after ours is the one the tab shows.
+    const observer = new MutationObserver(() => {
+      if (useUiStore.persist.hasHydrated()) apply();
+    });
+    observer.observe(document.head, { childList: true });
+    return () => {
+      unsubscribe();
+      observer.disconnect();
+    };
+  }, [theme, brandColor]);
 
   useEffect(() => {
     const root = document.documentElement;

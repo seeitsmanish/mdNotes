@@ -480,9 +480,8 @@ among a row of tabs and looks unfinished on a phone's home screen.
 - R20.4 Icons load on the sign-in page too: the edge gate must not redirect
   them to `/login`.
 
-Not done: the icon does not follow the chosen theme or accent colour. A
-favicon is cached aggressively and shown before any setting is read, so a
-dynamic one would flicker between colours.
+The tab icon now follows the theme and accent — see §4.60. The home-screen
+icon of an installed app cannot: the operating system copies it at install.
 
 ### 4.21 Spoilers
 
@@ -1315,3 +1314,23 @@ Owner request: blur the note list when sharing a screen.
   reload. Child components' effects run before Shell's rehydrate, any store
   update then saved the defaults, and the rehydrate read them back. The store
   now writes nothing to localStorage until it has read the saved state.
+
+### 4.60 Tab icon follows the theme
+
+Owner question: can changing the theme recolour the favicon?
+
+- R60.1 The tab icon is the same page-with-a-fold, drawn in the current
+  theme: canvas tile, page in the brand colour or chosen accent, fold a shade
+  darker, lines cut back out in canvas.
+- R60.2 No flicker: signed in, the server renders the themed icon into
+  `<head>` from the saved settings, so the first paint already has it. The
+  client swaps it live when the theme or accent changes, and not before its
+  saved settings are back.
+- R60.3 "System" ships both palettes in one SVG and lets the icon's own
+  `prefers-color-scheme` query pick, so it follows the OS without script.
+- R60.4 The accent is only used if it is a hex colour; anything else falls
+  back to the theme's brand, so a stored value can never inject markup.
+- R60.5 Not possible: the installed app's home-screen icon comes from the
+  manifest and is copied by the OS at install, so it stays the forest icon.
+  The static `/icon.svg`, `/favicon.ico` and apple icon are unchanged for the
+  sign-in page and crawlers.

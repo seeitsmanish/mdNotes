@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.47.0",
+    date: "2026-10-04",
+    title: "The tab icon matches your theme",
+    changes: [
+      "The browser tab icon is now drawn in your theme and accent colour, and changes the moment you pick a new one. On System it follows light and dark mode by itself.",
+      "The icon of the app installed on your home screen can't change — your phone copies it when you install.",
+    ],
+  },
+  {
     version: "1.46.0",
     date: "2026-10-04",
     title: "Reading mode, and hiding titles when you share your screen",

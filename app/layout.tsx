@@ -8,6 +8,7 @@ import { getSettingsForRequest } from "@/lib/db/settings";
 import type { AppSettings } from "@/lib/settings/schema";
 import type { HeadingMode } from "@/lib/store/useUiStore";
 import { appearanceVars, DARK_THEMES, isDarkTheme } from "@/lib/theme";
+import { faviconHref } from "@/lib/favicon";
 
 export const metadata: Metadata = {
   title: "mdNotes",
@@ -103,6 +104,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <head>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+        {/* The tab icon in this account's theme and accent (PRD §4.60). */}
+        {settings ? (
+          <link rel="icon" type="image/svg+xml" href={faviconHref(settings.theme, settings.brandColor)} />
+        ) : null}
       </head>
       <body className="antialiased">
         <TooltipProvider delay={400}>{children}</TooltipProvider>
