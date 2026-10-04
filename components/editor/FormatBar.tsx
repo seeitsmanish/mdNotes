@@ -13,6 +13,7 @@ import {
   LinkIcon,
   ListIcon,
   type LucideIcon,
+  AudioLinesIcon,
   MicIcon,
   MicOffIcon,
   SmileIcon,
@@ -31,6 +32,7 @@ import { toast } from "sonner";
 import type { TableOp } from "@/lib/markdown/tableEdit";
 import { runTableOp, tableAt } from "./tableCommands";
 import { type DictationState, dictationSupported, startDictation } from "./dictation";
+import { formatDuration, memoMarkdown, type Recording, recordingSupported, startRecording, uploadMemo } from "./recorder";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { EMOJI_GROUPS } from "@/lib/emoji/emoji";
@@ -124,6 +126,43 @@ export function FormatBar({ view }: FormatBarProps) {
   const [listening, setListening] = useState<DictationState>({ listening: false, interim: "" });
   const stopRef = useRef<(() => void) | null>(null);
   useEffect(() => setDictation(dictationSupported()), []);
+  // Voice memos (PRD §4.74).
+  const [recordable, setRecordable] = useState(false);
+  const [recording, setRecording] = useState<{ startedAt: number; uploading: boolean } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const recordingRef = useRef<Recording | null>(null);
+  useEffect(() => setRecordable(recordingSupported()), []);
+  useEffect(() => {
+    if (!recording || recording.uploading) return;
+    const tick = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(tick);
+  }, [recording]);
+  useEffect(() => () => recordingRef.current?.cancel(), []);
+  const finishRecording = async () => {
+    const handle = recordingRef.current;
+    if (!handle || !view) return;
+    recordingRef.current = null;
+    setRecording((current) => (current ? { ...current, uploading: true } : current));
+    try {
+      const { blob, ms } = await handle.stop();
+      if (ms < 700) {
+        toast("That was too short to keep.");
+        return;
+      }
+      const url = await uploadMemo(blob);
+      const { state } = view;
+      const line = state.doc.lineAt(state.selection.main.head);
+      const before = line.text.trim() ? "\n" : "";
+      const insert = `${before}${memoMarkdown(url, ms)}\n`;
+      const at = line.text.trim() ? line.to : line.from;
+      view.dispatch({ changes: { from: at, insert }, selection: { anchor: at + insert.length }, userEvent: "input.memo", scrollIntoView: true });
+      toast("Voice memo added.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn’t save the recording.");
+    } finally {
+      setRecording(null);
+    }
+  };
   // Leaving the note (the bar unmounts) stops listening.
   useEffect(() => () => stopRef.current?.(), []);
   if (!view) return null;
@@ -138,6 +177,35 @@ export function FormatBar({ view }: FormatBarProps) {
       className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4"
       style={keyboardInset ? { bottom: `calc(0.5rem + ${keyboardInset}px)` } : undefined}
     >
+      {recording && (
+        <div
+          role="status"
+          className="pointer-events-auto absolute -top-11 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-raised px-3 py-1.5 text-[0.8rem] text-ink shadow-[var(--shadow)]"
+        >
+          {recording.uploading ? (
+            <span className="text-ink-soft">Saving memo…</span>
+          ) : (
+            <>
+              <span className="size-2 animate-pulse rounded-full bg-[#e5484d]" />
+              <span className="tabular-nums">{formatDuration(now - recording.startedAt)}</span>
+              <button type="button" onClick={() => void finishRecording()} className="rounded-full bg-[#e5484d] px-2.5 py-0.5 text-[0.75rem] font-semibold text-white">
+                Stop
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  recordingRef.current?.cancel();
+                  recordingRef.current = null;
+                  setRecording(null);
+                }}
+                className="text-[0.75rem] text-ink-faint hover:text-ink"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+      )}
       {listening.listening && (
         <div className="pointer-events-none absolute -top-9 left-1/2 flex max-w-[90%] -translate-x-1/2 items-center gap-2 truncate rounded-full bg-raised px-3 py-1 text-[0.8rem] text-ink-soft shadow-[var(--shadow)]">
           <span className="size-2 flex-none animate-pulse rounded-full bg-[#e5484d]" />
@@ -201,6 +269,24 @@ export function FormatBar({ view }: FormatBarProps) {
         />
         {/* Table tools (PRD §4.72): insert, or edit the table the caret is in. */}
         <TableMenu view={view} run={run} />
+        {recordable && !recording && (
+          <Action
+            icon={AudioLinesIcon}
+            label="Record a voice memo"
+            onClick={() => {
+              void startRecording(() => void finishRecording()).then(
+                (handle) => {
+                  recordingRef.current = handle;
+                  setRecording({ startedAt: handle.startedAt, uploading: false });
+                },
+                (error: unknown) => {
+                  const denied = error instanceof DOMException && (error.name === "NotAllowedError" || error.name === "SecurityError");
+                  toast.error(denied ? "The microphone is blocked. Allow it for this site in your browser's settings." : "Couldn’t start recording.");
+                },
+              );
+            }}
+          />
+        )}
         {dictation && (
           <Action
             icon={listening.listening ? MicOffIcon : MicIcon}

@@ -7,7 +7,7 @@ import { parse as parseFrontmatter } from "@/lib/export/frontmatter";
 import { readEntryBytesCapped, readEntryCapped } from "@/lib/export/unzip";
 import { archiveEntryId, fromArchive } from "@/lib/export/attachments";
 import { createAttachment } from "@/lib/db/attachments";
-import { MAX_ATTACHMENT_BYTES, sniffImage } from "@/lib/attachments/sniff";
+import { MAX_ATTACHMENT_BYTES, sniffAttachment } from "@/lib/attachments/sniff";
 
 /**
  * Markdown in, notes out (PRD §4.9).
@@ -57,7 +57,7 @@ async function handlePOST(request: Request) {
           const remaining = IMPORT_LIMITS.maxTotalBytes - inflated;
           const bytes =
             remaining > 0 ? await readEntryBytesCapped(entry, Math.min(MAX_ATTACHMENT_BYTES, remaining)) : null;
-          const mime = bytes ? sniffImage(bytes) : null;
+          const mime = bytes ? sniffAttachment(bytes) : null;
           if (!bytes || !mime) {
             imageSkips.push({ path: entry.name, reason: bytes ? "not a supported image" : "image too large" });
             continue;

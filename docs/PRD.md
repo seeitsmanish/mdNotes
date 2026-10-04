@@ -1653,3 +1653,23 @@ Owner picks 15 and 16 from round 2.
   never writes, as before — and the window closes itself after saving. Signed
   out, it goes through sign-in and back. Phones use the Share sheet instead.
 
+### 4.74 Voice memos
+
+Owner pick 17 from round 2.
+
+- R74.1 A record button in the format bar (where the browser can record)
+  starts recording after the microphone is allowed; a bubble shows a red dot,
+  the time, Stop and Cancel. Stop uploads the audio and writes it on its own
+  line as `[🎙 Voice memo · 0:42](/api/attachments/<id> "audio")`, which the
+  editor draws as a player while the line is not being edited. Under a
+  second is discarded. Recording stops itself at 15 minutes.
+- R74.2 WebM/Opus where supported (Chrome, Firefox, Android), MP4/AAC on
+  Safari and iPhone, at 32 kbps so 15 minutes fits the 4 MB upload cap.
+  The server decides the type from the bytes (WebM, MP4, Ogg, MP3 accepted
+  alongside images); the browser's claim is ignored as before.
+- R74.3 The attachment route answers byte ranges (206), which Safari needs to
+  play audio; the service worker passes ranged requests to the network.
+- R74.4 Memos travel in exports as `attachments/<id>.webm|m4a|ogg|mp3` and come
+  back on import, like images. Unused-image clean-up counts them as used
+  while a note links them.
+

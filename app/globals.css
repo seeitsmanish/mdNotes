@@ -616,6 +616,22 @@ input[type="search"]::-webkit-search-cancel-button {
 /* Typewriter scrolling (PRD §4.71): room below the text so its last line can sit mid-screen. */
 .cm-content[data-ursa-typewriter] { padding-bottom: 45vh; }
 
+/* Voice memos (PRD §4.74). */
+.ursa-audio {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--raised);
+  vertical-align: middle;
+}
+.ursa-audio-label { font-size: 0.82em; color: var(--ink-soft); white-space: nowrap; }
+.ursa-audio audio { height: 34px; max-width: 100%; min-width: 0; }
+
 /* Copy button on code blocks (PRD §4.71). */
 .cm-editor .cm-line.ursa-code-top { position: relative; }
 .ursa-code-copy {

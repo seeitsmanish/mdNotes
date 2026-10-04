@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.61.0",
+    date: "2026-10-04",
+    title: "Voice memos",
+    changes: [
+      "Record audio straight into a note with the new button in the formatting bar, and play it back right there. Up to 15 minutes per memo.",
+    ],
+  },
+  {
     version: "1.60.0",
     date: "2026-10-04",
     title: "Quick notes and a web clipper",

@@ -242,6 +242,50 @@ class CalloutWidget extends WidgetType {
   }
 }
 
+class AudioWidget extends WidgetType {
+  constructor(
+    readonly src: string,
+    readonly label: string,
+  ) {
+    super();
+  }
+
+  eq(other: AudioWidget): boolean {
+    return other.src === this.src && other.label === this.label;
+  }
+
+  toDOM(): HTMLElement {
+    const wrap = document.createElement("span");
+    wrap.className = "ursa-audio";
+    const name = document.createElement("span");
+    name.className = "ursa-audio-label";
+    name.textContent = this.label;
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.preload = "metadata";
+    audio.src = this.src;
+    // Chrome's recordings carry no length, so the player shows no total or
+    // seek bar. Seeking far past the end makes the browser work it out.
+    audio.addEventListener("loadedmetadata", () => {
+      if (audio.duration !== Infinity) return;
+      const reset = () => {
+        audio.removeEventListener("durationchange", reset);
+        audio.currentTime = 0;
+      };
+      audio.addEventListener("durationchange", reset);
+      audio.currentTime = 1e101;
+    });
+    wrap.append(name, audio);
+    return wrap;
+  }
+
+  // The player's own controls take clicks; the line opens for editing by
+  // clicking beside it.
+  ignoreEvent(): boolean {
+    return true;
+  }
+}
+
 class CopyCodeWidget extends WidgetType {
   constructor(readonly code: string) {
     super();
@@ -491,6 +535,19 @@ function buildDecorations(view: EditorView): DecorationSet {
               }).range(node.from + 2, node.to - 2),
             );
             return;
+          }
+
+          case "Link": {
+            // A voice memo (PRD §4.74): a link to an attachment titled "audio",
+            // drawn as a player while its line is not being edited.
+            const title = node.node.getChild("LinkTitle");
+            const urlNode = node.node.getChild("URL");
+            if (!title || !urlNode || view.state.sliceDoc(title.from, title.to) !== '"audio"') return;
+            const src = view.state.sliceDoc(urlNode.from, urlNode.to).trim();
+            if (!/^\/api\/attachments\/[a-z0-9]{20,40}$/.test(src) || isRevealed(node.from, node.to)) return;
+            const label = /^\[([^\]]*)\]/.exec(view.state.sliceDoc(node.from, node.to))?.[1] ?? "Voice memo";
+            ranges.push(Decoration.replace({ widget: new AudioWidget(src, label) }).range(node.from, node.to));
+            return false;
           }
 
           case "Image": {

@@ -145,7 +145,9 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirst(request, url.pathname));
     return;
   }
-  if (/^\/api\/attachments\/[^/]+$/.test(url.pathname) && url.pathname !== "/api/attachments/unused") {
+  // A ranged request is audio seeking (PRD §4.74): the network answers it,
+  // since a cached whole file cannot.
+  if (/^\/api\/attachments\/[^/]+$/.test(url.pathname) && url.pathname !== "/api/attachments/unused" && !request.headers.has("range")) {
     event.respondWith(
       caches.open(DATA).then(async (cache) => {
         const hit = await cache.match(url.pathname);
