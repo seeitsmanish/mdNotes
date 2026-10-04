@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.34.0",
+    date: "2026-10-04",
+    title: "Tighter security headers",
+    changes: [
+      "mdNotes now insists on HTTPS, refuses changes sent from any other website, and tells browsers never to keep copies of your notes in their cache. Nothing changes in how you use it.",
+    ],
+  },
+  {
     version: "1.33.0",
     date: "2026-10-04",
     title: "Link to a note without remembering its title",

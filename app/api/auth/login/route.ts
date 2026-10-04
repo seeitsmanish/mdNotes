@@ -3,6 +3,7 @@ import { SESSION_COOKIE, SESSION_TTL_SECONDS, safeEqual, sessionKey, signToken }
 import { getSessionEpoch } from "@/lib/db/settings";
 import { clientIp } from "@/lib/auth/clientIp";
 import { clearFailures, isLimited, recordFailure } from "@/lib/db/loginFailures";
+import { crossSiteRefusal, isCrossSiteWrite } from "@/lib/security/origin";
 
 /**
  * There are no accounts — one password opens the app. The cookie it issues is
@@ -14,6 +15,7 @@ import { clearFailures, isLimited, recordFailure } from "@/lib/db/loginFailures"
 // this replaces reset on every cold start (security audit A7).
 
 export async function POST(request: Request) {
+  if (isCrossSiteWrite(request.method, request.headers)) return crossSiteRefusal();
   const password = process.env.APP_PASSWORD;
   const secret = process.env.AUTH_SECRET;
   if (!password || !secret) {

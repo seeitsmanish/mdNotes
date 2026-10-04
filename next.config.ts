@@ -31,10 +31,20 @@ const SECURITY_HEADERS = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+  // HTTPS only, for two years, on every subdomain (PRD §4.46). Vercel may add
+  // its own; the app does not rely on that. Ignored by browsers over plain
+  // http, so local development is unaffected.
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+  // No other site's window keeps a handle on ours, and no other site may
+  // embed our responses (images, JSON) as resources.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
 ];
 
 const config: NextConfig = {
   typedRoutes: true,
+  // Do not advertise the framework and version to every visitor.
+  poweredByHeader: false,
   async headers() {
     return [
       { source: "/(.*)", headers: SECURITY_HEADERS },

@@ -1044,3 +1044,19 @@ easy to misremember — "Google onsite" or "Google on-site"?
 - R45.3 The `/` menu's "Link to note" goes straight on to the title list.
 - R45.4 Titles are fetched once and kept for 30 seconds, independent of any
   search filtering the list on screen.
+
+### 4.46 Security headers and cross-site writes
+
+The owner asked whether every security header is set. Most were; the review
+and its fixes are in SECURITY-AUDIT.md A9–A11.
+
+- R46.1 Every response: CSP (per-request nonce), HSTS (2 years, subdomains),
+  X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy,
+  Cross-Origin-Opener-Policy and Cross-Origin-Resource-Policy `same-origin`;
+  no `X-Powered-By`.
+- R46.2 CORS stays closed: no `Access-Control-Allow-*` header is ever sent.
+- R46.3 A write (POST/PATCH/DELETE) the browser marks cross-site or
+  same-site, or whose Origin is another host, is refused with 403 before any
+  handler runs — every guarded route, plus sign-in and sign-out.
+- R46.4 Signed-in responses are `Cache-Control: no-store` unless the route
+  chose otherwise (images: private, immutable).

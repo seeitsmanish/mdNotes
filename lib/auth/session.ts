@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { getSessionEpoch } from "@/lib/db/settings";
+import { crossSiteRefusal, isCrossSiteWrite } from "@/lib/security/origin";
 import { readToken, SESSION_COOKIE, sessionKey } from "./token";
 
 /**
@@ -65,11 +66,32 @@ export function guarded<T extends unknown[]>(
   handler: (...args: T) => Promise<Response>,
 ): (...args: T) => Promise<Response> {
   return async (...args: T) => {
+    // Route handlers receive the Request first (PRD §4.46).
+    const request = args[0] instanceof Request ? args[0] : null;
+    if (request && isCrossSiteWrite(request.method, request.headers)) return crossSiteRefusal();
     try {
       await requireSession();
     } catch {
-      return Response.json({ error: "Not signed in." }, { status: 401 });
+      return noStore(Response.json({ error: "Not signed in." }, { status: 401 }));
     }
-    return handler(...args);
+    return noStore(await handler(...args));
   };
+}
+
+/**
+ * Signed-in responses hold notes and settings: never stored by a browser or
+ * proxy cache. A route that chose its own caching (images, which never change
+ * and are private) keeps it.
+ */
+function noStore(response: Response): Response {
+  if (response.headers.has("cache-control")) return response;
+  try {
+    response.headers.set("cache-control", "no-store");
+    return response;
+  } catch {
+    // Immutable headers (a fetched Response passed through): copy instead.
+    const headers = new Headers(response.headers);
+    headers.set("cache-control", "no-store");
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+  }
 }

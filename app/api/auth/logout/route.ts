@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { hasSession } from "@/lib/auth/session";
 import { SESSION_COOKIE } from "@/lib/auth/token";
 import { bumpSessionEpoch } from "@/lib/db/settings";
+import { crossSiteRefusal, isCrossSiteWrite } from "@/lib/security/origin";
 
 /**
  * Sign out. With `?everywhere=true`, end every session on every device
@@ -9,6 +10,7 @@ import { bumpSessionEpoch } from "@/lib/db/settings";
  * owner out.
  */
 export async function POST(request: Request) {
+  if (isCrossSiteWrite(request.method, request.headers)) return crossSiteRefusal();
   const everywhere = new URL(request.url).searchParams.get("everywhere") === "true";
   if (everywhere) {
     if (!(await hasSession())) {

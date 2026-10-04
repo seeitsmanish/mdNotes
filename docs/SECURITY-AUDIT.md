@@ -24,6 +24,9 @@ exports or pasted from elsewhere. The user themself is trusted.
 | A6 | Low | Edge gate accepted an `AUTH_SECRET` shorter than 32 characters | **Fixed** in v1.11.2 |
 | A7 | Low | Login rate limit is per server instance and resets on cold start | **Fixed** in v1.21.1 |
 | A8 | Low | Four dependency advisories, all in build-time tooling | **Partly fixed** in v1.21.2 |
+| A9 | Low | No server-side cross-site check on writes; SameSite=Lax was the only CSRF fence | **Fixed** in v1.34.0 |
+| A10 | Low | Signed-in API responses (notes, settings) carried no Cache-Control | **Fixed** in v1.34.0 |
+| A11 | Info | No HSTS, COOP or CORP from the app; `X-Powered-By` advertised Next.js | **Fixed** in v1.34.0 |
 
 ### A1 — Open redirect after sign-in (fixed)
 
@@ -153,6 +156,33 @@ runs in the deployed app: `mysql2` and `deepmerge-ts` under the Prisma CLI,
 and `braces` under the shadcn CLI. `shadcn` and `cn` are listed as runtime
 dependencies but are CLI/unused; moving them to devDependencies would clear
 the shadcn path.
+
+### A9–A11 — Header and CSRF review (v1.34.0, PRD §4.46)
+
+Asked by the owner: "are all security headers set — CSP, HSTS, CORS?" Checked
+against a production build:
+
+- **CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy** were
+  already sent on every response (A3, §4.34).
+- **CORS** is deny-by-default: no `Access-Control-Allow-Origin` is ever sent,
+  so no other origin can read a response. A cross-origin preflight gets 401.
+- **A9.** Writes relied on SameSite=Lax alone. A sibling subdomain counts as
+  same-site to Lax, so it was not enough on its own for a custom domain.
+  `guarded()`, login and logout now refuse a POST/PATCH/DELETE that the
+  browser labels `Sec-Fetch-Site: cross-site|same-site`, or whose `Origin`
+  host differs from the request's host (`lib/security/origin.ts`). Clients
+  sending neither header (curl, `pnpm backup`) carry no browser cookies and
+  pass.
+- **A10.** Signed-in JSON had no `Cache-Control`. `guarded()` now adds
+  `no-store` unless a route set its own (images keep `private, immutable`).
+- **A11.** Added `Strict-Transport-Security: max-age=63072000;
+  includeSubDomains` (not `preload`, which is a one-way submission),
+  `Cross-Origin-Opener-Policy: same-origin`,
+  `Cross-Origin-Resource-Policy: same-origin`; `poweredByHeader: false`.
+
+Not done: the session cookie keeps its name rather than taking the `__Host-`
+prefix, because renaming it signs every device out; it is already host-only,
+`Secure` and `httpOnly`.
 
 ## Checked and sound
 
