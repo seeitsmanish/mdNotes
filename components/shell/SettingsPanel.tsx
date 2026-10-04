@@ -13,6 +13,7 @@ import {
 import { installApp, useInstallMode } from "@/lib/pwa/install";
 import { toast } from "sonner";
 import { useUnseenRelease, WhatsNew } from "./WhatsNew";
+import { WebClipper } from "./WebClipper";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -378,6 +379,8 @@ export function SettingsPanel() {
         <DownloadIcon />
         Export all notes
       </Button>
+
+      <WebClipper />
 
       <input
         ref={fileInput}

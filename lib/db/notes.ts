@@ -6,6 +6,7 @@ import type { NotePatch } from "@/lib/notes/patch";
 import { deriveCover, deriveExcerpt, deriveTitle, deriveTodos } from "@/lib/markdown/derive";
 import { linksTo, normaliseTitle } from "@/lib/markdown/wikilink";
 import { extractTags } from "@/lib/markdown/tags";
+import { appendEntry, INBOX_TITLE } from "@/lib/notes/inbox";
 import { rank, terms } from "@/lib/search/rank";
 import { CANDIDATE_CAP, mergeCandidates } from "@/lib/search/candidates";
 import { containsPattern, FOLD_FROM, FOLD_TO } from "@/lib/search/foldSql";
@@ -382,5 +383,28 @@ export async function isNoteLocked(id: string): Promise<boolean> {
 
 export async function countLocked(): Promise<number> {
   return prisma.note.count({ where: { locked: true } });
+}
+
+/**
+ * Adds a quick-capture entry to the Inbox note, making it if there is none
+ * (PRD §4.73). The row is locked for the read-modify-write, so two captures
+ * at once both land. Returns the Inbox's id, or "locked" when it is locked.
+ */
+export async function appendToInbox(entry: string): Promise<{ id: string } | "locked"> {
+  return prisma.$transaction(async (tx) => {
+    const found = await tx.note.findFirst({
+      where: { deletedAt: null, isTemplate: false, title: INBOX_TITLE },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, locked: true },
+    });
+    if (found?.locked) return "locked" as const;
+    if (!found) {
+      const created = await insertBody(tx, appendEntry("", entry));
+      return { id: created.id };
+    }
+    const current = (await lockBody(tx, found.id)) ?? "";
+    await applyBody(tx, found.id, appendEntry(current, entry));
+    return { id: found.id };
+  });
 }
 

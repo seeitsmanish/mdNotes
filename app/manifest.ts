@@ -28,6 +28,7 @@ export default function manifest(): MetadataRoute.Manifest {
     shortcuts: [
       { name: "New note", short_name: "New", url: "/?new=1", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Search notes", short_name: "Search", url: "/?search=1", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Quick note to Inbox", short_name: "Quick note", url: "/?capture=1", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
     ],
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

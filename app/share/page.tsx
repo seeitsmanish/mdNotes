@@ -21,10 +21,14 @@ export default async function SharePage({ searchParams }: { searchParams: Search
   const params = await searchParams;
   if (!(await hasSession())) {
     const query = new URLSearchParams();
-    for (const key of ["title", "text", "url"]) if (first(params[key])) query.set(key, first(params[key]));
+    for (const key of ["title", "text", "url", "clip"]) if (first(params[key])) query.set(key, first(params[key]));
     redirect(`/login?next=${encodeURIComponent(`/share?${query}`)}`);
   }
 
-  const body = composeShared({ title: first(params.title), text: first(params.text), url: first(params.url) });
-  return <SharePreview initialBody={body} />;
+  // From the web clipper (PRD §4.73): the selected text is a quote from the page.
+  const clip = first(params.clip) === "1";
+  const raw = first(params.text);
+  const text = clip && raw.trim() ? raw.trim().split(/\r?\n/).map((line) => `> ${line}`).join("\n") : raw;
+  const body = composeShared({ title: first(params.title), text, url: first(params.url) });
+  return <SharePreview initialBody={body} clip={clip} />;
 }

@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.60.0",
+    date: "2026-10-04",
+    title: "Quick notes and a web clipper",
+    changes: [
+      "Press ⌘⇧Space (or long-press the app icon → Quick note) to jot something down in two seconds. It goes to your Inbox note.",
+      "Settings → Web clipper: drag the button to your bookmarks bar, then click it on any web page to save the page and the text you selected.",
+    ],
+  },
+  {
     version: "1.59.1",
     date: "2026-10-04",
     title: "Vim keys removed",

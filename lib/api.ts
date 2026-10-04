@@ -152,3 +152,8 @@ export function lockAction(
 ): Promise<{ configured?: boolean; unlocked: boolean }> {
   return request("/api/lock", { method: "POST", body: JSON.stringify(body) });
 }
+
+/** Quick capture to the Inbox note (PRD §4.73). */
+export function captureToInbox(text: string, stamp: string): Promise<{ id: string }> {
+  return request("/api/inbox", { method: "POST", body: JSON.stringify({ text, stamp }) });
+}

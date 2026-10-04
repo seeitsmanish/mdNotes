@@ -21,6 +21,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "Notes",
     shortcuts: [
       { keys: "⌘N", label: "New note" },
+      { keys: "⌘⇧Space", label: "Quick note to Inbox" },
       { keys: "⌘P", label: "Pin or unpin" },
       { keys: "⌘⌫", label: "Move to trash" },
     ],

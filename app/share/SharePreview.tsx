@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import * as api from "@/lib/api";
 
 /** The shared text, editable, saved with one tap (PRD §4.31). */
-export function SharePreview({ initialBody }: { initialBody: string }) {
+export function SharePreview({ initialBody, clip = false }: { initialBody: string; clip?: boolean }) {
+  const [saved, setSaved] = useState(false);
   const [body, setBody] = useState(initialBody);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +19,13 @@ export function SharePreview({ initialBody }: { initialBody: string }) {
     try {
       const { note } = await api.createNote();
       await api.saveBody(note.id, body, note.version);
+      // A clip opened in a small window from another page: say so and close,
+      // leaving the reader where they were (PRD §4.73).
+      if (clip && window.opener) {
+        setSaved(true);
+        setTimeout(() => window.close(), 900);
+        return;
+      }
       window.location.replace(`/?open=${encodeURIComponent(note.id)}`);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Could not save.");
@@ -27,7 +35,7 @@ export function SharePreview({ initialBody }: { initialBody: string }) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col gap-4 bg-canvas px-4 pb-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <h1 className="text-[1.05rem] font-semibold text-heading">Save to mdNotes</h1>
+      <h1 className="text-[1.05rem] font-semibold text-heading">{saved ? "Saved to mdNotes ✓" : "Save to mdNotes"}</h1>
       <textarea
         aria-label="Note to save"
         value={body}

@@ -1632,3 +1632,24 @@ Owner picks 4 and 6 from round 2.
   table) returned focus to the menu button, so the next keystroke or ⌘Z
   missed the note. Focus now goes back to the note.
 
+### 4.73 Quick capture and the web clipper
+
+Owner picks 15 and 16 from round 2.
+
+- R73.1 Quick note: ⌘⇧Space, ⌘K "Quick note to Inbox", or the app icon's
+  "Quick note" shortcut (long-press on a phone) opens a small box; ⌘↵ or
+  Save adds the text to the end of the note titled "Inbox", made the first
+  time. Each entry is a bullet with the time it was captured; further lines
+  are indented under it. A draft survives closing the box; a failed save
+  keeps the text.
+- R73.2 The append happens on the server with the Inbox row locked, so two
+  captures at once both land and an open Inbox elsewhere picks the entry up
+  on its next resync. A locked Inbox refuses (423) with a message. Entries
+  over 10,000 characters are refused.
+- R73.3 Web clipper: Settings has a "Clip to mdNotes" bookmarklet to drag to
+  the bookmarks bar (or copy as an address). On any page it opens a small
+  window on the existing Save to mdNotes page (§4.31) with the page title,
+  link and the selected text as a quote. Nothing is saved until Save — a GET
+  never writes, as before — and the window closes itself after saving. Signed
+  out, it goes through sign-in and back. Phones use the Share sheet instead.
+

@@ -31,6 +31,7 @@ import type { LabelPatch } from "./EditorPane";
 import type { BulkAction } from "./NoteList";
 import { ShareLinkDialog } from "./ShareLinkDialog";
 import { PasscodeDialog, UnlockAllDialog } from "./LockDialog";
+import { QuickCapture } from "./QuickCapture";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { HistoryDialog } from "./HistoryDialog";
 import { createGate } from "@/lib/async/gate";
@@ -159,6 +160,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   // Note-lock passcode dialog (PRD §4.69); `then` runs once a passcode is set.
   const [passcodeDialog, setPasscodeDialog] = useState<{ changing: boolean; scope?: string; then?: () => void } | null>(null);
   const [unlockAllOpen, setUnlockAllOpen] = useState(false);
+  const [captureOpen, setCaptureOpen] = useState(false);
   const hapticsOn = useUiStore((state) => state.haptics);
   useEffect(() => setHapticsEnabled(hapticsOn), [hapticsOn]);
 
@@ -860,13 +862,16 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     const open = params.get("open");
     const wantsNew = params.get("new") === "1";
     const wantsSearch = params.get("search") === "1";
-    if (!open && !wantsNew && !wantsSearch) return;
+    const wantsCapture = params.get("capture") === "1";
+    if (!open && !wantsNew && !wantsSearch && !wantsCapture) return;
     window.history.replaceState(window.history.state, "", "/");
     if (open) {
       void refreshList();
       selectNote(open);
     } else if (wantsNew) {
       void createNote();
+    } else if (wantsCapture) {
+      setCaptureOpen(true);
     } else {
       setSearchSignal((n) => n + 1);
     }
@@ -1069,6 +1074,21 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         });
       }),
     [flush, gate, refreshList, selectNote],
+  );
+
+  /** Quick capture to the Inbox (PRD §4.73). */
+  const capture = useCallback(
+    async (text: string) => {
+      const stamp = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date());
+      const { id } = await api.captureToInbox(text, stamp);
+      await refreshList().catch(() => undefined);
+      // The Inbox open here picks up the new entry.
+      if (useUiStore.getState().selectedNoteId === id) void resync();
+      toast("Added to Inbox.", {
+        action: { label: "Open", onClick: () => openNoteRef.current(id) },
+      });
+    },
+    [refreshList, resync],
   );
 
   /** The built-in templates, as real templates; ones already there by title are skipped (PRD §4.71). */
@@ -1308,6 +1328,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     return [
       { id: "new", label: "New note", hint: "⌘N", run: () => void createNote() },
       { id: "today", label: "Open today’s note", run: () => void openToday() },
+      { id: "capture", label: "Quick note to Inbox", hint: "⌘⇧Space", run: () => setCaptureOpen(true) },
       ...templates.map((template) => ({
         id: `template:${template.id}`,
         label: `New from template: ${displayTitle(template.title)}`,
@@ -1428,6 +1449,13 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         case "O":
           event.preventDefault();
           toggleOutline();
+          return;
+        case " ":
+          // ⌘⇧Space: quick note to the Inbox (PRD §4.73).
+          if (event.shiftKey) {
+            event.preventDefault();
+            setCaptureOpen(true);
+          }
           return;
         case "l":
         case "L":
@@ -1598,6 +1626,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           then?.();
         }}
       />
+
+      <QuickCapture open={captureOpen} onOpenChange={setCaptureOpen} onSave={capture} />
 
       <UnlockAllDialog open={unlockAllOpen} onOpenChange={setUnlockAllOpen} onUnlocked={() => startExport()} />
 
