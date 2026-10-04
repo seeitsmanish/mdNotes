@@ -385,7 +385,7 @@ export function SettingsPanel() {
       <input
         ref={fileInput}
         type="file"
-        accept=".zip,.md,.markdown,.mdown,.txt"
+        accept=".zip,.md,.markdown,.mdown,.txt,.enex,.json"
         multiple
         hidden
         onChange={(event) => void runImport(event.target.files)}
@@ -400,6 +400,9 @@ export function SettingsPanel() {
         <UploadIcon />
         {importing ? "Importing…" : "Import notes"}
       </Button>
+      <p className="-mt-1 px-2 text-[0.7rem] text-ink-faint">
+        Markdown or .zip (including Notion and Obsidian exports), Google Keep’s Takeout .zip, or Evernote .enex.
+      </p>
 
       {unused && unused.count > 0 && (
         <Button

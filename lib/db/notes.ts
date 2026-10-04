@@ -274,7 +274,7 @@ export async function listNotesForExport(options: { includeTrashed?: boolean } =
  * this only ever inserts — there is no merge to get wrong.
  */
 export async function createNotesFromBodies(
-  entries: Array<{ body: string; createdAt?: Date; pinned?: boolean }>,
+  entries: Array<{ body: string; createdAt?: Date; pinned?: boolean; archived?: boolean }>,
 ): Promise<number> {
   if (entries.length === 0) return 0;
 
@@ -288,6 +288,8 @@ export async function createNotesFromBodies(
     // library rather than flattening it to "everything created just now".
     ...(entry.createdAt ? { createdAt: entry.createdAt } : {}),
     ...(entry.pinned ? { pinned: true } : {}),
+    // Archived in Keep stays archived here (PRD §4.75).
+    ...(entry.archived ? { archivedAt: new Date() } : {}),
   }));
 
   const result = await prisma.note.createMany({ data: rows });

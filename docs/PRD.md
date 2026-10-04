@@ -1683,3 +1683,24 @@ Owner pick 17 from round 2.
   back on import, like images. Unused-image clean-up counts them as used
   while a note links them.
 
+### 4.75 Import from other apps
+
+Owner pick 18 from round 2. Settings → Import notes now takes:
+
+- R75.1 Google Keep, as the Takeout .zip (or loose .json files): each note's
+  title becomes a heading, its text and checklist (as to-dos) follow, links
+  and images come along, labels become tags (`#weekly shop#` for labels with
+  spaces), pinned stays pinned, archived goes to Archive, trashed notes are
+  left out, and the creation date is kept. Keep's HTML copies are ignored
+  quietly rather than listed as skipped.
+- R75.2 Evernote .enex (from "Export notes"): title, creation date, tags and
+  the body, converted from Evernote's HTML to markdown (headings, lists,
+  bold, links, tables; Evernote checkboxes become to-dos). Images and audio
+  inside the export are stored as attachments and placed where they were.
+- R75.3 Notion ("Markdown & CSV" export) and Obsidian: images that a note
+  links by relative path inside the zip are stored and the links rewritten;
+  each image is stored once however many notes use it.
+- R75.4 Every attachment goes through the same checks as an upload (type from
+  the bytes, 4 MB each) and the import's 50 MB decompressed budget. As
+  before, import only ever adds notes; it never changes existing ones.
+

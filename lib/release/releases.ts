@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.62.0",
+    date: "2026-10-04",
+    title: "Import from Keep, Evernote and Notion",
+    changes: [
+      "Settings → Import notes now understands Google Keep (Takeout .zip), Evernote (.enex) and Notion exports — with checklists, labels, dates and images.",
+    ],
+  },
+  {
     version: "1.61.1",
     date: "2026-10-04",
     title: "Voice typing and clipper fixes",
