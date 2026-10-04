@@ -1,13 +1,13 @@
 "use client";
 
-import { PaletteIcon } from "lucide-react";
+import { Settings2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SettingsPanel } from "./SettingsPanel";
 import { useUnseenRelease } from "./WhatsNew";
 
 /**
- * The palette button and its Appearance panel — which also holds What's new,
+ * The settings button and its panel: appearance — which also holds What's new,
  * export/import, install and sign out. The editor's toolbar carries it; on a
  * phone the note list does too, so none of that waits on opening a note.
  */
@@ -26,10 +26,10 @@ export function AppearanceButton({
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label={unseen ? "Appearance — new release notes" : "Appearance"}
+            aria-label={unseen ? "Settings — new release notes" : "Settings"}
             className={`relative ${open ? "bg-brand-soft text-brand" : "text-ink-faint"}`}
           >
-            <PaletteIcon />
+            <Settings2Icon />
             {unseen && (
               <span
                 aria-hidden

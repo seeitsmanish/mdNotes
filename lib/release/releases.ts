@@ -18,6 +18,18 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.48.0",
+    date: "2026-10-04",
+    title: "Tab types a tab, and a round of fixes",
+    changes: [
+      "Tab in a note now types a tab — inside code blocks too — instead of jumping to the next button. On a list item it nests it; Shift-Tab undoes.",
+      "The pin and trash buttons that appear when you hover a note no longer cover its title.",
+      "Buttons show the hand cursor again.",
+      "The settings button has a settings icon now — it holds far more than colours.",
+      "On phones, the + button no longer slides under the “Yesterday” heading as you scroll.",
+    ],
+  },
+  {
     version: "1.47.0",
     date: "2026-10-04",
     title: "The tab icon matches your theme",

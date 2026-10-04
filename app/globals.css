@@ -912,6 +912,27 @@ input[type="search"]::-webkit-search-cancel-button {
   html {
     @apply font-sans;
   }
+  /* Tailwind 4 dropped the pointer from buttons; anything clickable says so
+     (PRD R61.2). In the base layer, so a utility like cursor-grab still wins. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([data-disabled]),
+  [role="menuitemradio"]:not([data-disabled]),
+  [role="menuitemcheckbox"]:not([data-disabled]),
+  [role="option"]:not([data-disabled]),
+  [role="tab"],
+  [role="switch"],
+  [cmdk-item],
+  summary,
+  select,
+  label:has(input[type="checkbox"]),
+  label:has(input[type="radio"]),
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"],
+  input[type="color"] {
+    cursor: pointer;
+  }
 }
 /* Wiki-links. An unresolved target is styled as *unresolved*, not broken: it is
    an invitation to create that note, not an error (PRD R10.3). */

@@ -1334,3 +1334,23 @@ Owner question: can changing the theme recolour the favicon?
   manifest and is copied by the OS at install, so it stays the forest icon.
   The static `/icon.svg`, `/favicon.ico` and apple icon are unchanged for the
   sign-in page and crawlers.
+
+### 4.61 Polish from the owner's bug list
+
+- R61.1 A row's hover Pin and Trash buttons sat over the title. They now sit
+  on the bottom line beside the time, left of a row's thumbnail if it has one.
+- R61.2 Everything clickable shows the pointer cursor. Tailwind 4 removed it
+  from buttons; a base-layer rule restores it for buttons, menu items,
+  options, palette items, checkboxes, radios and sliders.
+- R61.3 The toolbar's palette icon opened far more than colours (What's new,
+  width, export, sign out). It is now a settings icon labelled "Settings".
+- R61.4 On a phone, the + button sat under a sticky section header ("Yesterday")
+  as the list scrolled. It now stays above.
+- R61.5 Tab in the editor types a tab instead of moving focus to the next
+  button. On a list line it nests the item; with several lines selected it
+  indents them; Shift-Tab outdents. In a code block it is always a tab.
+  Ctrl-M (Shift-Alt-M on a Mac) switches Tab back to moving focus, for
+  keyboard users leaving the editor.
+- R61.6 Esc was re-checked in a browser: it closes the settings panel, ⌘K, menus
+  and the image viewer, and leaves the open note alone.
+

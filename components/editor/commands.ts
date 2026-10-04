@@ -1,5 +1,7 @@
 import { type ChangeSpec, EditorSelection } from "@codemirror/state";
 import { type Command, EditorView, type KeyBinding } from "@codemirror/view";
+import { indentLess, indentMore } from "@codemirror/commands";
+import { syntaxTree } from "@codemirror/language";
 
 /**
  * Editing commands, shared by the keymap and the floating format bar.
@@ -222,7 +224,36 @@ export const smartPaste = EditorView.domEventHandlers({
   },
 });
 
+const LIST_LINE = /^\s*(?:[-*+]|\d+[.)])\s/;
+
+function inCodeBlock(view: EditorView, pos: number): boolean {
+  for (let node: { name: string; parent: unknown } | null = syntaxTree(view.state).resolveInner(pos, -1); node; ) {
+    if (node.name === "FencedCode" || node.name === "CodeBlock") return true;
+    node = node.parent as typeof node;
+  }
+  return false;
+}
+
+/**
+ * Tab types a tab, rather than leaving the editor for the next button (PRD
+ * R61.5). On a list line it nests the item instead, and across several lines
+ * it indents them all — what Tab means in every notes app. Inside a code
+ * block it is always a literal tab. Ctrl-M (Shift-Alt-M on a Mac) switches
+ * Tab back to moving focus, for keyboard users leaving the editor.
+ */
+export const insertTabOrIndent: Command = (view) => {
+  const { state } = view;
+  const ranges = state.selection.ranges;
+  const multiline = ranges.some((r) => state.doc.lineAt(r.from).number !== state.doc.lineAt(r.to).number);
+  if (multiline) return indentMore(view);
+  const head = state.selection.main.head;
+  if (!inCodeBlock(view, head) && LIST_LINE.test(state.doc.lineAt(head).text)) return indentMore(view);
+  view.dispatch(state.replaceSelection("\t"), { scrollIntoView: true, userEvent: "input" });
+  return true;
+};
+
 export const ursaKeymap: KeyBinding[] = [
+  { key: "Tab", run: insertTabOrIndent, shift: indentLess, preventDefault: true },
   { key: "Mod-b", run: toggleBold, preventDefault: true },
   { key: "Mod-i", run: toggleItalic, preventDefault: true },
   { key: "Mod-Shift-h", run: toggleHighlight, preventDefault: true },

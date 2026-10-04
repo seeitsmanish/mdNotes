@@ -407,7 +407,7 @@ export function NoteList({
                 </SwipeRow>
 
                 <span
-                  className={`ursa-row-actions absolute right-2 top-2 flex items-center gap-0.5 transition-opacity focus-within:opacity-100 group-hover:opacity-100 ${
+                  className={`ursa-row-actions absolute bottom-2 flex ${note.cover ? "right-[4.5rem]" : "right-3"} items-center gap-0.5 transition-opacity focus-within:opacity-100 group-hover:opacity-100 ${
                     ["pin", "trash", "restore", "delete"].some((k) => pending.has(`${k}:${note.id}`))
                       ? "opacity-100"
                       : "opacity-0"
@@ -471,7 +471,7 @@ export function NoteList({
           disabled={pending.has("create")}
           aria-label="New note"
           data-ursa-fab=""
-          className="ursa-fab-in absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 size-14 rounded-2xl bg-brand text-canvas shadow-[var(--shadow)] transition-transform duration-150 hover:bg-brand/90 active:scale-90 @[900px]:hidden [&_svg:not([class*='size-'])]:size-6"
+          className="ursa-fab-in absolute z-20 bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 size-14 rounded-2xl bg-brand text-canvas shadow-[var(--shadow)] transition-transform duration-150 hover:bg-brand/90 active:scale-90 @[900px]:hidden [&_svg:not([class*='size-'])]:size-6"
         >
           {pending.has("create") ? <Loader2Icon className="animate-spin" /> : <PlusIcon />}
         </Button>
