@@ -2,6 +2,10 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import {
+  CopyIcon,
+  CopyPlusIcon,
+  EllipsisIcon,
+  ShareIcon,
   Loader2Icon,
   ChevronDownIcon,
   type LucideIcon,
@@ -18,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -25,6 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Illustration } from "@/components/brand/Illustration";
 import { AppearanceButton } from "./AppearanceButton";
+import { SwipeAction, SwipeRow } from "./SwipeRow";
 import { useClock } from "./ClockProvider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { displayExcerpt, displayTitle } from "@/lib/markdown/derive";
@@ -61,6 +67,9 @@ interface NoteListProps {
   onTrash: (note: NoteListItem) => void;
   onRestore: (note: NoteListItem) => void;
   onDeleteForever: (note: NoteListItem) => void;
+  /** The swipe menu's actions on any row (PRD §4.52). */
+  onRowAction: (note: NoteListItem, kind: "copy" | "share" | "duplicate") => void;
+  canShare: boolean;
   /** Gated actions in flight, by key (PRD §4.25). */
   pending: ReadonlySet<string>;
   /** Changes when something outside asks for the search field (PRD §4.31). */
@@ -83,6 +92,8 @@ export function NoteList({
   onTrash,
   onRestore,
   onDeleteForever,
+  onRowAction,
+  canShare,
   pending,
   searchSignal = 0,
   onCreate,
@@ -91,6 +102,8 @@ export function NoteList({
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  // One swiped-open row at a time, as on iOS (PRD §4.52).
+  const [swipedId, setSwipedId] = useState<string | null>(null);
 
   // Focus once the field exists: requesting it in the same tick as opening
   // the field ran before the field had rendered (PRD §4.31).
@@ -257,55 +270,112 @@ export function NoteList({
                   if (event.target === event.currentTarget) event.currentTarget.classList.remove("ursa-row-in");
                 }}
               >
-                <button
-                  type="button"
-                  data-ursa-row=""
-                  aria-current={selected ? "true" : undefined}
-                  onClick={() => onSelect(note.id)}
-                  className={`relative block w-full rounded-lg py-2.5 pl-4 pr-3 text-left transition-[background-color,transform] duration-150 active:scale-[0.985] ${
-                    selected ? "bg-row-active" : "hover:bg-row-hover"
-                  }`}
-                >
-                  {/* The bar is the selection signal; the fill alone is too quiet. */}
-                  <span
-                    aria-hidden
-                    className={`absolute inset-y-2 left-1 w-[3px] rounded-full transition-colors ${
-                      selected ? "bg-brand" : "bg-transparent"
-                    }`}
-                  />
-
-                  <span className="flex items-start gap-3">
-                  <span className="block min-w-0 flex-1">
-                  <span className="flex items-start gap-1.5">
-                    {note.pinned && (
-                      <PinIcon
-                        size={11}
-                        strokeWidth={2}
-                        fill="currentColor"
-                        aria-label="Pinned"
-                        className="mt-[0.3rem] flex-none text-brand"
-                      />
-                    )}
-                    <span className="line-clamp-2 min-w-0 flex-1 text-[0.84rem] font-semibold leading-snug tracking-tight text-heading">
-                      {displayTitle(note.title)}
-                    </span>
-                  </span>
-
-                  <span className="mt-1 line-clamp-2 block text-[0.76rem] leading-snug text-ink-soft">
-                    {note.match ? (
-                      <Highlighted match={note.match} />
+                <SwipeRow
+                  open={swipedId === note.id}
+                  onOpenChange={(open) =>
+                    setSwipedId((current) => (open ? note.id : current === note.id ? null : current))
+                  }
+                  actionsWidth={inTrash ? 168 : 156}
+                  onFullSwipe={inTrash ? undefined : () => onTrash(note)}
+                  actions={
+                    inTrash ? (
+                      <>
+                        <SwipeAction
+                          label="Restore"
+                          tone="brand"
+                          icon={<RotateCcwIcon />}
+                          disabled={pending.has(`restore:${note.id}`)}
+                          onClick={() => {
+                            setSwipedId(null);
+                            onRestore(note);
+                          }}
+                        />
+                        <SwipeAction
+                          label="Delete"
+                          tone="danger"
+                          icon={<XIcon />}
+                          disabled={pending.has(`delete:${note.id}`)}
+                          onClick={() => {
+                            setSwipedId(null);
+                            if (window.confirm(`Delete “${displayTitle(note.title)}” permanently? This cannot be undone.`)) {
+                              onDeleteForever(note);
+                            }
+                          }}
+                        />
+                      </>
                     ) : (
-                      displayExcerpt(note.excerpt) || "No additional text"
-                    )}
-                  </span>
+                      <>
+                        <SwipeMore
+                          note={note}
+                          canShare={canShare}
+                          onPin={() => onTogglePin(note)}
+                          onAction={(kind) => onRowAction(note, kind)}
+                          onDone={() => setSwipedId(null)}
+                        />
+                        <SwipeAction
+                          label="Delete"
+                          tone="danger"
+                          icon={<Trash2Icon />}
+                          disabled={pending.has(`trash:${note.id}`)}
+                          onClick={() => {
+                            setSwipedId(null);
+                            onTrash(note);
+                          }}
+                        />
+                      </>
+                    )
+                  }
+                >
+                  <button
+                    type="button"
+                    data-ursa-row=""
+                    aria-current={selected ? "true" : undefined}
+                    onClick={() => onSelect(note.id)}
+                    className={`relative block w-full rounded-lg py-2.5 pl-4 pr-3 text-left transition-[background-color,transform] duration-150 active:scale-[0.985] ${
+                      selected ? "bg-row-active" : "hover:bg-row-hover"
+                    }`}
+                  >
+                    {/* The bar is the selection signal; the fill alone is too quiet. */}
+                    <span
+                      aria-hidden
+                      className={`absolute inset-y-2 left-1 w-[3px] rounded-full transition-colors ${
+                        selected ? "bg-brand" : "bg-transparent"
+                      }`}
+                    />
 
-                  <span className="mt-1.5 block text-[0.7rem] tabular-nums text-ink-faint">
-                    {relativeTime(note.updatedAt, clock.now, clock)}
-                  </span>
-                  </span>
-                  {note.cover && <RowCover src={note.cover} />}
-                  </span>
-                </button>
+                    <span className="flex items-start gap-3">
+                    <span className="block min-w-0 flex-1">
+                    <span className="flex items-start gap-1.5">
+                      {note.pinned && (
+                        <PinIcon
+                          size={11}
+                          strokeWidth={2}
+                          fill="currentColor"
+                          aria-label="Pinned"
+                          className="mt-[0.3rem] flex-none text-brand"
+                        />
+                      )}
+                      <span className="line-clamp-2 min-w-0 flex-1 text-[0.84rem] font-semibold leading-snug tracking-tight text-heading">
+                        {displayTitle(note.title)}
+                      </span>
+                    </span>
+
+                    <span className="mt-1 line-clamp-2 block text-[0.76rem] leading-snug text-ink-soft">
+                      {note.match ? (
+                        <Highlighted match={note.match} />
+                      ) : (
+                        displayExcerpt(note.excerpt) || "No additional text"
+                      )}
+                    </span>
+
+                    <span className="mt-1.5 block text-[0.7rem] tabular-nums text-ink-faint">
+                      {relativeTime(note.updatedAt, clock.now, clock)}
+                    </span>
+                    </span>
+                    {note.cover && <RowCover src={note.cover} />}
+                    </span>
+                  </button>
+                </SwipeRow>
 
                 <span
                   className={`ursa-row-actions absolute right-2 top-2 flex items-center gap-0.5 transition-opacity focus-within:opacity-100 group-hover:opacity-100 ${
@@ -527,6 +597,61 @@ function RowCover({ src }: { src: string }) {
       onError={() => setFailed(true)}
       className="mt-0.5 size-12 flex-none rounded-lg border border-border bg-raised object-cover"
     />
+  );
+}
+
+/** The swipe menu's "More": pin, share or copy, duplicate (PRD §4.52). */
+function SwipeMore({
+  note,
+  canShare,
+  onPin,
+  onAction,
+  onDone,
+}: {
+  note: NoteListItem;
+  canShare: boolean;
+  onPin: () => void;
+  onAction: (kind: "copy" | "share" | "duplicate") => void;
+  onDone: () => void;
+}) {
+  const run = (fn: () => void) => () => {
+    onDone();
+    fn();
+  };
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <button
+            type="button"
+            className="flex flex-1 flex-col items-center justify-center gap-1 bg-[#8e8e93] text-[0.72rem] font-medium text-white active:brightness-90 [&_svg]:size-5"
+          >
+            <EllipsisIcon />
+            More
+          </button>
+        }
+      />
+      <DropdownMenuContent align="end" className="min-w-48">
+        <DropdownMenuItem onClick={run(onPin)}>
+          {note.pinned ? <PinOffIcon /> : <PinIcon />}
+          {note.pinned ? "Unpin" : "Pin"}
+        </DropdownMenuItem>
+        {canShare && (
+          <DropdownMenuItem onClick={run(() => onAction("share"))}>
+            <ShareIcon />
+            Share…
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={run(() => onAction("copy"))}>
+          <CopyIcon />
+          Copy as Markdown
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={run(() => onAction("duplicate"))}>
+          <CopyPlusIcon />
+          Duplicate
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

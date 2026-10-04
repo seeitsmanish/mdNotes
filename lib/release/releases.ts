@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.40.0",
+    date: "2026-10-04",
+    title: "Swipe for actions",
+    changes: [
+      "On your phone, swipe a note in the list from right to left for More and Delete, just like iPhone Mail. A long swipe deletes it straight away (with Undo).",
+      "More lets you pin, share, copy or duplicate a note without opening it. In Trash, swipe to restore or delete for good.",
+      "The pictures on empty screens now sit properly in the centre of their circle.",
+    ],
+  },
+  {
     version: "1.39.0",
     date: "2026-10-04",
     title: "Pictures in the list",

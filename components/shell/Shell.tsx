@@ -636,6 +636,63 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     [currentText, filter, flush, gate, note, refreshList, selectNote, setFilter],
   );
 
+  /**
+   * The swipe menu's actions, for any row — not only the open note (PRD
+   * §4.52). The open note uses the editor's live text; others are fetched.
+   */
+  const bodyOf = useCallback(
+    async (target: NoteListItem) =>
+      target.id === note?.id ? currentText() : (await api.fetchNote(target.id)).note.body,
+    [currentText, note],
+  );
+
+  const rowAction = useCallback(
+    (target: NoteListItem, kind: "copy" | "share" | "duplicate") => {
+      flush();
+      if (kind === "copy") {
+        // Safari allows a clipboard write only inside the tap itself, so the
+        // write starts now with the text still on its way.
+        const text = bodyOf(target);
+        const write =
+          typeof ClipboardItem === "function" && navigator.clipboard.write
+            ? navigator.clipboard.write([
+                new ClipboardItem({
+                  "text/plain": text.then((t) => new Blob([t], { type: "text/plain" })),
+                }),
+              ])
+            : text.then((t) => navigator.clipboard.writeText(t));
+        void write.then(
+          () => toast("Copied as Markdown."),
+          () => toast.error("Couldn’t copy — the browser refused clipboard access."),
+        );
+        return;
+      }
+      void gate.run(`${kind}:${target.id}`, async () => {
+        const body = await bodyOf(target);
+        if (kind === "share") {
+          try {
+            await navigator.share({ title: displayTitle(target.title), text: body });
+          } catch (error) {
+            if (error instanceof DOMException && error.name === "AbortError") return;
+            await navigator.clipboard.writeText(body).then(
+              () => toast("Copied as Markdown."),
+              () => toast.error("Couldn’t share or copy this note."),
+            );
+          }
+          return;
+        }
+        const { note: created } = await api.createNote();
+        const result = await api.saveBody(created.id, duplicateBody(body), created.version);
+        versions.current.set(created.id, result.note.version);
+        await refreshList();
+        toast(`Duplicated “${displayTitle(target.title)}”.`, {
+          action: { label: "Open", onClick: () => openNoteRef.current(created.id) },
+        });
+      });
+    },
+    [bodyOf, flush, gate, refreshList],
+  );
+
   /** A tapped #tag searches for it: search is how notes are found (§2). */
   const searchTag = useCallback(
     (tag: string) => {
@@ -878,6 +935,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           onTrash={(target) => void trash(target)}
           onRestore={(target) => void restore(target)}
           onDeleteForever={(target) => void deleteForever(target)}
+          onRowAction={rowAction}
+          canShare={canShare}
           onCreate={() => void createNote()}
           onEmptyTrash={confirmEmptyTrash}
           pending={pending}

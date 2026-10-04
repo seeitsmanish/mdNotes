@@ -6,6 +6,14 @@
 
 type Kind = "notes" | "search" | "trash" | "write";
 
+/** Offsets that put each drawing's bounding box on the halo's centre (60, 62). */
+const CENTRE: Record<Kind, [number, number]> = {
+  notes: [0.2, 3],
+  search: [-2.7, -0.7],
+  trash: [0, 2],
+  write: [2.6, 5],
+};
+
 export function Illustration({ kind, size = 120 }: { kind: Kind; size?: number }) {
   return (
     <svg
@@ -18,10 +26,15 @@ export function Illustration({ kind, size = 120 }: { kind: Kind; size?: number }
     >
       {/* soft halo */}
       <circle cx="60" cy="62" r="46" fill="var(--brand-soft)" />
-      {kind === "notes" && <Stack />}
-      {kind === "write" && <Write />}
-      {kind === "search" && <Search />}
-      {kind === "trash" && <Trash />}
+      {/* Each drawing's measured bounding box, centred on the halo. On an
+          outer group: the float animation's CSS transform on the inner one
+          would override an SVG transform attribute there. */}
+      <g transform={`translate(${CENTRE[kind].join(" ")})`}>
+        {kind === "notes" && <Stack />}
+        {kind === "write" && <Write />}
+        {kind === "search" && <Search />}
+        {kind === "trash" && <Trash />}
+      </g>
       <Sparkles />
     </svg>
   );

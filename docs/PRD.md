@@ -1151,3 +1151,26 @@ row in the list.
   `deriveCover` (checked against the JS on all 72 preview notes). Rehearsed on
   a Neon branch; before and after, every note's body checksum, `updatedAt`
   and version were identical — only the new column was written.
+
+### 4.52 Swipe a row for actions
+
+Owner request: "swiping right to left on notes should give me options — three
+dots and delete — like on iPhone". On a phone the only way to act on a note
+was to open it first (hover buttons do not exist on touch, §4.26).
+
+- R52.1 On touch screens, swiping a list row right-to-left slides it to
+  reveal **More** (grey) and **Delete** (red); in Trash, **Restore** and
+  **Delete** (forever). The row follows the finger, resists past the
+  buttons, and settles open past half their width or on a flick.
+- R52.2 Swiping most of the way across (or a hard flick past the buttons)
+  moves the note to Trash straight away, as iOS Mail does — with the usual
+  Undo. Deleting forever is never a full swipe and always asks first.
+- R52.3 More opens Pin/Unpin, Share… (where there is a share sheet), Copy as
+  Markdown and Duplicate — for any row, not only the open note: the open note
+  uses the editor's live text, others are fetched. Copy starts its clipboard
+  write inside the tap (Safari requires it) with the text still loading.
+- R52.4 One row open at a time; tapping an open row closes it rather than
+  opening the note; a swipe never counts as a tap. Vertical drags scroll the
+  list as before. A mouse never swipes; desktop keeps its hover buttons.
+- R52.5 Also in this release: the empty-state illustrations are centred on
+  their halo (each drawing's bounding box was measured and offset).
