@@ -274,6 +274,8 @@ export function NoteList({
                     }`}
                   />
 
+                  <span className="flex items-start gap-3">
+                  <span className="block min-w-0 flex-1">
                   <span className="flex items-start gap-1.5">
                     {note.pinned && (
                       <PinIcon
@@ -299,6 +301,9 @@ export function NoteList({
 
                   <span className="mt-1.5 block text-[0.7rem] tabular-nums text-ink-faint">
                     {relativeTime(note.updatedAt, clock.now, clock)}
+                  </span>
+                  </span>
+                  {note.cover && <RowCover src={note.cover} />}
                   </span>
                 </button>
 
@@ -501,6 +506,27 @@ function EmptyState({
         </Button>
       )}
     </div>
+  );
+}
+
+/**
+ * The note's first image beside its row (PRD §4.51). Lazy, small, and gone
+ * if it fails to load rather than a broken-image icon.
+ */
+function RowCover({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- private, session-gated attachments
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+      onError={() => setFailed(true)}
+      className="mt-0.5 size-12 flex-none rounded-lg border border-border bg-raised object-cover"
+    />
   );
 }
 

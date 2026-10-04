@@ -3,7 +3,7 @@ import { applyBody, insertBody } from "./write";
 import { lockBody, maybeKeepRevision } from "./history";
 import { conflictCopyBody } from "@/lib/notes/conflict";
 import type { NotePatch } from "@/lib/notes/patch";
-import { deriveExcerpt, deriveTitle } from "@/lib/markdown/derive";
+import { deriveCover, deriveExcerpt, deriveTitle } from "@/lib/markdown/derive";
 import { linksTo, normaliseTitle } from "@/lib/markdown/wikilink";
 import { rank, terms } from "@/lib/search/rank";
 import { CANDIDATE_CAP, mergeCandidates } from "@/lib/search/candidates";
@@ -21,6 +21,7 @@ const LIST_FIELDS = {
   id: true,
   title: true,
   excerpt: true,
+  cover: true,
   pinned: true,
   updatedAt: true,
   deletedAt: true,
@@ -30,6 +31,7 @@ type ListRow = {
   id: string;
   title: string;
   excerpt: string;
+  cover: string | null;
   pinned: boolean;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -40,6 +42,7 @@ function toListItem(row: ListRow): NoteListItem {
     id: row.id,
     title: row.title,
     excerpt: row.excerpt,
+    cover: row.cover,
     pinned: row.pinned,
     updatedAt: row.updatedAt.toISOString(),
     deletedAt: row.deletedAt?.toISOString() ?? null,
@@ -110,7 +113,7 @@ export async function listNotes(options: {
         : Prisma.sql`"deletedAt" IS NULL`;
   const read = (column: Prisma.Sql) =>
     prisma.$queryRaw<Array<ListRow & { body: string }>>`
-      SELECT "id", "title", "excerpt", "pinned", "updatedAt", "deletedAt", "body"
+      SELECT "id", "title", "excerpt", "cover", "pinned", "updatedAt", "deletedAt", "body"
       FROM "Note"
       WHERE ${scope}
         AND translate(${column}, ${FOLD_FROM}, ${FOLD_TO}) ILIKE ${pattern} ESCAPE '\\'
@@ -222,6 +225,7 @@ export async function createNotesFromBodies(
     body: entry.body,
     title: deriveTitle(entry.body),
     excerpt: deriveExcerpt(entry.body),
+    cover: deriveCover(entry.body),
     // Restored from frontmatter when present, so a restore reproduces the
     // library rather than flattening it to "everything created just now".
     ...(entry.createdAt ? { createdAt: entry.createdAt } : {}),

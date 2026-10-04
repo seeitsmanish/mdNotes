@@ -15,6 +15,8 @@ export interface NoteListItem {
   id: string;
   title: string;
   excerpt: string;
+  /** First image URL, for the row thumbnail (PRD §4.51). */
+  cover: string | null;
   pinned: boolean;
   updatedAt: string;
   deletedAt: string | null;

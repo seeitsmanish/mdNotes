@@ -89,6 +89,27 @@ export function displayExcerpt(excerpt: string): string {
   return plain(excerpt);
 }
 
+const COVER_MAX = 2048;
+const IMAGE = /!\[[^\]\n]*\]\(\s*(\/api\/attachments\/[A-Za-z0-9_-]+|https:\/\/[^\s)]+)\s*\)/;
+
+/**
+ * The note's first image, for the list row's thumbnail (PRD §4.51): an
+ * uploaded attachment or an https image, never one inside a code block.
+ */
+export function deriveCover(body: string): string | null {
+  let inFence = false;
+  for (const line of body.split("\n")) {
+    if (FENCE.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const match = IMAGE.exec(line);
+    if (match && match[1]!.length <= COVER_MAX) return match[1]!;
+  }
+  return null;
+}
+
 export function displayTitle(title: string): string {
   return title.trim().length > 0 ? title : UNTITLED;
 }

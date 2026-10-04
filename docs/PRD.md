@@ -1135,3 +1135,19 @@ to read — and tapping it revealed its markdown instead of the picture.
 - R50.3 "Edit" closes the viewer and puts the caret on the image's line,
   revealing its markdown — the old tap behaviour, one step away. "Open"
   opens the original in a new tab. Broken images do not open the viewer.
+
+### 4.51 Image thumbnails in the list
+
+A note built around a screenshot or a whiteboard photo looked like every other
+row in the list.
+
+- R51.1 A note's first image — an uploaded one or an https one, never one
+  inside a code block — shows as a small rounded thumbnail at the right of its
+  row. It loads lazily, and one that fails to load is simply not shown.
+- R51.2 It is stored as `Note.cover`, derived on every write by the single
+  body writer like title and excerpt, so it cannot drift from the text.
+- R51.3 Production change (2026-10-04): `ALTER TABLE "Note" ADD COLUMN
+  "cover" TEXT` plus a backfill computing it with an SQL regex equivalent to
+  `deriveCover` (checked against the JS on all 72 preview notes). Rehearsed on
+  a Neon branch; before and after, every note's body checksum, `updatedAt`
+  and version were identical — only the new column was written.

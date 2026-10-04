@@ -22,6 +22,8 @@ model Note {
   body      String    @default("")
   title     String    @default("")
   excerpt   String    @default("")
+  /// The first image in the body, shown as the list row's thumbnail (§4.51).
+  cover     String?
   pinned    Boolean   @default(false)
   /// Bumped on every body save; a save from an older version is refused and
   /// kept as a conflicted copy instead (PRD §4.18).

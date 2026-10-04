@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.39.0",
+    date: "2026-10-04",
+    title: "Pictures in the list",
+    changes: [
+      "A note with an image now shows a small thumbnail of it in the note list, so screenshot and whiteboard notes are easy to spot.",
+    ],
+  },
+  {
     version: "1.38.0",
     date: "2026-10-04",
     title: "Tap an image to see it",

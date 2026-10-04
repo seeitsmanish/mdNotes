@@ -1,15 +1,15 @@
 /**
- * The single writer for note bodies, so title and excerpt can never drift from
- * the text they are derived from.
+ * The single writer for note bodies, so title, excerpt and cover can never
+ * drift from the text they are derived from.
  */
 
-import { deriveExcerpt, deriveTitle } from "@/lib/markdown/derive";
+import { deriveCover, deriveExcerpt, deriveTitle } from "@/lib/markdown/derive";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 export type Tx = Prisma.TransactionClient;
 
 function derived(body: string) {
-  return { body, title: deriveTitle(body), excerpt: deriveExcerpt(body) };
+  return { body, title: deriveTitle(body), excerpt: deriveExcerpt(body), cover: deriveCover(body) };
 }
 
 /**

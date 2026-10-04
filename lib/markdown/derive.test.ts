@@ -95,3 +95,18 @@ describe("previews of tables and images (PRD R38.2)", () => {
     expect(displayExcerpt("a | b")).toBe("a | b");
   });
 });
+
+describe("deriveCover (PRD §4.51)", () => {
+  it("takes the first uploaded or https image", async () => {
+    const { deriveCover } = await import("./derive");
+    expect(deriveCover("# T\n\ntext\n![a](/api/attachments/abc123)\n![b](https://x.org/b.png)")).toBe("/api/attachments/abc123");
+    expect(deriveCover("![b](https://x.org/b.png)")).toBe("https://x.org/b.png");
+  });
+
+  it("ignores images in code blocks, other schemes and plain links", async () => {
+    const { deriveCover } = await import("./derive");
+    expect(deriveCover("```\n![a](/api/attachments/abc)\n```")).toBeNull();
+    expect(deriveCover("![a](http://x.org/a.png) ![b](javascript:x) [c](https://x.org)")).toBeNull();
+    expect(deriveCover("no images")).toBeNull();
+  });
+});
