@@ -35,6 +35,10 @@ function plain(line: string): string {
   return tableRow(line.replace(/\|\|[^|\n]+\|\|/g, "▒▒▒"))
     .replace(/^#{1,6}\s+/, "")
     .replace(/^\s*>\s?/, "")
+    // A callout's marker reads as its title, or its kind when untitled (§4.63).
+    .replace(/^\[!([a-z]+)\][+-]?\s*/i, (_, kind: string, offset: number, whole: string) =>
+      whole.slice(_.length).trim() ? "" : kind[0]!.toUpperCase() + kind.slice(1).toLowerCase(),
+    )
     .replace(/^\s*[-*+]\s+\[[ xX]\]\s+/, "")
     .replace(/^\s*(?:[-*+]|\d{1,9}[.)])\s+/, "")
     .replace(/`([^`]*)`/g, "$1")

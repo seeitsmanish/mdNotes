@@ -50,4 +50,19 @@ describe("markdownToHtml", () => {
       "<blockquote>\n<p>quoted</p>\n</blockquote>\n<hr>\n<p>#tag <span>Other note</span> <span>answer</span></p>",
     );
   });
+
+  it("turns a callout into a titled box without its marker", () => {
+    const html = markdownToHtml("> [!warning] Back up first\n> The upgrade rewrites notes.");
+    expect(html).toContain('data-callout="warning"');
+    expect(html).toContain("Back up first</p>");
+    expect(html).toContain("The upgrade rewrites notes.");
+    expect(html).not.toContain("[!warning]");
+    expect(html).not.toContain("<blockquote>");
+  });
+
+  it("names a callout by its kind when it has no title", () => {
+    const html = markdownToHtml("> [!tip]\n> Use ⌘K.");
+    expect(html).toContain(">Tip</p>");
+    expect(html).not.toContain("[!tip]");
+  });
 });

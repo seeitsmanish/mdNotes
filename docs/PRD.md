@@ -1373,3 +1373,36 @@ to the background.
 - R62.6 Nothing happens before the saved settings are back, so an early
   background switch can't save defaults over them (R59.5).
 
+### 4.63 Callouts and link titles
+
+Owner picks 3 and 4 from the roadmap page.
+
+Callout boxes:
+
+- R63.1 A quote whose first line starts `> [!type]` renders as a tinted box
+  with a coloured bar, an icon and a title: the text after the marker, or the
+  type's name. Kinds: note, tip, important, warning, caution, success,
+  question; Obsidian spellings (info, danger, faq…) map onto them.
+- R63.2 The marker shows as typed while the caret is on that line, like every
+  other markdown mark.
+- R63.3 The slash menu inserts tip, warning and note callouts.
+- R63.4 Copy as HTML turns a callout into a box with inline styles, so it
+  survives being pasted into mail.
+
+Link titles:
+
+- R63.5 Pasting a bare web link on its own inserts it at once, then replaces it
+  with `[Page title](url)` when the title arrives. One undo gives the bare
+  URL back.
+- R63.6 Square brackets in a title become parentheses (escaped ones would show their backslashes). The swap happens only if the pasted text is still there unchanged;
+  editing or deleting it cancels. Never inside code, or where a link target
+  is being typed (`](` or `<`). Pasting over selected text still makes the
+  selection the link text, as before.
+- R63.7 The title is fetched by the server (`/api/link-title`, signed in only),
+  which guards against server-side request forgery: http(s) on default ports,
+  no credentials in the URL, every resolved address checked against private,
+  loopback, link-local, carrier NAT, metadata and multicast ranges,
+  redirects followed by hand and re-checked (at most 3), 4-second timeout,
+  256KB read cap, HTML only. Only the title is returned. og:title is
+  preferred over `<title>`.
+

@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.50.0",
+    date: "2026-10-04",
+    title: "Callout boxes, and links that name themselves",
+    changes: [
+      "Start a quote with > [!tip], > [!warning] or > [!note] and it becomes a coloured box with an icon. Also in the / menu.",
+      "Paste a web link and it turns into the page's title as a link a moment later. Undo once if you wanted the bare address.",
+    ],
+  },
+  {
     version: "1.49.0",
     date: "2026-10-04",
     title: "Titles hide when you leave the app",

@@ -18,6 +18,7 @@ import { tableField } from "./tableField";
 import { smartPaste, ursaKeymap } from "./commands";
 import { calcField } from "./calcField";
 import { imagePaste } from "./imagePaste";
+import { linkTitles } from "./linkTitles";
 
 /**
  * The single-pane markdown editor.
@@ -180,6 +181,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
         onTag: (tag) => handlers.current.onTag?.(tag),
       }),
       smartPaste,
+      linkTitles,
       imagePaste,
       slashMenu,
       currentNoteId.of(handlers.current.noteId),

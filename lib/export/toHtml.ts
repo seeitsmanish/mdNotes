@@ -1,3 +1,4 @@
+import { CALLOUTS, parseCallout } from "@/lib/markdown/callout";
 import { markdownLanguage } from "@codemirror/lang-markdown";
 import type { SyntaxNode } from "@lezer/common";
 import type { MarkdownParser } from "@lezer/markdown";
@@ -164,8 +165,20 @@ export function markdownToHtml(body: string, options: HtmlOptions = {}): string 
         const done = marker ? /x/i.test(text(marker.from, marker.to)) : false;
         return `${done ? "☑" : "☐"} ${inline(node, marker ? marker.to : node.from).trim()}`;
       }
-      case "Blockquote":
-        return `<blockquote>\n${blocks(node)}\n</blockquote>`;
+      case "Blockquote": {
+        // A callout (PRD §4.63) becomes a tinted box titled by its kind, with
+        // inline styles so it survives being pasted into mail.
+        const callout = parseCallout(text(node.from, node.to).split("\n")[0] ?? "");
+        if (!callout) return `<blockquote>\n${blocks(node)}\n</blockquote>`;
+        const { hue } = CALLOUTS[callout.type];
+        const body = blocks(node).replace(/^<p>\[![^\]]+\][^\n]*?(?:\n|<\/p>\n?)/, (line) =>
+          line.endsWith("\n") && !line.endsWith("</p>\n") ? "<p>" : "",
+        );
+        return (
+          `<aside data-callout="${callout.type}" style="border-left:3px solid ${hue};background:${hue}1c;padding:0.6em 1em;border-radius:4px 10px 10px 4px;margin:1em 0">\n` +
+          `<p style="margin:0 0 0.3em;font-weight:600;color:${hue}">${escapeHtml(callout.title)}</p>\n${body}\n</aside>`
+        );
+      }
       case "FencedCode":
       case "CodeBlock": {
         const info = node.getChild("CodeInfo");

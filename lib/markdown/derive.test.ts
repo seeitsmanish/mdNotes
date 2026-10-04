@@ -36,6 +36,12 @@ describe("deriveTitle", () => {
 });
 
 describe("deriveExcerpt", () => {
+  it("shows a callout by its title, or its kind when untitled", () => {
+    expect(deriveExcerpt("Plan\n> [!warning] Back up first\n> The upgrade")).toBe("Back up first");
+    expect(displayExcerpt("[!tip] Use ⌘K")).toBe("Use ⌘K");
+    expect(deriveExcerpt("Plan\n> [!tip]\n> Use ⌘K")).toBe("Tip");
+  });
+
   it("is the first prose after the title line", () => {
     expect(deriveExcerpt("# Title\n\nFirst body line\nSecond")).toBe("First body line");
   });

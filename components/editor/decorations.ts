@@ -12,6 +12,7 @@ import { safeExternalUrl } from "@/lib/security/urls";
 import { hangingPrefix } from "./hangingIndent";
 import { captionOf } from "./caption";
 import { openLightbox } from "./lightbox";
+import { CALLOUTS, type CalloutType, parseCallout } from "@/lib/markdown/callout";
 
 let measureCanvas: CanvasRenderingContext2D | null = null;
 
@@ -213,6 +214,32 @@ function drawableImage(src: string): boolean {
   return /^\/api\/attachments\/[a-z0-9]{20,40}$/.test(src) || /^https:\/\//i.test(src);
 }
 
+class CalloutWidget extends WidgetType {
+  constructor(
+    readonly type: CalloutType,
+    readonly custom: boolean,
+  ) {
+    super();
+  }
+
+  eq(other: CalloutWidget): boolean {
+    return other.type === this.type && other.custom === this.custom;
+  }
+
+  toDOM(): HTMLElement {
+    const label = document.createElement("span");
+    label.className = "ursa-callout-label";
+    const icon = document.createElement("span");
+    icon.className = "ursa-callout-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = CALLOUTS[this.type].icon;
+    label.append(icon);
+    // With a written title the title itself follows; otherwise name the type.
+    if (!this.custom) label.append(CALLOUTS[this.type].label);
+    return label;
+  }
+}
+
 class LangWidget extends WidgetType {
   constructor(readonly lang: string) {
     super();
@@ -296,9 +323,36 @@ function buildDecorations(view: EditorView): DecorationSet {
             break;
           }
 
-          case "Blockquote":
-            lineClass(node.from, node.to, "ursa-quote");
-            return;
+          case "Blockquote": {
+            const head = doc.lineAt(node.from);
+            const callout = parseCallout(head.text);
+            if (!callout) {
+              lineClass(node.from, node.to, "ursa-quote");
+              return;
+            }
+            // A callout box (PRD §4.63): every line tinted, the first and last
+            // carrying the rounded edges, the marker swapped for its label.
+            const last = doc.lineAt(Math.min(node.to, doc.length)).number;
+            for (let number = head.number; number <= last; number += 1) {
+              const classes = ["ursa-callout", `ursa-callout-${callout.type}`];
+              if (number === head.number) classes.push("ursa-callout-head");
+              if (number === last) classes.push("ursa-callout-end");
+              const key = `${number}:callout`;
+              if (seenLines.has(key)) continue;
+              seenLines.add(key);
+              ranges.push(Decoration.line({ class: classes.join(" ") }).range(doc.line(number).from));
+            }
+            if (!active.has(head.number)) {
+              ranges.push(
+                Decoration.replace({ widget: new CalloutWidget(callout.type, callout.custom) }).range(
+                  head.from + callout.markerFrom,
+                  head.from + callout.markerTo,
+                ),
+              );
+            }
+            // Descend: the quote marks still hide, and inline styling still applies.
+            break;
+          }
 
           case "FencedCode":
           case "CodeBlock": {
