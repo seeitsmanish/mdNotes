@@ -1,7 +1,24 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+
+/**
+ * Nothing is written to localStorage until the saved state has been read
+ * back (PRD R59.5). Child components' effects run before Shell's, and any
+ * store update made then (selecting a pane, a note) used to save the
+ * *defaults*, which the rehydrate a moment later read back — silently
+ * resetting device-only settings (pane width, focus mode, outline, reading
+ * mode, hidden titles) on every reload.
+ */
+let hydrated = false;
+const guardedStorage = createJSONStorage(() => ({
+  getItem: (key: string) => localStorage.getItem(key),
+  setItem: (key: string, value: string) => {
+    if (hydrated) localStorage.setItem(key, value);
+  },
+  removeItem: (key: string) => localStorage.removeItem(key),
+}));
 import type { NoteFilter } from "@/lib/types";
 
 /**
@@ -82,6 +99,10 @@ interface UiState {
   unseenRelease: boolean;
   shortcutsOpen: boolean;
   outlineOpen: boolean;
+  /** Notes open read-only: no keyboard, no format bar, links open on a tap (§4.58). */
+  readingMode: boolean;
+  /** The note list and other titles blurred, for screen sharing (§4.59). */
+  privacyMode: boolean;
 
   theme: ThemeChoice;
   editorWidth: EditorWidth;
@@ -104,6 +125,8 @@ interface UiState {
   setUnseenRelease: (unseen: boolean) => void;
   setShortcutsOpen: (open: boolean) => void;
   toggleOutline: () => void;
+  toggleReadingMode: () => void;
+  togglePrivacyMode: () => void;
   setSettingsOpen: (open: boolean) => void;
   setTheme: (theme: ThemeChoice) => void;
   setEditorWidth: (width: EditorWidth) => void;
@@ -136,6 +159,8 @@ export const useUiStore = create<UiState>()(
       unseenRelease: false,
       shortcutsOpen: false,
       outlineOpen: true,
+      readingMode: false,
+      privacyMode: false,
 
       theme: "forest",
       editorWidth: "regular",
@@ -157,6 +182,8 @@ export const useUiStore = create<UiState>()(
       setUnseenRelease: (unseenRelease) => set({ unseenRelease }),
       setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
       toggleOutline: () => set((state) => ({ outlineOpen: !state.outlineOpen })),
+      toggleReadingMode: () => set((state) => ({ readingMode: !state.readingMode })),
+      togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
       setTheme: (theme) => set({ theme }),
       setEditorWidth: (editorWidth) => set({ editorWidth }),
@@ -177,6 +204,10 @@ export const useUiStore = create<UiState>()(
       // would make SSR and hydration disagree about pane width and theme.
       // Shell rehydrates on mount instead; see its useEffect.
       skipHydration: true,
+      storage: guardedStorage,
+      onRehydrateStorage: () => () => {
+        hydrated = true;
+      },
       partialize: (state) => ({
         listWidth: state.listWidth,
         theme: state.theme,
@@ -189,6 +220,8 @@ export const useUiStore = create<UiState>()(
         editorFont: state.editorFont,
         focusMode: state.focusMode,
         outlineOpen: state.outlineOpen,
+        readingMode: state.readingMode,
+        privacyMode: state.privacyMode,
       }),
     },
   ),

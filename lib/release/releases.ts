@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.46.0",
+    date: "2026-10-04",
+    title: "Reading mode, and hiding titles when you share your screen",
+    changes: [
+      "Sharing your screen? Tap the eye at the top of the list (or ⌘⇧L) and every note title, preview and thumbnail blurs — in the list, ⌘K and backlinks — while the note you have open stays readable.",
+      "Reading mode (in a note's ⋯ menu) opens notes without a cursor or keyboard and hides the formatting bar. Links open with a tap, and you can still tick to-dos.",
+      "Fixed: the width of the note list, focus mode and the outline setting were forgotten every time the page reloaded.",
+    ],
+  },
+  {
     version: "1.45.0",
     date: "2026-10-04",
     title: "Jump back to your last note",

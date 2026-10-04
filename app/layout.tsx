@@ -61,6 +61,12 @@ const THEME_BOOTSTRAP = `
   } catch (error) {
     root.setAttribute("data-theme", "forest");
   }
+  try {
+    // Hiding titles for screen sharing must hold from the first frame, or a
+    // reload mid-call shows the list (PRD R59.4).
+    var ui = JSON.parse(localStorage.getItem("ursa.ui") || "{}");
+    if (ui && ui.state && ui.state.privacyMode) root.setAttribute("data-ursa-privacy", "");
+  } catch (error) {}
   var current = root.getAttribute("data-theme");
   var isDark = current
     ? dark.indexOf(current) !== -1

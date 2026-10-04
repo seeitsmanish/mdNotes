@@ -53,7 +53,7 @@ export function Backlinks({
   if (backlinks.length === 0) return null;
 
   return (
-    <aside className="flex-none border-t border-border bg-list/60 px-4 py-2">
+    <aside className="flex-none border-t border-border bg-list/60 px-4 py-2" data-ursa-private="">
       <div className="mx-auto flex w-full max-w-(--editor-measure) flex-wrap items-center gap-x-2 gap-y-1">
         <span className="flex items-center gap-1 text-[0.68rem] font-medium uppercase tracking-wider text-ink-faint">
           <CornerUpLeftIcon size={11} />

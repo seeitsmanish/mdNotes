@@ -502,7 +502,9 @@ export function markdownStyling(options: MarkdownStyleOptions = {}) {
             }
           }
 
-          if (!event.metaKey && !event.ctrlKey) return false;
+          // Read-only (reading mode, trash): nothing to edit, so a plain tap
+          // opens a link (PRD R58.3). Editing still needs ⌘/Ctrl.
+          if (!event.metaKey && !event.ctrlKey && !view.state.readOnly) return false;
 
           const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
           if (pos === null) return false;

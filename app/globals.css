@@ -1051,6 +1051,20 @@ input[type="search"]::-webkit-search-cancel-button {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 45%, transparent);
 }
 
+/* Screen-sharing blur (PRD §4.59): titles, previews and thumbnails become
+   unreadable shapes. No hover reveal — a cursor passing over a row on a
+   shared screen would give it away. The [[ title suggestions blur too. */
+[data-ursa-privacy] [data-ursa-private] [data-ursa-row],
+[data-ursa-privacy] [data-ursa-private] [cmdk-item],
+[data-ursa-privacy] aside[data-ursa-private] button,
+[data-ursa-privacy] .cm-tooltip.ursa-slash-menu li.ursa-private-option {
+  filter: blur(7px);
+  transition: filter 160ms ease;
+}
+[data-ursa-privacy] [data-ursa-private] [data-ursa-row] {
+  user-select: none;
+}
+
 /* Image viewer (PRD §4.50). Fixed over everything, dark whatever the theme
    (photos read best on black); fades and scales in. */
 .cm-editor .ursa-image img {

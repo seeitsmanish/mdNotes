@@ -5,6 +5,8 @@ import {
   CopyIcon,
   CopyPlusIcon,
   EllipsisIcon,
+  EyeIcon,
+  EyeOffIcon,
   ShareIcon,
   Loader2Icon,
   ChevronDownIcon,
@@ -28,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { useUiStore } from "@/lib/store/useUiStore";
 import { Illustration } from "@/components/brand/Illustration";
 import { AppearanceButton } from "./AppearanceButton";
 import { SwipeAction, SwipeRow } from "./SwipeRow";
@@ -102,6 +105,8 @@ export function NoteList({
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const privacyMode = useUiStore((state) => state.privacyMode);
+  const togglePrivacyMode = useUiStore((state) => state.togglePrivacyMode);
   // One swiped-open row at a time, as on iOS (PRD §4.52).
   const [swipedId, setSwipedId] = useState<string | null>(null);
 
@@ -197,6 +202,12 @@ export function NoteList({
                 else onQueryChange("");
               }}
             />
+            <IconAction
+              icon={privacyMode ? EyeOffIcon : EyeIcon}
+              label={privacyMode ? "Show note titles (⌘⇧L)" : "Hide note titles for screen sharing (⌘⇧L)"}
+              active={privacyMode}
+              onClick={togglePrivacyMode}
+            />
             {/* On a phone the editor's toolbar is out of sight until a note is
                 open, so Appearance (and What's new, sign out…) lives here too. */}
             <div className="contents @[900px]:hidden">
@@ -204,6 +215,19 @@ export function NoteList({
             </div>
           </div>
         </div>
+
+        {/* Out of the list's way, so every row stays clickable (PRD R59.2). */}
+        {privacyMode && (
+          <div className="ursa-fade-in mt-2 flex items-center justify-between gap-2 rounded-lg bg-brand-soft px-2.5 py-1.5 text-[0.74rem] text-brand">
+            <span className="flex items-center gap-1.5">
+              <EyeOffIcon className="size-3.5" />
+              Titles hidden for screen sharing
+            </span>
+            <button type="button" onClick={togglePrivacyMode} className="font-semibold underline-offset-2 hover:underline">
+              Show
+            </button>
+          </div>
+        )}
 
         {/* Only offered when there is something to empty (PRD R12.3). */}
         {inTrash && counts.trash > 0 && (
@@ -244,7 +268,11 @@ export function NoteList({
       {notes.length === 0 && !loading ? (
         <EmptyState inTrash={inTrash} searching={searching} onCreate={onCreate} />
       ) : (
-        <ul className="flex-1 overflow-y-auto px-3 pb-24 pt-1 @[900px]:pb-4" onKeyDown={moveFocusOnArrows}>
+        <ul
+          className="flex-1 overflow-y-auto px-3 pb-24 pt-1 @[900px]:pb-4"
+          onKeyDown={moveFocusOnArrows}
+          data-ursa-private=""
+        >
           {notes.map((note, index) => {
             const selected = note.id === selectedNoteId;
             const section = sectionStarts.get(note.id);

@@ -251,6 +251,17 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
    */
   const versions = useRef(new Map<string, number>());
   const online = useOnline();
+  // Screen-sharing blur (PRD §4.59): one attribute on <html>; CSS blurs every
+  // element marked data-ursa-private, wherever it renders (palette included).
+  const privacyMode = useUiStore((state) => state.privacyMode);
+  useEffect(() => {
+    // Not before the saved settings are back: the first render's default
+    // (off) would undo the bootstrap's blur for a frame (PRD R59.4).
+    const apply = () =>
+      document.documentElement.toggleAttribute("data-ursa-privacy", useUiStore.getState().privacyMode);
+    if (useUiStore.persist.hasHydrated()) apply();
+    return useUiStore.persist.onFinishHydration(apply);
+  }, [privacyMode]);
   // Recently opened notes for ⌘K (PRD §4.57).
   const [recentIds, setRecentIds] = useState<string[]>([]);
   useEffect(() => setRecentIds(loadRecent()), []);
@@ -899,6 +910,13 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       { id: "export-all", label: "Export all notes (.zip)", run: exportAll },
       { id: "shortcuts", label: "Keyboard shortcuts", hint: "⌘/", run: () => setShortcutsOpen(true) },
       { id: "outline", label: "Toggle outline", hint: "⌘⇧O", run: toggleOutline },
+      { id: "reading", label: "Toggle reading mode", run: () => useUiStore.getState().toggleReadingMode() },
+      {
+        id: "privacy",
+        label: "Hide or show note titles (screen sharing)",
+        hint: "⌘⇧L",
+        run: () => useUiStore.getState().togglePrivacyMode(),
+      },
       ...(counts.trash > 0
         ? [{ id: "empty-trash", label: `Empty trash (${counts.trash})`, run: confirmEmptyTrash }]
         : []),
@@ -949,6 +967,14 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         case "O":
           event.preventDefault();
           toggleOutline();
+          return;
+        case "l":
+        case "L":
+          // ⌘⇧L: blur titles for screen sharing (PRD §4.59).
+          if (event.shiftKey) {
+            event.preventDefault();
+            useUiStore.getState().togglePrivacyMode();
+          }
           return;
         case "/":
           event.preventDefault();

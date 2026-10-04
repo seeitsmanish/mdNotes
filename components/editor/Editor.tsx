@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
@@ -87,21 +87,29 @@ export function Editor({
   }, []);
 
   const shownNote = useRef<string | null>(noteId);
+  const readOnlyRef = useRef(readOnly);
   const highlightRef = useRef(highlight);
   highlightRef.current = highlight;
 
   useEffect(() => {
     const instance = view.current;
     if (!instance) return;
-    instance.setState(buildState(initialBody, readOnly, handlers));
+    instance.setState(buildState(initialBody, readOnlyRef.current, handlers));
     handlers.current.onStats?.(measure(initialBody));
     // A different note glides in rather than snapping (PRD §4.48).
     if (noteId && noteId !== shownNote.current) glide(instance.dom);
     shownNote.current = noteId;
     // Opened from a search: land on the first hit rather than the top.
     if (highlightRef.current.trim()) highlightSearch(instance, highlightRef.current, true);
-    if (!readOnly && noteId) instance.focus();
-  }, [noteId, initialBody, readOnly]);
+    if (!readOnlyRef.current && noteId) instance.focus();
+  }, [noteId, initialBody]);
+
+  // Read-only switches in place (reading mode, PRD §4.58): rebuilding the
+  // state from initialBody would show text older than what was just typed.
+  useEffect(() => {
+    readOnlyRef.current = readOnly;
+    view.current?.dispatch({ effects: editability.reconfigure(editable(readOnly)) });
+  }, [readOnly]);
 
   // The search changing while a note is open re-marks it without moving the caret.
   useEffect(() => {
@@ -138,6 +146,16 @@ export function measure(body: string): EditorStats {
   return { words, characters: body.length };
 }
 
+const editability = new Compartment();
+
+function editable(readOnly: boolean): Extension {
+  return [
+    placeholder(readOnly ? "" : "Start writing."),
+    EditorState.readOnly.of(readOnly),
+    EditorView.editable.of(!readOnly),
+  ];
+}
+
 function buildState(body: string, readOnly: boolean, handlers: Handlers): EditorState {
   return EditorState.create({
     doc: body,
@@ -168,9 +186,7 @@ function buildState(body: string, readOnly: boolean, handlers: Handlers): Editor
       EditorView.lineWrapping,
       // The editable surface is a textbox to assistive tech; give it a name.
       EditorView.contentAttributes.of({ "aria-label": "Note text" }),
-      placeholder(readOnly ? "" : "Start writing."),
-      EditorState.readOnly.of(readOnly),
-      EditorView.editable.of(!readOnly),
+      editability.of(editable(readOnly)),
       EditorView.updateListener.of((update) => {
         if (!update.docChanged) {
           if (update.focusChanged && !update.view.hasFocus) handlers.current.onBlur?.();

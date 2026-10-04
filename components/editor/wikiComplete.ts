@@ -58,6 +58,7 @@ export function wikiSource(
       const closed = context.state.sliceDoc(context.pos, context.pos + 2) === "]]";
       const options: Completion[] = rankTitles(titles, found.query).map((title, index) => ({
         label: title,
+        type: "note",
         boost: -index,
         apply: (view, _c, start, end) => {
           view.dispatch({

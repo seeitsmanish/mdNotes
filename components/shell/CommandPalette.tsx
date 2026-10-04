@@ -73,7 +73,7 @@ export function CommandPalette({
 
         {recent.length > 0 && (
           <>
-            <CommandGroup heading="Recent">
+            <CommandGroup heading="Recent" data-ursa-private="">
               {recent.map((note) => (
                 <CommandItem
                   key={`recent-${note.id}`}
@@ -106,7 +106,7 @@ export function CommandPalette({
         {notes.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Notes">
+            <CommandGroup heading="Notes" data-ursa-private="">
               {notes.slice(0, 50).map((note) => (
                 <CommandItem
                   key={note.id}

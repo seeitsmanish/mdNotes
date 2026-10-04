@@ -50,6 +50,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: "⌘⇧X", label: "Strikethrough" },
       { keys: "⌘⇧7", label: "To-do" },
       { keys: "⌘⇧8", label: "Bulleted list" },
+      { keys: "⌘⇧L", label: "Hide note titles (screen sharing)" },
       { keys: "⌘⌥[", label: "Fold the section at the caret" },
       { keys: "⌘⌥]", label: "Unfold it" },
       { keys: "⏎", label: "Continue a list or quote" },

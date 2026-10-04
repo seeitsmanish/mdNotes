@@ -1277,3 +1277,41 @@ Going back to the note you were just in meant finding it in the list again.
 - R57.2 Kept on the device (last ten), filtered to notes that still exist in
   the list; typing in the palette filters them like everything else.
 - R57.3 The palette's note excerpts are tidied like the list's (§4.38).
+
+### 4.58 Reading mode
+
+On a phone, opening a note to read it put a caret in it, and any tap risked
+the keyboard; the format bar sat over the end of the text.
+
+- R58.1 "Reading mode" (⋯ menu, palette) opens notes read-only: no caret, no
+  keyboard, no format bar. A "Reading · tap to edit" pill switches back. The
+  choice is remembered on the device.
+- R58.2 To-dos can still be ticked in reading mode; that is a save like any
+  other.
+- R58.3 With nothing to edit, a plain tap opens a link (⌘/Ctrl-click is
+  still needed while editing). Applies to notes in the trash too.
+- R58.4 Read-only switches in place (a CodeMirror compartment), never by
+  rebuilding the editor from the last loaded text — which would have shown
+  older text than had just been typed.
+
+### 4.59 Hide titles for screen sharing
+
+Owner request: blur the note list when sharing a screen.
+
+- R59.1 An eye button in the list header, the palette, or ⌘⇧L blurs note
+  titles, previews and thumbnails in the list, the palette's Recent and Notes
+  groups, the backlinks strip and the `[[` title suggestions. The open note
+  stays readable; rows still work when clicked.
+- R59.2 No hover reveal: a cursor passing over a row on a shared screen
+  would give it away. A slim "Titles hidden for screen sharing · Show" bar
+  sits under the list header — not over the rows, which stay clickable.
+- R59.3 One attribute on `<html>`, so anything marked private blurs wherever
+  it renders, including portals.
+- R59.4 It persists on the device and is applied by the early bootstrap
+  script, so a reload mid-call never shows the list for a frame; the app does
+  not touch the attribute until its saved settings are back.
+- R59.5 Found while testing this: every device-only setting (pane width,
+  focus mode, outline, and now reading mode and hidden titles) was reset on
+  reload. Child components' effects run before Shell's rehydrate, any store
+  update then saved the defaults, and the rehydrate read them back. The store
+  now writes nothing to localStorage until it has read the saved state.

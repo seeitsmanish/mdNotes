@@ -172,6 +172,7 @@ export const slashMenu = autocompletion({
   activateOnTyping: true,
   activateOnTypingDelay: 0,
   aboveCursor: false,
-  optionClass: () => "ursa-slash-option",
+  // Note titles blur with the rest when hiding titles for screen sharing (§4.59).
+  optionClass: (completion) => (completion.type === "note" ? "ursa-slash-option ursa-private-option" : "ursa-slash-option"),
   tooltipClass: () => "ursa-slash-menu",
 });

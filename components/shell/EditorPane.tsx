@@ -3,7 +3,9 @@
 import { useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import {
+  BookOpenIcon,
   ChevronLeftIcon,
+  PencilIcon,
   CodeXmlIcon,
   CopyIcon,
   CopyPlusIcon,
@@ -111,6 +113,8 @@ export function EditorPane({
   const focusMode = useUiStore((s) => s.focusMode);
   const outlineOpen = useUiStore((s) => s.outlineOpen);
   const toggleOutline = useUiStore((s) => s.toggleOutline);
+  const readingMode = useUiStore((s) => s.readingMode);
+  const toggleReadingMode = useUiStore((s) => s.toggleReadingMode);
   const toggleFocusMode = useUiStore((s) => s.toggleFocusMode);
   const settingsOpen = useUiStore((s) => s.settingsOpen);
   const setSettingsOpen = useUiStore((s) => s.setSettingsOpen);
@@ -197,6 +201,8 @@ export function EditorPane({
               onCopyHtml={onCopyHtml}
               onShare={onShare}
               onDownload={onDownload}
+              readingMode={readingMode}
+              onToggleReading={toggleReadingMode}
             />
             <Separator orientation="vertical" className="mx-1 !h-4" />
           </div>
@@ -235,6 +241,8 @@ export function EditorPane({
               onCopyHtml={onCopyHtml}
               onShare={onShare}
               onDownload={onDownload}
+              readingMode={readingMode}
+              onToggleReading={toggleReadingMode}
             />
           </div>
         )}
@@ -281,7 +289,7 @@ export function EditorPane({
           <Editor
             noteId={note.id}
             initialBody={note.body}
-            readOnly={inTrash}
+            readOnly={inTrash || readingMode}
             onChange={onChange}
             onBlur={onBlur}
             onStats={setStats}
@@ -334,7 +342,18 @@ export function EditorPane({
         <Backlinks noteId={note?.id ?? null} onOpen={onOpenNote} />
       </div>
 
-      {note && !inTrash && <FormatBar view={view} />}
+      {note && !inTrash && !readingMode && <FormatBar view={view} />}
+      {note && !inTrash && readingMode && (
+        <button
+          type="button"
+          onClick={toggleReadingMode}
+          data-ursa-reading=""
+          className="ursa-fab-in absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border bg-raised/95 px-4 py-2 text-[0.8rem] font-medium text-ink-soft shadow-[var(--shadow)] backdrop-blur active:scale-95"
+        >
+          <BookOpenIcon className="size-4 text-brand" />
+          Reading · tap to edit
+        </button>
+      )}
     </section>
   );
 }
@@ -357,6 +376,8 @@ function NoteMenu({
   onCopyHtml,
   onShare,
   onDownload,
+  readingMode,
+  onToggleReading,
 }: {
   compact?: boolean;
   inTrash: boolean;
@@ -371,6 +392,8 @@ function NoteMenu({
   onCopyHtml: () => void;
   onShare?: () => void;
   onDownload: () => void;
+  readingMode: boolean;
+  onToggleReading: () => void;
 }) {
   const busy = trashing || duplicating;
   return (
@@ -392,6 +415,15 @@ function NoteMenu({
             <DropdownMenuItem onClick={onOutline}>
               <ListTreeIcon />
               {outlineOpen ? "Hide outline" : "Show outline"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        {!inTrash && (
+          <>
+            <DropdownMenuItem onClick={onToggleReading}>
+              {readingMode ? <PencilIcon /> : <BookOpenIcon />}
+              {readingMode ? "Edit" : "Reading mode"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
