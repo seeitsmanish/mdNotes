@@ -110,3 +110,16 @@ describe("deriveCover (PRD §4.51)", () => {
     expect(deriveCover("no images")).toBeNull();
   });
 });
+
+describe("deriveTodos (PRD §4.53)", () => {
+  it("counts open and ticked to-dos in any list style", async () => {
+    const { deriveTodos } = await import("./derive");
+    expect(deriveTodos("# T\n- [ ] a\n- [x] b\n  * [X] c\n+ [ ]\ntext - [ ] not one")).toEqual({ todoDone: 2, todoTotal: 4 });
+  });
+
+  it("ignores code blocks and plain lists", async () => {
+    const { deriveTodos } = await import("./derive");
+    expect(deriveTodos("```\n- [ ] in code\n```\n- plain\n- [ ] real")).toEqual({ todoDone: 0, todoTotal: 1 });
+    expect(deriveTodos("")).toEqual({ todoDone: 0, todoTotal: 0 });
+  });
+});

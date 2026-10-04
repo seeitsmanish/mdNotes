@@ -24,6 +24,9 @@ model Note {
   excerpt   String    @default("")
   /// The first image in the body, shown as the list row's thumbnail (§4.51).
   cover     String?
+  /// To-do counts for the list row's progress chip (§4.53).
+  todoDone  Int       @default(0)
+  todoTotal Int       @default(0)
   pinned    Boolean   @default(false)
   /// Bumped on every body save; a save from an older version is refused and
   /// kept as a conflicted copy instead (PRD §4.18).

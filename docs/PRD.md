@@ -1174,3 +1174,19 @@ was to open it first (hover buttons do not exist on touch, §4.26).
   list as before. A mouse never swipes; desktop keeps its hover buttons.
 - R52.5 Also in this release: the empty-state illustrations are centred on
   their halo (each drawing's bounding box was measured and offset).
+
+### 4.53 To-do progress in the list
+
+Checklists — a prep plan, a packing list — said nothing in the list about how
+far along they were.
+
+- R53.1 A note with to-dos shows a chip after its date: a small progress ring
+  and "done/total". Fully ticked, it turns the accent colour.
+- R53.2 Counts are `Note.todoDone` / `Note.todoTotal`, derived on every write
+  by the single body writer (`- [ ]`, `* [x]`, `+ [X]`, any indentation; never
+  inside code blocks).
+- R53.3 Production change (2026-10-04): two `INTEGER NOT NULL DEFAULT 0`
+  columns plus a backfill with `regexp_count` (Postgres 18), matching the JS
+  on all 75 preview notes; no production note mixes code blocks and to-dos,
+  so the SQL equals the JS there exactly. Rehearsed on a Neon branch; every
+  note's body md5, `updatedAt` and version identical before and after.

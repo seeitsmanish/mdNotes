@@ -17,6 +17,9 @@ export interface NoteListItem {
   excerpt: string;
   /** First image URL, for the row thumbnail (PRD §4.51). */
   cover: string | null;
+  /** To-dos ticked and in total, for the row's progress chip (PRD §4.53). */
+  todoDone: number;
+  todoTotal: number;
   pinned: boolean;
   updatedAt: string;
   deletedAt: string | null;

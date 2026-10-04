@@ -3,13 +3,19 @@
  * drift from the text they are derived from.
  */
 
-import { deriveCover, deriveExcerpt, deriveTitle } from "@/lib/markdown/derive";
+import { deriveCover, deriveExcerpt, deriveTitle, deriveTodos } from "@/lib/markdown/derive";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 export type Tx = Prisma.TransactionClient;
 
 function derived(body: string) {
-  return { body, title: deriveTitle(body), excerpt: deriveExcerpt(body), cover: deriveCover(body) };
+  return {
+    body,
+    title: deriveTitle(body),
+    excerpt: deriveExcerpt(body),
+    cover: deriveCover(body),
+    ...deriveTodos(body),
+  };
 }
 
 /**

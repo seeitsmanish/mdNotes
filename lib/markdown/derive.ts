@@ -110,6 +110,27 @@ export function deriveCover(body: string): string | null {
   return null;
 }
 
+const TODO = /^\s*[-*+]\s+\[([ xX])\](?:\s|$)/;
+
+/** How many to-dos a note has, and how many are ticked (PRD §4.53). Code blocks do not count. */
+export function deriveTodos(body: string): { todoDone: number; todoTotal: number } {
+  let inFence = false;
+  let todoDone = 0;
+  let todoTotal = 0;
+  for (const line of body.split("\n")) {
+    if (FENCE.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const match = TODO.exec(line);
+    if (!match) continue;
+    todoTotal += 1;
+    if (match[1] !== " ") todoDone += 1;
+  }
+  return { todoDone, todoTotal };
+}
+
 export function displayTitle(title: string): string {
   return title.trim().length > 0 ? title : UNTITLED;
 }

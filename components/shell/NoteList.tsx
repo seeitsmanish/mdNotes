@@ -368,8 +368,9 @@ export function NoteList({
                       )}
                     </span>
 
-                    <span className="mt-1.5 block text-[0.7rem] tabular-nums text-ink-faint">
+                    <span className="mt-1.5 flex items-center gap-2 text-[0.7rem] tabular-nums text-ink-faint">
                       {relativeTime(note.updatedAt, clock.now, clock)}
+                      {note.todoTotal > 0 && <TodoChip done={note.todoDone} total={note.todoTotal} />}
                     </span>
                     </span>
                     {note.cover && <RowCover src={note.cover} />}
@@ -597,6 +598,39 @@ function RowCover({ src }: { src: string }) {
       onError={() => setFailed(true)}
       className="mt-0.5 size-12 flex-none rounded-lg border border-border bg-raised object-cover"
     />
+  );
+}
+
+/**
+ * To-do progress on a row (PRD §4.53): a small ring and "3/7", in the accent
+ * colour once everything is ticked.
+ */
+function TodoChip({ done, total }: { done: number; total: number }) {
+  const complete = done >= total;
+  const r = 5;
+  const c = 2 * Math.PI * r;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-px ${complete ? "bg-brand-soft text-brand" : "bg-raised text-ink-soft"}`}
+      aria-label={`${done} of ${total} to-dos done`}
+      title={`${done} of ${total} to-dos done`}
+    >
+      <svg viewBox="0 0 14 14" width="11" height="11" aria-hidden>
+        <circle cx="7" cy="7" r={r} fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
+        <circle
+          cx="7"
+          cy="7"
+          r={r}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeDasharray={`${(done / total) * c} ${c}`}
+          transform="rotate(-90 7 7)"
+        />
+      </svg>
+      {done}/{total}
+    </span>
   );
 }
 

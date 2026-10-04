@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.41.0",
+    date: "2026-10-04",
+    title: "Checklist progress at a glance",
+    changes: [
+      "Notes with to-dos show how far along they are in the list — a small ring and 3/7 — and turn green when everything is ticked.",
+    ],
+  },
+  {
     version: "1.40.0",
     date: "2026-10-04",
     title: "Swipe for actions",
