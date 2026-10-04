@@ -1235,5 +1235,34 @@ too).
   copy. Verified as an invariant, not an order: both texts always survive,
   with exactly one conflicted copy and no duplicates.
 
-Not yet: opening the app with no connection at all still shows the offline
-page — caching the app shell and notes for offline reading is the next step.
+Opening the app with no connection at all: see §4.56.
+
+### 4.56 Open the app offline
+
+The installed app showed "You're offline" whenever there was no connection,
+even for notes read a minute earlier. §4.27 kept nothing on purpose — a
+cached note is a stale note — but with the outbox (§4.55) a stale copy can no
+longer overwrite anything, so the rule becomes: never *prefer* a copy.
+
+- R56.1 Network first, always. The page, the full note list, and each note
+  are fetched from the server whenever it answers; a copy is used only when
+  the request fails outright. Searches, settings, writes and auth are never
+  served from a copy.
+- R56.2 Copies are kept of: the signed-in page `/` (only a real 200 HTML
+  answer, never a redirect to sign-in), the full list, notes opened, and
+  images viewed (immutable, so cache-first). The build's hashed files are
+  cache-first; when the page is cached, every `/_next/static` file it
+  references is fetched into the cache too, so an offline reload works even
+  right after the service worker was first installed. Old build files are
+  trimmed beyond 400.
+- R56.3 The page is cached together with its own CSP header, so its nonce
+  and its scripts stay a matching pair; nothing else reuses that nonce.
+- R56.4 Copies are deleted on sign-out and whenever the sign-in page loads —
+  which also covers a session ended from another device or expired — so
+  notes do not remain on a device that is no longer signed in.
+- R56.5 While offline, a banner says the app is showing what this device last
+  saw and that edits will sync. Editing an offline copy uses the outbox with
+  the copy's version, so a clash becomes a conflicted copy.
+
+Trade-off, stated plainly: notes you opened are stored on the device (the
+browser's Cache Storage) until you sign out. On a shared computer, sign out.

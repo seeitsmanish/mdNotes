@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.44.0",
+    date: "2026-10-04",
+    title: "Open mdNotes with no connection",
+    changes: [
+      "The installed app now opens offline and shows the notes you have read on this device, with a banner saying so. Edits you make sync when you are back.",
+      "When you are online you always see the server's latest — the offline copies are only a fallback, and they are wiped when you sign out.",
+    ],
+  },
+  {
     version: "1.43.0",
     date: "2026-10-04",
     title: "Write offline without losing a word",

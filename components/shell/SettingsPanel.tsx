@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { clearOfflineData } from "@/lib/pwa/offlineData";
 import {
   BRAND_SWATCHES,
   EDITOR_PADDINGS,
@@ -67,6 +68,7 @@ async function signOut(everywhere: boolean): Promise<void> {
       return;
     }
   }
+  await clearOfflineData();
   window.location.href = "/login";
 }
 

@@ -203,6 +203,16 @@ prefix, because renaming it signs every device out; it is already host-only,
   before they become CSS custom properties.
 - **Login:** constant-time password comparison, 429 after repeated failures.
 
+### Note on offline copies (v1.44.0, PRD §4.56)
+
+The service worker now keeps copies of the signed-in page, the note list,
+opened notes and viewed images in Cache Storage, for offline use. They are
+served only when the network fails, deleted on sign-out and whenever the
+sign-in page loads (so a session ended elsewhere also clears them), and never
+include searches, settings or auth. The cost: opened notes rest on the device
+while signed in. `Cache-Control: no-store` (A10) still governs the browser's
+HTTP cache and proxies; Cache Storage is written explicitly by the worker.
+
 ## Follow-ups, in order
 
 1. Rotate `AUTH_SECRET` now (A5 mitigation) — a live session cookie was shared

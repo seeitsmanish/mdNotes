@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { safeNextPath } from "@/lib/security/urls";
 import { NotesMark } from "@/components/brand/NotesMark";
+import { clearOfflineData } from "@/lib/pwa/offlineData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,12 @@ import { Label } from "@/components/ui/label";
  * nothing about the session is readable from here.
  */
 export function LoginForm() {
+  // Reaching sign-in means no session here: drop any offline copies of notes
+  // (a session may have been ended from another device) — PRD R56.4.
+  useEffect(() => {
+    void clearOfflineData();
+  }, []);
+
   const router = useRouter();
   const params = useSearchParams();
   const [password, setPassword] = useState("");

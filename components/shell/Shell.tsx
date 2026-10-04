@@ -23,6 +23,7 @@ import { ShortcutsDialog } from "./ShortcutsDialog";
 import { HistoryDialog } from "./HistoryDialog";
 import { createGate } from "@/lib/async/gate";
 import { installApp, registerServiceWorker, useInstallMode } from "@/lib/pwa/install";
+import { useOnline } from "@/lib/pwa/offlineData";
 import { installGlobalReporting, reportError } from "@/lib/report/client";
 import { ClockProvider } from "./ClockProvider";
 import { EditorPane } from "./EditorPane";
@@ -248,6 +249,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
    * say truthfully which version it was edited from.
    */
   const versions = useRef(new Map<string, number>());
+  const online = useOnline();
 
   /** Unconfirmed edits kept on the device (PRD §4.55); a ref for callbacks made earlier. */
   const outbox = useMemo(
@@ -1100,6 +1102,16 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         currentBody={note ? (liveBody.current.get(note.id) ?? note.body) : ""}
         onRestored={onRestored}
       />
+
+      {!online && (
+        <div
+          role="status"
+          data-ursa-offline-banner=""
+          className="ursa-fade-in pointer-events-none fixed left-1/2 top-[calc(0.5rem+env(safe-area-inset-top))] z-50 -translate-x-1/2 rounded-full border border-border bg-raised/95 px-3 py-1 text-[0.72rem] text-ink-soft shadow-[var(--shadow)] backdrop-blur"
+        >
+          Offline — showing what this device last saw. Edits will sync.
+        </div>
+      )}
 
       <Toaster position="bottom-center" />
     </div>
