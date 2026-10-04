@@ -1624,6 +1624,16 @@ Owner picks 4 and 6 from round 2.
   with the browser's on-device recognition where it exists; otherwise it
   says the service could not be reached and points to the keyboard's own
   microphone. Offline says so.
+- R72.1b *(v1.64.1)* Reported: voice typing "stops after 1 sec" on every
+  device. Browsers end a session after each pause and the app restarted the
+  same recogniser from inside its end event, which several browsers refuse;
+  the refusal was swallowed and listening stopped silently. Now each session
+  is a fresh recogniser started 250 ms after the last ends (non-continuous,
+  which phones handle best), listening continues until Stop, and three
+  sessions in a row that hear nothing end it with the reason. Every error
+  message carries the browser's error code, so a report says exactly what
+  went wrong. The on-device retry of R72.1a is dropped: it needed language
+  packs that are rarely installed.
 - R72.2 `Permissions-Policy` now allows the microphone for this site itself
   (`microphone=(self)`); nothing embedded can ask for it. Camera, location
   and payment stay off.

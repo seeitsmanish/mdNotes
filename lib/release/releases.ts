@@ -18,6 +18,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.64.1",
+    date: "2026-10-04",
+    title: "Voice typing keeps listening",
+    changes: [
+      "Fixed: voice typing stopped about a second after tapping the microphone. It now keeps listening until you tap Stop, and if something goes wrong the message says exactly what.",
+    ],
+  },
+  {
     version: "1.64.0",
     date: "2026-10-04",
     title: "Automatic backups",
