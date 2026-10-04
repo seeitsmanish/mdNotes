@@ -314,6 +314,27 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     return useUiStore.persist.onFinishHydration(apply);
   }, [privacyMode]);
 
+  // Weekly backup and trash clean-out (PRD §4.77): asked for once per visit,
+  // a little after launch so it never competes with opening a note.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("ursa-maintenance")) return;
+      sessionStorage.setItem("ursa-maintenance", "1");
+    } catch {
+      // No storage: ask anyway; the server makes it a no-op when nothing is due.
+    }
+    const timer = setTimeout(() => {
+      void fetch("/api/maintenance", { method: "POST" })
+        .then((r) => (r.ok ? (r.json() as Promise<{ purged: number }>) : null))
+        .then((result) => {
+          if (result?.purged) void refreshList();
+        })
+        .catch(() => undefined);
+    }, 8000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // A few minutes without touching the app hides titles too (PRD §4.68): a
   // laptop left open on a desk, or a shared screen forgotten mid-call.
   const idleHideMinutes = useUiStore((state) => state.idleHideMinutes);
@@ -909,25 +930,45 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     setTimeout(() => void api.lockAction({ action: "lock", scope: "all" }).catch(() => undefined), 5000);
   }, [download]);
 
-  /** Locked notes need the passcode before a full export (PRD R69.7). */
-  const exportAll = useCallback(async () => {
+  /** What to do once "unlock everything" succeeds: the export or backup that asked. */
+  const afterUnlockAll = useRef<() => void>(() => undefined);
+
+  /**
+   * Locked notes need the passcode before anything carrying every note leaves
+   * — a full export, or a backup download (PRD R69.7, §4.77).
+   */
+  const withEverythingUnlocked = useCallback(async (then: () => void) => {
     try {
       const status = await api.lockStatus();
       if (status.lockedNotes > 0 && !status.unlocked) {
+        afterUnlockAll.current = then;
         setUnlockAllOpen(true);
         return;
       }
     } catch {
-      // Unknown: let the export itself answer.
+      // Unknown: let the download itself answer.
     }
-    startExport();
-  }, [startExport]);
+    then();
+  }, []);
+
+  const exportAll = useCallback(() => withEverythingUnlocked(startExport), [startExport, withEverythingUnlocked]);
 
   useEffect(() => {
     const onExport = () => void exportAll();
+    const onBackup = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail;
+      void withEverythingUnlocked(() => {
+        download(`/api/backups/${id}`, "mdnotes-backup.zip");
+        setTimeout(() => void api.lockAction({ action: "lock", scope: "all" }).catch(() => undefined), 5000);
+      });
+    };
     window.addEventListener("ursa:export", onExport);
-    return () => window.removeEventListener("ursa:export", onExport);
-  }, [exportAll]);
+    window.addEventListener("ursa:backup", onBackup);
+    return () => {
+      window.removeEventListener("ursa:export", onExport);
+      window.removeEventListener("ursa:backup", onBackup);
+    };
+  }, [download, exportAll, withEverythingUnlocked]);
 
   const exportCurrent = useCallback(() => {
     if (!note) return;
@@ -1629,7 +1670,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
       <QuickCapture open={captureOpen} onOpenChange={setCaptureOpen} onSave={capture} />
 
-      <UnlockAllDialog open={unlockAllOpen} onOpenChange={setUnlockAllOpen} onUnlocked={() => startExport()} />
+      <UnlockAllDialog open={unlockAllOpen} onOpenChange={setUnlockAllOpen} onUnlocked={() => afterUnlockAll.current()} />
 
       <ShareLinkDialog
         noteId={note?.id ?? null}

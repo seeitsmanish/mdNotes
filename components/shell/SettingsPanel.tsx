@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useUnseenRelease, WhatsNew } from "./WhatsNew";
 import { WebClipper } from "./WebClipper";
 import { TwoStepSettings } from "./TwoStepSettings";
+import { BackupSettings } from "./BackupSettings";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -384,6 +385,8 @@ export function SettingsPanel() {
       <WebClipper />
 
       <TwoStepSettings />
+
+      <BackupSettings />
 
       <input
         ref={fileInput}

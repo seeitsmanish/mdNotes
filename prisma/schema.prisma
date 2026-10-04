@@ -90,6 +90,8 @@ model Settings {
   totpPending   String?
   recoveryCodes String?
   totpLastStep  Int      @default(0)
+  /// Delete trashed notes older than this many days; 0 is never (§4.77).
+  trashDays     Int      @default(0)
   updatedAt     DateTime @updatedAt
 }
 
@@ -131,5 +133,18 @@ model NoteShare {
   noteId    String   @unique
   note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+/// A weekly copy of every note as a zip of markdown (§4.77). The newest 8 are
+/// kept. Lives in the same database, so it guards against mistakes (a note
+/// emptied or deleted), not against losing the database — download one for that.
+model Backup {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  notes     Int
+  size      Int
+  bytes     Bytes
+
+  @@index([createdAt])
 }
 

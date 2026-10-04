@@ -1727,3 +1727,23 @@ returns appearance columns by name, so none can reach a browser.
   recovery code and the phone are lost, it can only be turned off in the
   database (DEPLOYMENT.md): there is no email to reset through.
 
+### 4.77 Automatic backups and emptying old trash
+
+Owner picks 20 and 21 from round 2. Schema (additive, rehearsed): `Backup`
+table and `Settings.trashDays`.
+
+- R77.1 Every week a backup is made: every note not in the trash, as markdown
+  with frontmatter in a zip — the files Export all makes, without images
+  (they stay in the database; the full export carries them). The newest 8 are
+  kept. There is no scheduler: the app asks once per visit, 8 seconds after
+  launch, and the server makes one only when a week has passed.
+- R77.2 Settings → Backups shows the last one, lists the others, downloads
+  any of them, and "Back up now". Downloading needs locked notes unlocked,
+  like a full export, and that unlock ends a few seconds later. The panel
+  says plainly that backups live inside mdNotes — they guard against
+  mistakes, not against losing the database — and to download one now and
+  then.
+- R77.3 Empty trash after 30 days: off by default; when on, notes trashed
+  more than 30 days ago are deleted for good on the same visit check, and the
+  list refreshes if any went. Restoring before then keeps a note.
+

@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.64.0",
+    date: "2026-10-04",
+    title: "Automatic backups",
+    changes: [
+      "mdNotes now backs up all your notes every week and keeps the last 8. Download any of them from Settings → Backups.",
+      "New option: empty the trash automatically after 30 days (off unless you turn it on).",
+    ],
+  },
+  {
     version: "1.63.0",
     date: "2026-10-04",
     title: "Two-step sign-in",
