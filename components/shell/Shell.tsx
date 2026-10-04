@@ -10,6 +10,7 @@ import { conflictCopyBody } from "@/lib/notes/conflict";
 import { duplicateBody } from "@/lib/notes/duplicate";
 import { printHtml } from "@/lib/export/print";
 import { bodyFromTemplate, dailyBody, dailyTitle } from "@/lib/notes/daily";
+import { STARTER_TEMPLATES, starterTitle } from "@/lib/notes/starterTemplates";
 import { COLOR_LABEL, NOTE_COLORS } from "@/lib/notes/colors";
 import { markdownToHtml } from "@/lib/export/toHtml";
 import { shouldAdopt, shouldResync } from "@/lib/notes/resync";
@@ -1070,6 +1071,30 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     [flush, gate, refreshList, selectNote],
   );
 
+  /** The built-in templates, as real templates; ones already there by title are skipped (PRD §4.71). */
+  const addStarterTemplates = useCallback(
+    () =>
+      gate.run("starters", async () => {
+        const existing = new Set(
+          (await api.fetchNotes({ filter: "templates" })).notes.map((item) => item.title.trim().toLowerCase()),
+        );
+        let added = 0;
+        for (const body of STARTER_TEMPLATES) {
+          if (existing.has(starterTitle(body).toLowerCase())) continue;
+          const { note: created } = await api.createNote();
+          await api.saveBody(created.id, body, created.version);
+          await api.patchNote(created.id, { template: true });
+          added += 1;
+        }
+        setFilter("templates");
+        await refreshList();
+        toast(added ? `Added ${added} starter templates.` : "You already have all the starter templates.", {
+          description: added ? "Edit or delete them like any note. Start a note from one in ⌘K." : undefined,
+        });
+      }),
+    [gate, refreshList, setFilter],
+  );
+
   /** A new note from a template, placeholders filled (PRD §4.65). */
   const newFromTemplate = useCallback(
     (template: NoteListItem) =>
@@ -1303,6 +1328,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         : []),
       { id: "filter-archive", label: "Show archived notes", run: () => setFilter("archive") },
       { id: "filter-templates", label: "Show templates", run: () => setFilter("templates") },
+      { id: "starters", label: "Add starter templates (meeting, weekly review, packing…)", run: () => void addStarterTemplates() },
       ...(note && !note.deletedAt
         ? [
             {
@@ -1333,6 +1359,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       { id: "export-all", label: "Export all notes (.zip)", run: () => void exportAll() },
       { id: "shortcuts", label: "Keyboard shortcuts", hint: "⌘/", run: () => setShortcutsOpen(true) },
       { id: "outline", label: "Toggle outline", hint: "⌘⇧O", run: toggleOutline },
+      { id: "typewriter", label: "Toggle typewriter scrolling (keep the line centred)", run: () => { const st = useUiStore.getState(); st.setTypewriterMode(!st.typewriterMode); } },
+      { id: "vim", label: "Toggle Vim keys", run: () => { const st = useUiStore.getState(); st.setVimMode(!st.vimMode); toast(st.vimMode ? "Vim keys off." : "Vim keys on — Esc for normal mode, i to type."); } },
       { id: "focus-dim", label: "Toggle focus dimming (fade other paragraphs)", run: () => useUiStore.getState().toggleFocusDim() },
       { id: "reading", label: "Toggle reading mode", run: () => useUiStore.getState().toggleReadingMode() },
       {
@@ -1379,7 +1407,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         : []),
       ...themeCommands,
     ];
-  }, [lockNow, openToday, templates, newFromTemplate, setLabels, setFilter, confirmEmptyTrash, copyHtml, exportPdf, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [addStarterTemplates, lockNow, openToday, templates, newFromTemplate, setLabels, setFilter, confirmEmptyTrash, copyHtml, exportPdf, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1491,6 +1519,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           onCreate={() => void createNote()}
           onEmptyTrash={confirmEmptyTrash}
           onToday={() => void openToday()}
+          onAddStarters={() => void addStarterTemplates()}
           onArchive={(target) => void setLabels(target, { archived: !target.archivedAt })}
           onTag={searchTag}
           onBulk={(ids, action) => void bulk(ids, action)}

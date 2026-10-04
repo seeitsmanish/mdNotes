@@ -1588,3 +1588,22 @@ Owner pick 5.
   back and the caret lands on the moved block. Off in reading mode and Trash.
 - R70.4 Alt-↑/↓ already moves the current line from the keyboard.
 
+### 4.71 Code copy, typewriter scrolling, Vim keys, starter templates
+
+Owner picks 3, 23, 24 and 26 from round 2.
+
+- R71.1 Every fenced code block has a Copy button in its top-right corner
+  (faint until hovered; always visible on touch screens) that copies the code
+  without its fences and says "Copied".
+- R71.2 Typewriter scrolling (Settings or ⌘K): typing or moving the caret
+  keeps its line centred; the text gets room below so its last line can be
+  centred too. Device-only.
+- R71.3 Vim keys (Settings or ⌘K), via @replit/codemirror-vim, ahead of the
+  editor's own keys; a status line shows the mode. Off by default;
+  device-only.
+- R71.4 Starter templates: "Add starter templates" (Templates' empty list,
+  or ⌘K) adds Meeting notes, Weekly review, Packing list, Recipe, Journal,
+  Project plan and Daily note as ordinary templates — edit or delete them.
+  Ones already present by title are skipped. Daily note is what today's note
+  starts from (§4.65).
+

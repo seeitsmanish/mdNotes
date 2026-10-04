@@ -173,6 +173,10 @@ export function SettingsPanel() {
   const setEditorFont = useUiStore((s) => s.setEditorFont);
   const autoPrivacy = useUiStore((s) => s.autoPrivacy);
   const focusDim = useUiStore((s) => s.focusDim);
+  const typewriterMode = useUiStore((s) => s.typewriterMode);
+  const setTypewriterMode = useUiStore((s) => s.setTypewriterMode);
+  const vimMode = useUiStore((s) => s.vimMode);
+  const setVimMode = useUiStore((s) => s.setVimMode);
   const haptics = useUiStore((s) => s.haptics);
   const idleHideMinutes = useUiStore((s) => s.idleHideMinutes);
   const setIdleHideMinutes = useUiStore((s) => s.setIdleHideMinutes);
@@ -314,6 +318,22 @@ export function SettingsPanel() {
         options={FONTS}
         columns={4}
         onChange={setEditorFont}
+      />
+
+      <OptionGroup
+        label="Keep the line you type centred"
+        value={typewriterMode ? "on" : "off"}
+        options={ON_OFF}
+        columns={2}
+        onChange={(value) => setTypewriterMode(value === "on")}
+      />
+
+      <OptionGroup
+        label="Vim keys"
+        value={vimMode ? "on" : "off"}
+        options={ON_OFF}
+        columns={2}
+        onChange={(value) => setVimMode(value === "on")}
       />
 
       <OptionGroup

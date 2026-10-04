@@ -22,6 +22,8 @@ import { imagePaste } from "./imagePaste";
 import { linkTitles } from "./linkTitles";
 import { currentParagraph } from "./currentParagraph";
 import { dragHandle } from "./dragHandle";
+import { typewriter } from "./typewriter";
+import { vim } from "@replit/codemirror-vim";
 
 /**
  * The single-pane markdown editor.
@@ -49,6 +51,10 @@ interface EditorProps {
   highlight?: string;
   /** Hands the live view out so the format bar can run commands against it. */
   onReady?: (view: EditorView | null) => void;
+  /** Keep the caret's line centred (PRD §4.71). */
+  typewriterMode?: boolean;
+  /** Vim-style keys (PRD §4.71). */
+  vimMode?: boolean;
 }
 
 export function Editor({
@@ -62,6 +68,8 @@ export function Editor({
   onTag,
   highlight = "",
   onReady,
+  typewriterMode = false,
+  vimMode = false,
 }: EditorProps) {
   const host = useRef<HTMLDivElement | null>(null);
   const view = useRef<EditorView | null>(null);
@@ -69,13 +77,15 @@ export function Editor({
   // Callbacks live in a ref so changing one never rebuilds the editor state.
   const handlers = useRef({ onChange, onBlur, onStats, onWikiLink, onTag, noteId });
   handlers.current = { onChange, onBlur, onStats, onWikiLink, onTag, noteId };
+  const modesRef = useRef({ typewriterMode, vimMode });
+  modesRef.current = { typewriterMode, vimMode };
 
   useEffect(() => {
     if (!host.current) return;
 
     const instance = new EditorView({
       parent: host.current,
-      state: buildState(initialBody, readOnly, handlers),
+      state: buildState(initialBody, readOnly, handlers, modesRef.current),
     });
     view.current = instance;
     handlers.current.onStats?.(measure(initialBody));
@@ -98,7 +108,7 @@ export function Editor({
   useEffect(() => {
     const instance = view.current;
     if (!instance) return;
-    instance.setState(buildState(initialBody, readOnlyRef.current, handlers));
+    instance.setState(buildState(initialBody, readOnlyRef.current, handlers, modesRef.current));
     handlers.current.onStats?.(measure(initialBody));
     // A different note glides in rather than snapping (PRD §4.48).
     if (noteId && noteId !== shownNote.current) glide(instance.dom);
@@ -114,6 +124,14 @@ export function Editor({
     readOnlyRef.current = readOnly;
     view.current?.dispatch({ effects: editability.reconfigure(editable(readOnly)) });
   }, [readOnly]);
+
+  // Typewriter and Vim switch in place, like read-only.
+  useEffect(() => {
+    view.current?.dispatch({ effects: typewriterSlot.reconfigure(typewriter(typewriterMode)) });
+  }, [typewriterMode]);
+  useEffect(() => {
+    view.current?.dispatch({ effects: vimSlot.reconfigure(vimMode ? vim({ status: true }) : []) });
+  }, [vimMode]);
 
   // The search changing while a note is open re-marks it without moving the caret.
   useEffect(() => {
@@ -151,6 +169,8 @@ export function measure(body: string): EditorStats {
 }
 
 const editability = new Compartment();
+const typewriterSlot = new Compartment();
+const vimSlot = new Compartment();
 
 function editable(readOnly: boolean): Extension {
   return [
@@ -160,10 +180,18 @@ function editable(readOnly: boolean): Extension {
   ];
 }
 
-function buildState(body: string, readOnly: boolean, handlers: Handlers): EditorState {
+function buildState(
+  body: string,
+  readOnly: boolean,
+  handlers: Handlers,
+  modes: { typewriterMode: boolean; vimMode: boolean },
+): EditorState {
   return EditorState.create({
     doc: body,
     extensions: [
+      // Vim first: its keys must win over the editor's own (PRD §4.71).
+      vimSlot.of(modes.vimMode ? vim({ status: true }) : []),
+      typewriterSlot.of(typewriter(modes.typewriterMode)),
       history(),
       // markdownKeymap first: it owns Enter, so lists and quotes continue onto
       // the next line instead of dropping their marker.

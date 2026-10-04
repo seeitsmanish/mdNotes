@@ -97,6 +97,8 @@ interface NoteListProps {
   /** Today's daily note (PRD §4.65). */
   onToday: () => void;
   onArchive: (note: NoteListItem) => void;
+  /** Add the built-in templates (PRD §4.71). */
+  onAddStarters: () => void;
   /** A tag picked in the tag tree: searched for (PRD §4.66). */
   onTag: (tag: string) => void;
   /** Pull to refresh (PRD §4.67): resolves once the list and open note are fresh. */
@@ -127,6 +129,7 @@ export function NoteList({
   onEmptyTrash,
   onToday,
   onArchive,
+  onAddStarters,
   onTag,
   onBulk,
   onRefresh,
@@ -376,7 +379,7 @@ export function NoteList({
       </header>
 
       {notes.length === 0 && !loading ? (
-        <EmptyState inTrash={inTrash} filter={filter} colored={colorFilter !== null} searching={searching} onCreate={onCreate} />
+        <EmptyState inTrash={inTrash} filter={filter} colored={colorFilter !== null} searching={searching} onCreate={onCreate} onAddStarters={onAddStarters} />
       ) : (
         <>
         <div
@@ -837,12 +840,14 @@ function EmptyState({
   colored,
   searching,
   onCreate,
+  onAddStarters,
 }: {
   inTrash: boolean;
   filter: NoteFilter;
   colored: boolean;
   searching: boolean;
   onCreate: () => void;
+  onAddStarters: () => void;
 }) {
   const [title, hint] = searching
     ? ["No notes match", "Try fewer or different words."]
@@ -853,7 +858,7 @@ function EmptyState({
         : filter === "archive"
           ? ["Nothing archived", "Archive a finished note from its ⋯ menu to tidy the list without deleting it."]
           : filter === "templates"
-            ? ["No templates yet", "Open a note and choose “Save as template” in its ⋯ menu."]
+            ? ["No templates yet", "Save any note as a template from its ⋯ menu, or start with a ready-made set."]
             : ["No notes yet", "Your first one is a tap away."];
   return (
     <div className="ursa-fade-in flex flex-1 flex-col items-center justify-center gap-3 px-6 pb-10 text-center">
@@ -862,6 +867,12 @@ function EmptyState({
         <p className="text-[0.88rem] font-semibold tracking-tight text-ink">{title}</p>
         <p className="text-[0.76rem] text-ink-faint">{hint}</p>
       </div>
+      {filter === "templates" && !searching && !colored && (
+        <Button size="sm" onClick={onAddStarters}>
+          <PlusIcon />
+          Add starter templates
+        </Button>
+      )}
       {filter !== "trash" && filter !== "archive" && filter !== "templates" && !searching && !colored && (
         <Button size="sm" onClick={onCreate}>
           <PlusIcon />

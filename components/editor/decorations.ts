@@ -242,6 +242,47 @@ class CalloutWidget extends WidgetType {
   }
 }
 
+class CopyCodeWidget extends WidgetType {
+  constructor(readonly code: string) {
+    super();
+  }
+
+  eq(other: CopyCodeWidget): boolean {
+    return other.code === this.code;
+  }
+
+  toDOM(): HTMLElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ursa-code-copy";
+    button.textContent = "Copy";
+    button.setAttribute("aria-label", "Copy code");
+    button.addEventListener("mousedown", (event) => event.preventDefault());
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      void navigator.clipboard.writeText(this.code).then(
+        () => {
+          button.textContent = "Copied";
+          button.classList.add("ursa-code-copied");
+          setTimeout(() => {
+            button.textContent = "Copy";
+            button.classList.remove("ursa-code-copied");
+          }, 1400);
+        },
+        () => {
+          button.textContent = "Couldn’t copy";
+        },
+      );
+    });
+    return button;
+  }
+
+  ignoreEvent(): boolean {
+    return true;
+  }
+}
+
 class LangWidget extends WidgetType {
   constructor(readonly lang: string) {
     super();
@@ -371,6 +412,16 @@ function buildDecorations(view: EditorView): DecorationSet {
               seenLines.add(key);
               ranges.push(
                 Decoration.line({ class: classes.join(" ") }).range(doc.line(number).from),
+              );
+            }
+            // A Copy button in the block's top corner (PRD §4.71).
+            const code = node.node
+              .getChildren("CodeText")
+              .map((child) => doc.sliceString(child.from, child.to))
+              .join("\n");
+            if (code.trim()) {
+              ranges.push(
+                Decoration.widget({ widget: new CopyCodeWidget(code), side: 1 }).range(doc.line(first).to),
               );
             }
             return;

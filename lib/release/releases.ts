@@ -18,6 +18,17 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.58.0",
+    date: "2026-10-04",
+    title: "Copy code, typewriter scrolling, Vim keys, starter templates",
+    changes: [
+      "Code blocks have a Copy button in the corner.",
+      "Typewriter scrolling keeps the line you're typing in the middle of the screen (Settings).",
+      "Vim keys, for those who want them (Settings).",
+      "Templates → Add starter templates gives you Meeting notes, Weekly review, Packing list, Recipe, Journal, Project plan and a Daily note to start from.",
+    ],
+  },
+  {
     version: "1.57.1",
     date: "2026-10-04",
     title: "Locked notes ask every time",
