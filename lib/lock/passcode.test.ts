@@ -21,19 +21,37 @@ describe("unlock cookie", () => {
   it("is valid until it expires", async () => {
     const stored = await hashPasscode("2468");
     const now = 1_000_000;
-    const token = unlockToken(stored, SECRET, now);
-    expect(validUnlock(token, stored, SECRET, now + 1000)).toBe(true);
-    expect(validUnlock(token, stored, SECRET, now + UNLOCK_MINUTES * 60_000 + 1)).toBe(false);
+    const token = unlockToken(stored, SECRET, "all", now);
+    expect(validUnlock(token, stored, SECRET, undefined, now + 1000)).toBe(true);
+    expect(validUnlock(token, stored, SECRET, undefined, now + UNLOCK_MINUTES * 60_000 + 1)).toBe(false);
   });
 
   it("dies when the passcode changes, or the token is tampered with", async () => {
     const stored = await hashPasscode("2468");
-    const token = unlockToken(stored, SECRET);
+    const token = unlockToken(stored, SECRET, "all");
     expect(validUnlock(token, await hashPasscode("2468"), SECRET)).toBe(false);
-    const [expiry, print, sig] = token.split(".");
-    expect(validUnlock(`${Number(expiry) + 999999}.${print}.${sig}`, stored, SECRET)).toBe(false);
+    const [expiry, scope, print, sig] = token.split(".");
+    expect(validUnlock(`${Number(expiry) + 999999}.${scope}.${print}.${sig}`, stored, SECRET)).toBe(false);
     expect(validUnlock(token, stored, "y".repeat(40))).toBe(false);
     expect(validUnlock(undefined, stored, SECRET)).toBe(false);
     expect(validUnlock(token, null, SECRET)).toBe(false);
   });
 });
+
+describe("unlock scope (PRD R69.7)", () => {
+  it("opens only the note it was made for", async () => {
+    const stored = await hashPasscode("2468");
+    const token = unlockToken(stored, SECRET, "cmnoteaaaa1111");
+    expect(validUnlock(token, stored, SECRET, "cmnoteaaaa1111")).toBe(true);
+    expect(validUnlock(token, stored, SECRET, "cmnotebbbb2222")).toBe(false);
+    // Not enough for "everything" (export).
+    expect(validUnlock(token, stored, SECRET)).toBe(false);
+  });
+
+  it("cannot be widened by editing the scope", async () => {
+    const stored = await hashPasscode("2468");
+    const [expiry, , print, sig] = unlockToken(stored, SECRET, "cmnoteaaaa1111").split(".");
+    expect(validUnlock(`${expiry}.all.${print}.${sig}`, stored, SECRET)).toBe(false);
+  });
+});
+

@@ -6,7 +6,7 @@ import { isUnlocked } from "@/lib/lock/state";
 
 /** A locked note's earlier text is as private as its current text (PRD §4.69). */
 async function lockedOut(id: string): Promise<Response | null> {
-  if ((await isNoteLocked(id)) && !(await isUnlocked())) {
+  if ((await isNoteLocked(id)) && !(await isUnlocked(id))) {
     return NextResponse.json({ error: "This note is locked. Unlock it first." }, { status: 423 });
   }
   return null;

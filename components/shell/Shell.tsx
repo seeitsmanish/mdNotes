@@ -29,7 +29,7 @@ import { CommandPalette, type Command } from "./CommandPalette";
 import type { LabelPatch } from "./EditorPane";
 import type { BulkAction } from "./NoteList";
 import { ShareLinkDialog } from "./ShareLinkDialog";
-import { PasscodeDialog } from "./LockDialog";
+import { PasscodeDialog, UnlockAllDialog } from "./LockDialog";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { HistoryDialog } from "./HistoryDialog";
 import { createGate } from "@/lib/async/gate";
@@ -156,7 +156,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
   const [shareLinkOpen, setShareLinkOpen] = useState(false);
   // Note-lock passcode dialog (PRD §4.69); `then` runs once a passcode is set.
-  const [passcodeDialog, setPasscodeDialog] = useState<{ changing: boolean; then?: () => void } | null>(null);
+  const [passcodeDialog, setPasscodeDialog] = useState<{ changing: boolean; scope?: string; then?: () => void } | null>(null);
+  const [unlockAllOpen, setUnlockAllOpen] = useState(false);
   const hapticsOn = useUiStore((state) => state.haptics);
   useEffect(() => setHapticsEnabled(hapticsOn), [hapticsOn]);
 
@@ -625,7 +626,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           const status = await api.lockStatus();
           if (!status.configured) {
             // First lock: choose the passcode, then lock.
-            setPasscodeDialog({ changing: false, then: () => void setLabelsRef.current(target, patch) });
+            setPasscodeDialog({ changing: false, scope: target.id, then: () => void setLabelsRef.current(target, patch) });
             return;
           }
         }
@@ -654,6 +655,42 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   );
   const setLabelsRef = useRef(setLabels);
   setLabelsRef.current = setLabels;
+
+  /**
+   * Lock a note again once its last edit has saved (PRD R69.7). Waiting
+   * matters: locking first would refuse the save still on its way.
+   */
+  const relockWhenSaved = useCallback(async (id: string) => {
+    const deadline = Date.now() + 20_000;
+    while (unsavedBodyRef.current(id) !== undefined && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    await api.lockAction({ action: "lock", scope: id }).catch(() => undefined);
+  }, []);
+
+  // Leaving an unlocked locked note locks it; so does switching away from the
+  // app, with the note sealed for when you come back.
+  const openLocked = useRef<string | null>(null);
+  useEffect(() => {
+    const previous = openLocked.current;
+    if (previous && previous !== selectedNoteId) void relockWhenSaved(previous);
+    openLocked.current = null;
+  }, [selectedNoteId, relockWhenSaved]);
+  useEffect(() => {
+    openLocked.current = note && note.locked && !note.sealed ? note.id : null;
+  }, [note]);
+  useEffect(() => {
+    const onVisibility = () => {
+      const id = openLocked.current;
+      if (document.visibilityState !== "hidden" || !id) return;
+      flush();
+      void relockWhenSaved(id).then(() => {
+        if (useUiStore.getState().selectedNoteId === id) setNoteReload((n) => n + 1);
+      });
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [flush, relockWhenSaved]);
 
   /** Lock every note again now (PRD §4.69); the open one is sealed straight away. */
   const lockNow = useCallback(async () => {
@@ -859,10 +896,32 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     link.remove();
   }, []);
 
-  const exportAll = useCallback(() => {
-    download("/api/export", "ursa-notes.zip");
+  const startExport = useCallback(() => {
+    download("/api/export", "mdnotes.zip");
     toast("Export started — check your downloads.");
+    // An unlock for exporting opens every note: end it once the export is under way.
+    setTimeout(() => void api.lockAction({ action: "lock", scope: "all" }).catch(() => undefined), 5000);
   }, [download]);
+
+  /** Locked notes need the passcode before a full export (PRD R69.7). */
+  const exportAll = useCallback(async () => {
+    try {
+      const status = await api.lockStatus();
+      if (status.lockedNotes > 0 && !status.unlocked) {
+        setUnlockAllOpen(true);
+        return;
+      }
+    } catch {
+      // Unknown: let the export itself answer.
+    }
+    startExport();
+  }, [startExport]);
+
+  useEffect(() => {
+    const onExport = () => void exportAll();
+    window.addEventListener("ursa:export", onExport);
+    return () => window.removeEventListener("ursa:export", onExport);
+  }, [exportAll]);
 
   const exportCurrent = useCallback(() => {
     if (!note) return;
@@ -1271,7 +1330,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         run: toggleFocusMode,
       },
       { id: "appearance", label: "Appearance…", run: () => setSettingsOpen(true) },
-      { id: "export-all", label: "Export all notes (.zip)", run: exportAll },
+      { id: "export-all", label: "Export all notes (.zip)", run: () => void exportAll() },
       { id: "shortcuts", label: "Keyboard shortcuts", hint: "⌘/", run: () => setShortcutsOpen(true) },
       { id: "outline", label: "Toggle outline", hint: "⌘⇧O", run: toggleOutline },
       { id: "focus-dim", label: "Toggle focus dimming (fade other paragraphs)", run: () => useUiStore.getState().toggleFocusDim() },
@@ -1502,6 +1561,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       <PasscodeDialog
         open={passcodeDialog !== null}
         changing={passcodeDialog?.changing ?? false}
+        scope={passcodeDialog?.scope}
         onOpenChange={(open) => !open && setPasscodeDialog(null)}
         onDone={() => {
           const then = passcodeDialog?.then;
@@ -1510,6 +1570,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           then?.();
         }}
       />
+
+      <UnlockAllDialog open={unlockAllOpen} onOpenChange={setUnlockAllOpen} onUnlocked={() => startExport()} />
 
       <ShareLinkDialog
         noteId={note?.id ?? null}

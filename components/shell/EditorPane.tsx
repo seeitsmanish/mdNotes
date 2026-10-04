@@ -350,7 +350,7 @@ export function EditorPane({
         }
       >
         {note?.sealed ? (
-          <LockedPanel title={displayTitle(note.title)} onUnlocked={onUnlocked} />
+          <LockedPanel title={displayTitle(note.title)} scope={note.id} onUnlocked={onUnlocked} />
         ) : note ? (
           <Editor
             noteId={note.id}

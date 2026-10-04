@@ -362,14 +362,8 @@ export function SettingsPanel() {
         variant="ghost"
         size="sm"
         className="justify-start px-2"
-        onClick={() => {
-          const link = document.createElement("a");
-          link.href = "/api/export";
-          link.download = "ursa-notes.zip";
-          document.body.append(link);
-          link.click();
-          link.remove();
-        }}
+        // The shell owns exporting: locked notes need the passcode first (PRD R69.7).
+        onClick={() => window.dispatchEvent(new Event("ursa:export"))}
       >
         <DownloadIcon />
         Export all notes

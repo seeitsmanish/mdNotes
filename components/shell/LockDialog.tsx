@@ -13,12 +13,15 @@ import * as api from "@/lib/api";
 export function PasscodeDialog({
   open,
   changing,
+  scope,
   onOpenChange,
   onDone,
 }: {
   open: boolean;
   /** A passcode exists already: ask for it first. */
   changing: boolean;
+  /** The note being locked, kept open here once the passcode is set. */
+  scope?: string;
   onOpenChange: (open: boolean) => void;
   onDone: () => void;
 }) {
@@ -43,7 +46,7 @@ export function PasscodeDialog({
     setBusy(true);
     setError(null);
     try {
-      await api.lockAction({ action: "setup", passcode: next, ...(changing ? { current } : {}) });
+      await api.lockAction({ action: "setup", passcode: next, ...(changing ? { current } : {}), ...(scope ? { scope } : {}) });
       onOpenChange(false);
       onDone();
     } catch (failure) {
@@ -109,7 +112,18 @@ export function PasscodeDialog({
 }
 
 /** Shown in place of a locked note's text until it is unlocked (PRD §4.69). */
-export function LockedPanel({ title, onUnlocked }: { title: string; onUnlocked: () => void }) {
+export function LockedPanel({
+  title,
+  scope,
+  note = "This note is locked.",
+  onUnlocked,
+}: {
+  title: string;
+  /** The note to unlock, or "all" to export everything. */
+  scope: string;
+  note?: string;
+  onUnlocked: () => void;
+}) {
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -125,7 +139,7 @@ export function LockedPanel({ title, onUnlocked }: { title: string; onUnlocked: 
     setBusy(true);
     setError(null);
     try {
-      await api.lockAction({ action: "unlock", passcode });
+      await api.lockAction({ action: "unlock", passcode, scope });
       setPasscode("");
       onUnlocked();
     } catch (failure) {
@@ -144,7 +158,7 @@ export function LockedPanel({ title, onUnlocked }: { title: string; onUnlocked: 
       </span>
       <div className="flex flex-col gap-1">
         <p className="text-[1rem] font-semibold tracking-tight text-ink" data-ursa-private="">{title}</p>
-        <p className="text-[0.82rem] text-ink-faint">This note is locked.</p>
+        <p className="text-[0.82rem] text-ink-faint">{note}</p>
       </div>
       <form onSubmit={submit} className="flex w-full max-w-xs flex-col gap-2">
         <input
@@ -163,8 +177,42 @@ export function LockedPanel({ title, onUnlocked }: { title: string; onUnlocked: 
           {busy && <Loader2Icon className="animate-spin" />}
           Unlock
         </Button>
-        <p className="text-[0.72rem] text-ink-faint">Unlocked notes lock again after 15 minutes.</p>
+        <p className="text-[0.72rem] text-ink-faint">It locks again when you leave it, switch apps, or after 15 minutes.</p>
       </form>
     </div>
   );
 }
+
+/** Asks for the passcode before exporting everything while notes are locked (PRD R69.7). */
+export function UnlockAllDialog({
+  open,
+  onOpenChange,
+  onUnlocked,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onUnlocked: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Unlock to export</DialogTitle>
+          <DialogDescription>Enter the note passcode to include locked notes in the export.</DialogDescription>
+        </DialogHeader>
+        <div className="h-80">
+          <LockedPanel
+            title="Export all notes"
+            scope="all"
+            note="Some notes are locked. Enter the passcode to include them."
+            onUnlocked={() => {
+              onOpenChange(false);
+              onUnlocked();
+            }}
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+

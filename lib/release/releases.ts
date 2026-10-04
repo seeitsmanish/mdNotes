@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.57.1",
+    date: "2026-10-04",
+    title: "Locked notes ask every time",
+    changes: [
+      "Fixed: opening a locked note didn't always ask for the passcode. Unlocking now opens just that note, and it locks again as soon as you leave it or switch apps.",
+      "Exporting all notes asks for the passcode when some are locked.",
+    ],
+  },
+  {
     version: "1.57.0",
     date: "2026-10-04",
     title: "Drag to reorder",

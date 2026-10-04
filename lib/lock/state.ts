@@ -1,17 +1,17 @@
 import { cookies } from "next/headers";
 import { getLockHash } from "@/lib/db/settings";
 import type { NoteDetail } from "@/lib/types";
-import { UNLOCK_COOKIE, UNLOCK_MINUTES, unlockToken, validUnlock } from "./passcode";
+import { UNLOCK_COOKIE, UNLOCK_MINUTES, unlockedScope, unlockToken, validUnlock } from "./passcode";
 
 /**
  * Whether this request may read locked notes (PRD §4.69): a valid, unexpired
  * unlock cookie for the current passcode.
  */
-export async function isUnlocked(): Promise<boolean> {
+export async function isUnlocked(noteId?: string): Promise<boolean> {
   const secret = process.env.AUTH_SECRET;
   if (!secret) return false;
   const [hash, jar] = await Promise.all([getLockHash(), cookies()]);
-  return validUnlock(jar.get(UNLOCK_COOKIE)?.value, hash, secret);
+  return validUnlock(jar.get(UNLOCK_COOKIE)?.value, hash, secret, noteId);
 }
 
 /** A locked note as the client may see it while locked: title and labels, never text. */
@@ -22,7 +22,7 @@ export function seal(note: NoteDetail): NoteDetail {
 /** Seal the note unless this request is unlocked. Unlocked is checked once, lazily. */
 export async function sealUnlessUnlocked(note: NoteDetail): Promise<NoteDetail> {
   if (!note.locked) return note;
-  return (await isUnlocked()) ? note : seal(note);
+  return (await isUnlocked(note.id)) ? note : seal(note);
 }
 
 /** Header that keeps a locked note's response out of the offline cache (public/sw.js). */
@@ -35,9 +35,11 @@ export const SENSITIVE_HEADER = "x-ursa-sensitive";
  */
 export async function extendUnlock(): Promise<void> {
   const secret = process.env.AUTH_SECRET;
-  const hash = await getLockHash();
+  const [hash, jar] = await Promise.all([getLockHash(), cookies()]);
   if (!secret || !hash) return;
-  (await cookies()).set(UNLOCK_COOKIE, unlockToken(hash, secret), {
+  const scope = unlockedScope(jar.get(UNLOCK_COOKIE)?.value, hash, secret);
+  if (!scope) return;
+  jar.set(UNLOCK_COOKIE, unlockToken(hash, secret, scope), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",

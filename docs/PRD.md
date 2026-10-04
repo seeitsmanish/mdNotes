@@ -1541,7 +1541,7 @@ note's text needs a second secret.
   the settings API now returns appearance columns by name only, so neither
   this nor the session epoch can reach a browser. It cannot be recovered;
   changing it needs the current one.
-- R69.2 Unlocking sets a 15-minute httpOnly, SameSite=Strict cookie, HMAC-
+- R69.2 (Scoped per note since R69.7.) Unlocking sets a 15-minute httpOnly, SameSite=Strict cookie, HMAC-
   signed over its expiry and a fingerprint of the passcode hash — changing
   the passcode ends every unlock. Writing to a locked note restarts the 15
   minutes, so a long edit is never cut off. ⌘K "Lock locked notes now" ends
@@ -1559,6 +1559,15 @@ note's text needs a second secret.
 - R69.5 Locking a note leaves it open on this device until the unlock runs
   out or "Lock now"; returning to the app after that seals the open note.
   Pin, archive, colour and template labels work without unlocking.
+- R69.7 *(v1.57.1)* Reported: "clicking on a locked note doesn't ask for
+  the password". One unlock opened every locked note for 15 minutes, and
+  setting the passcode unlocked too. Now an unlock is scoped to one note (the
+  note id is in the signed cookie, so it cannot be widened), and the note
+  locks again when you leave it — once its last edit has saved, so the save
+  is never refused — or when the app goes to the background. Opening a
+  locked note always asks. Exporting everything asks for the passcode with
+  an "all" scope, which ends 5 seconds after the export starts. Locking a
+  different note never ends another note's unlock.
 - R69.6 Not end-to-end encryption: the text is stored as before, and anyone
   with the database could read it. The lock protects against the device,
   not the server.

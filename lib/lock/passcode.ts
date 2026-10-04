@@ -39,19 +39,45 @@ function fingerprint(stored: string): string {
   return createHmac("sha256", "ursa-lock").update(stored).digest("base64url").slice(0, 16);
 }
 
-export function unlockToken(stored: string, secret: string, now = Date.now()): string {
-  const payload = `${now + UNLOCK_MINUTES * 60_000}.${fingerprint(stored)}`;
+/**
+ * What an unlock opens: one note (its id), or "all" — only for exporting
+ * everything. Unlocking one note never opens another (PRD R69.7).
+ */
+export type UnlockScope = string;
+const SCOPE = /^(all|[a-z0-9]{8,40})$/;
+
+export function validScope(scope: unknown): scope is UnlockScope {
+  return typeof scope === "string" && SCOPE.test(scope);
+}
+
+export function unlockToken(stored: string, secret: string, scope: UnlockScope, now = Date.now()): string {
+  const payload = `${now + UNLOCK_MINUTES * 60_000}.${scope}.${fingerprint(stored)}`;
   return `${payload}.${sign(payload, secret)}`;
 }
 
-export function validUnlock(token: string | undefined, stored: string | null, secret: string, now = Date.now()): boolean {
-  if (!token || !stored) return false;
+/** The scope a valid, unexpired token opens, or null. */
+export function unlockedScope(token: string | undefined, stored: string | null, secret: string, now = Date.now()): UnlockScope | null {
+  if (!token || !stored) return null;
   const parts = token.split(".");
-  if (parts.length !== 3) return false;
-  const [expiry, print, signature] = parts as [string, string, string];
-  const expected = sign(`${expiry}.${print}`, secret);
+  if (parts.length !== 4) return null;
+  const [expiry, scope, print, signature] = parts as [string, string, string, string];
+  const expected = sign(`${expiry}.${scope}.${print}`, secret);
   const a = Buffer.from(signature);
   const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
-  return Number(expiry) > now && print === fingerprint(stored);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  if (!(Number(expiry) > now) || print !== fingerprint(stored) || !validScope(scope)) return null;
+  return scope;
+}
+
+/** Whether the token opens `noteId` (or, with no id, everything). */
+export function validUnlock(
+  token: string | undefined,
+  stored: string | null,
+  secret: string,
+  noteId?: string,
+  now = Date.now(),
+): boolean {
+  const scope = unlockedScope(token, stored, secret, now);
+  if (scope === null) return false;
+  return scope === "all" || (noteId !== undefined && scope === noteId);
 }

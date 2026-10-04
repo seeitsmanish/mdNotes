@@ -140,12 +140,15 @@ export function restoreRevision(noteId: string, revisionId: string): Promise<{ n
 }
 
 /** Note-lock passcode state (PRD §4.69). */
-export function lockStatus(): Promise<{ configured: boolean; unlocked: boolean }> {
+export function lockStatus(): Promise<{ configured: boolean; unlocked: boolean; lockedNotes: number }> {
   return request("/api/lock");
 }
 
 export function lockAction(
-  body: { action: "setup"; passcode: string; current?: string } | { action: "unlock"; passcode: string } | { action: "lock" },
+  body:
+    | { action: "setup"; passcode: string; current?: string; scope?: string }
+    | { action: "unlock"; passcode: string; scope: string }
+    | { action: "lock"; scope?: string },
 ): Promise<{ configured?: boolean; unlocked: boolean }> {
   return request("/api/lock", { method: "POST", body: JSON.stringify(body) });
 }

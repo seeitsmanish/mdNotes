@@ -19,7 +19,7 @@ async function handleGET(_request: Request, { params }: Params) {
   const { id } = await params;
   const note = await getNote(id);
   if (!note) return NextResponse.json({ error: "No such note." }, { status: 404 });
-  const shown = note.locked && !(await isUnlocked()) ? seal(note) : note;
+  const shown = note.locked && !(await isUnlocked(id)) ? seal(note) : note;
   return respond({ note: shown }, [note]);
 }
 
@@ -38,7 +38,7 @@ async function handlePATCH(request: Request, { params }: Params) {
 
   // Writing a locked note's text, or taking its lock off, needs it unlocked;
   // locking needs a passcode to exist. Labels like pin need neither.
-  const unlocked = await isUnlocked();
+  const unlocked = await isUnlocked(id);
   const wasLocked = await isNoteLocked(id);
   if (wasLocked && !unlocked && (parsed.patch.body !== undefined || parsed.patch.locked === false)) {
     return NextResponse.json({ error: "This note is locked. Unlock it first." }, { status: 423 });
