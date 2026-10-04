@@ -162,3 +162,30 @@ describe("wiki-links", () => {
     expect(textOf("[[A]]", "WikiLinkMark")).toEqual(["[[", "]]"]);
   });
 });
+
+describe("||spoiler||", () => {
+  const cases: Array<[input: string, spoilers: string[], note: string]> = [
+    ["||answer||", ["||answer||"], "a spoiler"],
+    ["The capital is ||Paris||.", ["||Paris||"], "mid-line, before punctuation"],
+    ["||two words||", ["||two words||"], "spaces inside are fine"],
+    ["||a|| and ||b||", ["||a||", "||b||"], "two on one line"],
+    ["a || b", [], "a spaced logical-or is not a spoiler"],
+    ["x ||y", [], "an opener with no closer"],
+    ["|||triple|||", [], "three pipes open nothing"],
+    ["`||code||`", [], "inside inline code stays literal"],
+  ];
+
+  for (const [input, spoilers, note] of cases) {
+    it(`${JSON.stringify(input)} → [${spoilers.join(", ")}] — ${note}`, () => {
+      expect(textOf(input, "Spoiler")).toEqual(spoilers);
+    });
+  }
+
+  it("marks its delimiters so they can hide off the caret line", () => {
+    expect(textOf("||x||", "SpoilerMark")).toEqual(["||", "||"]);
+  });
+
+  it("nests other markup inside", () => {
+    expect(nodeNames("||**bold** answer||")).toEqual(expect.arrayContaining(["Spoiler", "StrongEmphasis"]));
+  });
+});

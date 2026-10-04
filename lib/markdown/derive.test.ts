@@ -59,3 +59,11 @@ describe("displayTitle", () => {
     expect(displayTitle("Groceries")).toBe("Groceries");
   });
 });
+
+describe("spoilers in derived text", () => {
+  it("never shows a spoiler's answer in the title or excerpt", () => {
+    const body = "Capital of France? ||Paris||\n\nThe answer is ||Paris|| too.";
+    expect(deriveTitle(body)).toBe("Capital of France? ▒▒▒");
+    expect(deriveExcerpt(body)).not.toContain("Paris");
+  });
+});

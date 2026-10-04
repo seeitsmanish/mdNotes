@@ -26,6 +26,29 @@ function wrap(delim: string): Command {
         };
       }
 
+      // Also toggle off when the delimiters sit just outside the selection —
+      // which is where wrapping leaves it, so a second press undoes the first.
+      // A longer run is a different marker (`*` inside `**bold**`), not ours.
+      const before = view.state.sliceDoc(range.from - delim.length, range.from);
+      const after = view.state.sliceDoc(range.to, range.to + delim.length);
+      const beyond = view.state.sliceDoc(range.from - delim.length - 1, range.from - delim.length);
+      const past = view.state.sliceDoc(range.to + delim.length, range.to + delim.length + 1);
+      if (
+        !range.empty &&
+        before === delim &&
+        after === delim &&
+        beyond !== delim[0] &&
+        past !== delim[0]
+      ) {
+        return {
+          changes: [
+            { from: range.from - delim.length, to: range.from },
+            { from: range.to, to: range.to + delim.length },
+          ],
+          range: EditorSelection.range(range.from - delim.length, range.to - delim.length),
+        };
+      }
+
       const insert = `${delim}${selected}${delim}`;
       return {
         changes: { from: range.from, to: range.to, insert },
@@ -46,6 +69,7 @@ function wrap(delim: string): Command {
 export const toggleBold = wrap("**");
 export const toggleItalic = wrap("*");
 export const toggleHighlight = wrap("::");
+export const toggleSpoiler = wrap("||");
 export const toggleInlineCode = wrap("`");
 export const toggleStrike = wrap("~~");
 
@@ -202,6 +226,7 @@ export const ursaKeymap: KeyBinding[] = [
   { key: "Mod-b", run: toggleBold, preventDefault: true },
   { key: "Mod-i", run: toggleItalic, preventDefault: true },
   { key: "Mod-Shift-h", run: toggleHighlight, preventDefault: true },
+  { key: "Mod-Shift-e", run: toggleSpoiler, preventDefault: true },
   { key: "Mod-Shift-c", run: toggleInlineCode, preventDefault: true },
   { key: "Mod-Shift-x", run: toggleStrike, preventDefault: true },
   // ⌘K belongs to the command palette; the editor must not also claim it.

@@ -13,9 +13,11 @@ export const ursaTags = {
   highlight: Tag.define(),
   tag: Tag.define(),
   wikiLink: Tag.define(),
+  spoiler: Tag.define(),
 };
 
 const COLON = 58;
+const PIPE = 124;
 const SLASH = 47;
 const HASH = 35;
 const OPEN_BRACKET = 91;
@@ -81,6 +83,40 @@ const Highlight: MarkdownConfig = {
         const canClose = !isBoundary(before);
         if (!canOpen && !canClose) return -1;
         return cx.addDelimiter(HighlightDelimiter, pos, pos + 2, canOpen, canClose);
+      },
+    },
+  ],
+};
+
+/**
+ * `||spoiler||` — text that stays hidden until its line is being edited
+ * (PRD §4.21). The building block for study mode: a question with its answer
+ * behind a spoiler is already a flashcard.
+ *
+ * Same flanking rule as highlight, which keeps `a || b` (spaced) from opening
+ * one. Inside a GFM table `|` splits cells first, so spoilers do not work in
+ * table cells — accepted, since a table is the wrong place to hide an answer.
+ */
+const SpoilerDelimiter: DelimiterType = { resolve: "Spoiler", mark: "SpoilerMark" };
+
+const Spoiler: MarkdownConfig = {
+  defineNodes: [
+    { name: "Spoiler", style: { "Spoiler/...": ursaTags.spoiler } },
+    { name: "SpoilerMark", style: t.processingInstruction },
+  ],
+  parseInline: [
+    {
+      name: "Spoiler",
+      after: "Emphasis",
+      parse(cx, next, pos) {
+        if (next !== PIPE || cx.char(pos + 1) !== PIPE || cx.char(pos + 2) === PIPE) return -1;
+        if (charBefore(cx, pos) === PIPE) return -1;
+        const before = charBefore(cx, pos);
+        const after = cx.char(pos + 2);
+        const canOpen = !isBoundary(after);
+        const canClose = !isBoundary(before);
+        if (!canOpen && !canClose) return -1;
+        return cx.addDelimiter(SpoilerDelimiter, pos, pos + 2, canOpen, canClose);
       },
     },
   ],
@@ -220,4 +256,4 @@ const WikiLink: MarkdownConfig = {
   ],
 };
 
-export const BearMarkup: MarkdownConfig[] = [Highlight, SlashEmphasis, BearTag, WikiLink];
+export const BearMarkup: MarkdownConfig[] = [Highlight, Spoiler, SlashEmphasis, BearTag, WikiLink];

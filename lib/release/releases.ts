@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.24.0",
+    date: "2026-10-04",
+    title: "Spoilers",
+    changes: [
+      "Wrap text in ||double bars|| to hide it — the answer to a question, say. It shows blurred until you tap its line, and hides again when you move on.",
+      "⌘⇧E hides the selected text, and pressing it again shows it. Note titles and previews in the list show ▒▒▒ instead, so an answer never leaks there.",
+      "Pressing bold, italic or highlight a second time now removes it, as you would expect, instead of adding another layer.",
+    ],
+  },
+  {
     version: "1.23.2",
     date: "2026-10-03",
     title: "Easier to read",
