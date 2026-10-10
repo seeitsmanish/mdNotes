@@ -1771,3 +1771,19 @@ table and `Settings.trashDays`.
   more than 30 days ago are deleted for good on the same visit check, and the
   list refreshes if any went. Restoring before then keeps a note.
 
+
+### 4.78 Bullet points read as points
+
+Asked for by the owner: a point should sit in from the prose, a long point
+should hold together, and the next point should start visibly apart.
+
+- R78.1 Every list item (`-`, `*`, `+`, numbered, to-do) is set in 0.75em
+  from the paragraph edge. Nested items keep their own indent on top.
+- R78.2 An item's wrapped lines are spaced at 1.5 line height, closer than
+  a paragraph's 1.75, so one point reads as one block.
+- R78.3 Each item has a 0.3em gap above it, so where one point ends and the
+  next begins is visible even when both wrap. The gap is padding, because
+  CodeMirror cannot measure margins on lines.
+- R78.4 Shared pages use the same spacing for their lists.
+- Not done: no change to the markdown itself. Spacing is display only, so
+  exports and other apps see exactly what was typed.

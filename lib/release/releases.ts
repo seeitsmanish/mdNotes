@@ -18,6 +18,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.66.0",
+    date: "2026-10-10",
+    title: "Tidier bullet points",
+    changes: [
+      "Bullet and numbered points sit in a little from the text around them.",
+      "A long point keeps its lines closer together, and each new point starts with a small gap, so it is easy to see where one ends and the next begins.",
+    ],
+  },
+  {
     version: "1.65.1",
     date: "2026-10-04",
     title: "Security fixes",

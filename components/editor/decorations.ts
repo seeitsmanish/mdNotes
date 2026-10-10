@@ -351,18 +351,20 @@ function buildDecorations(view: EditorView): DecorationSet {
           case "ListItem": {
             // Wrapped lines continue under the item's text, not under its
             // number. Descends afterwards so the marker is still styled.
+            // `ursa-li` sets the item's own spacing: indented from the
+            // prose, its wrapped lines closer together than paragraphs, a
+            // small gap above each item (PRD §4.78).
             const line = doc.lineAt(node.from);
             const prefix = hangingPrefix(line.text);
-            if (prefix) {
-              const px = prefixWidth(view, prefix.text, prefix.extraEm).toFixed(2);
-              ranges.push(
-                Decoration.line({
-                  attributes: {
-                    style: `padding-left: calc(var(--line-pad) + ${px}px); text-indent: -${px}px`,
-                  },
-                }).range(line.from),
-              );
-            }
+            const px = prefix ? prefixWidth(view, prefix.text, prefix.extraEm).toFixed(2) : "0";
+            ranges.push(
+              Decoration.line({
+                class: "ursa-li",
+                attributes: {
+                  style: `padding-left: calc(var(--line-pad) + var(--list-indent) + ${px}px); text-indent: -${px}px`,
+                },
+              }).range(line.from),
+            );
             break;
           }
 

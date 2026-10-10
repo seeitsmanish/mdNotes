@@ -64,7 +64,7 @@ const SHARED_CSS = `
 .ursa-shared-body ul,.ursa-shared-body ol { margin:0 0 1rem; padding-left:1.5rem; }
 .ursa-shared-body ul { list-style:disc; }
 .ursa-shared-body ol { list-style:decimal; }
-.ursa-shared-body li { margin:.2rem 0; }
+.ursa-shared-body li { margin:.3em 0; line-height:1.5; }
 .ursa-shared-body strong { font-weight:700; }
 .ursa-shared-body em { font-style:italic; }
 .ursa-shared-body mark { background:#ffe58a; color:#1d2127; padding:0 .15em; border-radius:3px; }

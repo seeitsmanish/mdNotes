@@ -762,6 +762,18 @@ input[type="search"]::-webkit-search-cancel-button {
   color: var(--brand);
 }
 
+/* A list item (PRD §4.78): set in a little from the prose, its wrapped lines
+   packed closer than a paragraph's, and a small gap above each item, so the
+   eye finds where one point ends and the next begins. The gap is padding,
+   not margin: CodeMirror measures line heights and cannot see margins. */
+.cm-editor {
+  --list-indent: 0.75em;
+}
+.cm-editor .cm-line.ursa-li {
+  line-height: 1.5;
+  padding-top: 0.3em;
+}
+
 .ursa-todo-done {
   color: var(--ink-faint);
   text-decoration: line-through;
