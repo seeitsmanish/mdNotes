@@ -49,3 +49,30 @@ export function findMatches(body: string, query: string, cap = 500): Range[] {
   }
   return merged;
 }
+
+/**
+ * Find in note (PRD §4.79): every place the query occurs as typed, one phrase
+ * rather than separate words, ignoring case and accents like search does.
+ * Non-overlapping, in order, capped for huge notes.
+ */
+export function findPhrase(body: string, query: string, cap = 1000): Range[] {
+  if (query.trim().length === 0) return [];
+  const needle = foldChars(query);
+  const haystack = foldChars(body);
+  const ranges: Range[] = [];
+  let from = 0;
+  while (ranges.length < cap) {
+    const at = haystack.indexOf(needle, from);
+    if (at === -1) break;
+    ranges.push({ from: at, to: at + needle.length });
+    from = at + needle.length;
+  }
+  return ranges;
+}
+
+/** The match to land on: the first starting at or after `pos`, wrapping to the first. */
+export function matchFrom(ranges: Range[], pos: number): number {
+  if (ranges.length === 0) return -1;
+  const at = ranges.findIndex((range) => range.from >= pos);
+  return at === -1 ? 0 : at;
+}

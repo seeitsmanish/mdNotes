@@ -30,7 +30,9 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "Getting around",
     shortcuts: [
       { keys: "⌘K", label: "Command palette" },
-      { keys: "⌘F", label: "Search notes" },
+      { keys: "⌘F", label: "Find in this note (search notes from the list)" },
+      { keys: "⌘⇧F", label: "Search all notes" },
+      { keys: "⏎ / ⇧⏎", label: "Next or previous match while finding" },
       { keys: "⌘1", label: "Focus the note list" },
       { keys: "⌘2", label: "Focus the editor" },
       { keys: "↑ ↓", label: "Move through the list" },

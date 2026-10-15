@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import {
   BookOpenIcon,
@@ -28,6 +28,7 @@ import {
   RotateCcwIcon,
   ShareIcon,
   Trash2Icon,
+  TextSearchIcon,
 } from "lucide-react";
 import { Illustration } from "@/components/brand/Illustration";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Editor, type EditorStats, measure } from "@/components/editor/Editor";
 import { FormatBar } from "@/components/editor/FormatBar";
+import { openFind } from "@/components/editor/findInNote";
 import type { SaveStatus } from "@/components/editor/useAutosave";
 import { relativeTime } from "@/lib/time";
 import { LockedPanel } from "./LockDialog";
@@ -157,11 +159,37 @@ export function EditorPane({
   const typewriterMode = useUiStore((s) => s.typewriterMode);
 
   const inTrash = note?.deletedAt != null;
+  const sectionRef = useRef<HTMLElement>(null);
+  const canFind = note !== null && !note.sealed && view !== null;
+  const onFind = () => {
+    if (view) openFind(view);
+  };
+
+  // ⌘F with a note open but the caret not in it (after a click on the page,
+  // say) still finds in the note, unless focus is elsewhere — the list's
+  // search keeps ⌘F there (§4.79). Inside the text, the editor's own keymap
+  // handles it.
+  useEffect(() => {
+    if (!canFind || !view) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.shiftKey || event.altKey) return;
+      if (event.key.toLowerCase() !== "f" || event.defaultPrevented) return;
+      const active = document.activeElement;
+      if (active && view.dom.contains(active)) return;
+      const idle = !active || active === document.body;
+      if (!idle && !sectionRef.current?.contains(active)) return;
+      event.preventDefault();
+      openFind(view);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [canFind, view]);
+
   const measureRem = EDITOR_WIDTHS.find((o) => o.value === editorWidth)?.rem ?? 44;
   const padRem = EDITOR_PADDINGS.find((o) => o.value === editorPadding)?.rem ?? 3;
 
   return (
-    <section className="relative flex h-full min-w-0 flex-col bg-canvas">
+    <section ref={sectionRef} className="relative flex h-full min-w-0 flex-col bg-canvas">
       <header className="flex h-11 flex-none items-center gap-0.5 border-b border-border px-2">
         <Button
           variant="ghost"
@@ -240,6 +268,7 @@ export function EditorPane({
               onDownload={onDownload}
               readingMode={readingMode}
               onToggleReading={toggleReadingMode}
+              onFind={canFind ? onFind : undefined}
             />
             <Separator orientation="vertical" className="mx-1 !h-4" />
           </div>
@@ -284,6 +313,7 @@ export function EditorPane({
               onDownload={onDownload}
               readingMode={readingMode}
               onToggleReading={toggleReadingMode}
+              onFind={canFind ? onFind : undefined}
             />
           </div>
         )}
@@ -450,6 +480,7 @@ function NoteMenu({
   onDownload,
   readingMode,
   onToggleReading,
+  onFind,
 }: {
   compact?: boolean;
   inTrash: boolean;
@@ -470,6 +501,8 @@ function NoteMenu({
   onDownload: () => void;
   readingMode: boolean;
   onToggleReading: () => void;
+  /** Find in note (§4.79); absent while the note's text is not shown. */
+  onFind?: () => void;
 }) {
   const busy = trashing || duplicating;
   return (
@@ -482,6 +515,15 @@ function NoteMenu({
         }
       />
       <DropdownMenuContent align="end" className="min-w-52">
+        {onFind && (
+          <>
+            <DropdownMenuItem onClick={onFind}>
+              <TextSearchIcon />
+              Find in note
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         {compact && (
           <>
             <DropdownMenuItem onClick={onHistory}>

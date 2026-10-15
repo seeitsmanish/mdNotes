@@ -203,7 +203,9 @@ export function NoteList({
   // Search stays reachable from the keyboard even while it is collapsed.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "f") {
+      // ⌘F inside a note is the note's own find bar (§4.79); ⌘⇧F is always this.
+      if (event.defaultPrevented) return;
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
         event.preventDefault();
         setSearchOpen(true);
         requestAnimationFrame(() => {

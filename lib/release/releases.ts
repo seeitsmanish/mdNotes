@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.67.0",
+    date: "2026-10-15",
+    title: "Find in note",
+    changes: [
+      "Press ⌘F (Ctrl+F) in a note to find a word or phrase in it. Every match is marked; Enter and Shift+Enter move between them.",
+      "On a phone, it is Find in note in the note's ⋯ menu.",
+      "⌘⇧F searches all your notes.",
+    ],
+  },
+  {
     version: "1.66.0",
     date: "2026-10-10",
     title: "Tidier bullet points",

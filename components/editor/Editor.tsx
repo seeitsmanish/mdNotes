@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
+import { findInNote } from "./findInNote";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
@@ -182,6 +183,8 @@ function buildState(
     doc: body,
     extensions: [
       typewriterSlot.of(typewriter(modes.typewriterMode)),
+      // Before the other keymaps: ⌘F and Escape belong to the find bar (§4.79).
+      findInNote,
       history(),
       // markdownKeymap first: it owns Enter, so lists and quotes continue onto
       // the next line instead of dropping their marker.

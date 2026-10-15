@@ -1787,3 +1787,20 @@ should hold together, and the next point should start visibly apart.
 - R78.4 Shared pages use the same spacing for their lists.
 - Not done: no change to the markdown itself. Spacing is display only, so
   exports and other apps see exactly what was typed.
+
+### 4.79 Find in note
+
+Search finds notes; this finds a word or phrase inside the open one.
+
+- R79.1 ⌘F (Ctrl+F) with a note open opens a bar above it. From the note
+  list's search box, ⌘F stays there; ⌘⇧F always searches all notes. On a
+  phone it is "Find in note" in the note's ⋯ menu.
+- R79.2 It finds the phrase as typed, ignoring case and accents like search.
+  Every match is marked, the current one more strongly, with "3 of 12".
+- R79.3 Enter / ⇧Enter (or the arrows, or ⌘G / ⌘⇧G) step through matches,
+  wrapping round. A match inside a folded section unfolds it.
+- R79.4 Typing lands on the first match from the caret. Text selected when
+  the bar opens becomes the query.
+- R79.5 Matches follow edits while the bar is open. Escape closes it and
+  puts the caret back in the text, on the current match.
+- Not done: replace. Owner asked for find only.
