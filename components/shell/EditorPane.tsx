@@ -29,6 +29,9 @@ import {
   ShareIcon,
   Trash2Icon,
   TextSearchIcon,
+  Columns2Icon,
+  Rows2Icon,
+  XIcon,
 } from "lucide-react";
 import { Illustration } from "@/components/brand/Illustration";
 import { Button } from "@/components/ui/button";
@@ -319,6 +322,7 @@ export function EditorPane({
         )}
 
         <div className="hidden @[900px]:contents">
+          <SplitMenu />
           <IconAction
             icon={ListTreeIcon}
             label={outlineOpen ? "Hide outline (⌘⇧O)" : "Show outline (⌘⇧O)"}
@@ -678,5 +682,60 @@ function Shortcut({ keys, label }: { keys: string; label: string }) {
         </kbd>
       </dd>
     </div>
+  );
+}
+
+/**
+ * Split view (PRD §4.80): a second note beside this one, or below it. Each
+ * side has its own tabs; notes open in the side last clicked.
+ */
+function SplitMenu() {
+  const split = useUiStore((s) => s.split);
+  const openSplit = useUiStore((s) => s.openSplit);
+  const closeSplit = useUiStore((s) => s.closeSplit);
+  return (
+    <DropdownMenu>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Split view"
+                  aria-pressed={split !== null}
+                  className={split ? "bg-brand-soft text-brand" : "text-ink-soft"}
+                >
+                  {split?.dir === "down" ? <Rows2Icon /> : <Columns2Icon />}
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Split view (⌘\)</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent align="end" className="min-w-48">
+        <DropdownMenuItem onClick={() => openSplit("right")}>
+          <Columns2Icon />
+          Split right
+          <span className="ml-auto text-[0.7rem] text-ink-faint">⌘\</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openSplit("down")}>
+          <Rows2Icon />
+          Split down
+          <span className="ml-auto text-[0.7rem] text-ink-faint">⌘⇧\</span>
+        </DropdownMenuItem>
+        {split && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={closeSplit}>
+              <XIcon />
+              Close split
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

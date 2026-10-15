@@ -18,6 +18,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.68.0",
+    date: "2026-10-15",
+    title: "Tabs and split view",
+    changes: [
+      "Middle-click a note, or its new-tab button, to open it in a new tab. Tabs show once you have two.",
+      "Press ⌘\\ to put a second note beside the first, or ⌘⇧\\ to put it below. ⌥-click a note to open it there. Drag the line between them to resize.",
+      "Each side has its own tabs, and notes open on the side you last clicked.",
+    ],
+  },
+  {
     version: "1.67.0",
     date: "2026-10-15",
     title: "Find in note",

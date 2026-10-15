@@ -42,6 +42,8 @@ import { ClockProvider } from "./ClockProvider";
 import { EditorPane } from "./EditorPane";
 import { NoteList } from "./NoteList";
 import { PaneDivider } from "./PaneDivider";
+import { SplitPane } from "./SplitPane";
+import { TabStrip } from "./TabStrip";
 
 /**
  * Two-pane shell: note list and editor. Owns the fetched data and the keyboard
@@ -87,6 +89,20 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   const selectNote = useUiStore((state) => state.selectNote);
   const mobilePane = useUiStore((state) => state.mobilePane);
   const setMobilePane = useUiStore((state) => state.setMobilePane);
+  // Tabs and split view (PRD §4.80).
+  const mainTabs = useUiStore((state) => state.mainTabs);
+  const split = useUiStore((state) => state.split);
+  const focusedPane = useUiStore((state) => state.focusedPane);
+  const splitAvailable = useUiStore((state) => state.splitAvailable);
+  const openNote = useUiStore((state) => state.openNote);
+  const closeTab = useUiStore((state) => state.closeTab);
+  const closeEverywhere = useUiStore((state) => state.closeEverywhere);
+  const reorderTab = useUiStore((state) => state.reorderTab);
+  const openSplit = useUiStore((state) => state.openSplit);
+  const closeSplit = useUiStore((state) => state.closeSplit);
+  const setFocusedPane = useUiStore((state) => state.setFocusedPane);
+  const setSplitRatio = useUiStore((state) => state.setSplitRatio);
+  const setSplitAvailable = useUiStore((state) => state.setSplitAvailable);
   const listWidth = useUiStore((state) => state.listWidth);
   const setListWidth = useUiStore((state) => state.setListWidth);
   const focusMode = useUiStore((state) => state.focusMode);
@@ -416,6 +432,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
     // Replacing the body resets the editor to the current text.
     liveBody.current.set(id, current.body);
+    if (useUiStore.getState().split?.tabs.active === id) setSplitReload((n) => n + 1);
     setNote((prev) => (prev && prev.id === id ? current : prev));
     setNotes((prev) => [
       toListItem(copy),
@@ -496,7 +513,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     try {
       await api.deleteNoteForever(id);
       setNotes((prev) => prev.filter((row) => row.id !== id));
-      if (useUiStore.getState().selectedNoteId === id) selectNote(null);
+      useUiStore.getState().closeEverywhere(id);
     } catch {
       // A failed cleanup is harmless — the note stays as an empty row.
     }
@@ -563,6 +580,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   // note only to have it become a conflicted copy is the wrong first moment.
   const resync = useCallback(async () => {
     await refreshList().catch(() => undefined);
+    // The second pane fetches again too; text not yet saved here still wins.
+    if (useUiStore.getState().split?.tabs.active) setSplitReload((n) => n + 1);
     const id = useUiStore.getState().selectedNoteId;
     if (!id) return;
     let loaded: NoteDetail;
@@ -614,7 +633,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   // --- actions -------------------------------------------------------------
 
   const createNote = useCallback(
-    () =>
+    (options?: { newTab?: boolean; pane?: "main" | "split" }) =>
       // Gated: pressing New again while the first is on its way made a note
       // per press.
       gate.run("create", async () => {
@@ -626,10 +645,13 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
         if (filter === "trash") setFilter("all");
         setNotes((prev) => [toListItem(created), ...prev]);
-        setNote(created);
-        selectNote(created.id);
+        // Into the pane being worked in (§4.80); the main pane's note is set
+        // straight away only if it went there, or it would show in both.
+        if (options) openNote(created.id, options);
+        else selectNote(created.id);
+        if (useUiStore.getState().selectedNoteId === created.id) setNote(created);
       }),
-    [discardFreshIfEmpty, filter, flush, gate, selectNote, setFilter],
+    [discardFreshIfEmpty, filter, flush, gate, openNote, selectNote, setFilter],
   );
 
   const togglePin = useCallback(
@@ -759,25 +781,117 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       gate.run(`trash:${target.id}`, async () => {
         flush();
         await api.trashNote(target.id);
-        if (useUiStore.getState().selectedNoteId === target.id) selectNote(null);
+        // Its tabs close in both panes; the main pane shows the next tab (§4.80).
+        closeEverywhere(target.id);
         await refreshList();
         toast(`“${displayTitle(target.title)}” moved to trash.`, {
           action: { label: "Undo", onClick: () => void restore(target) },
         });
       }),
-    [flush, gate, refreshList, restore, selectNote],
+    [closeEverywhere, flush, gate, refreshList, restore],
   );
 
   const deleteForever = useCallback(
     (target: NoteListItem | NoteDetail) =>
       gate.run(`delete:${target.id}`, async () => {
         await api.deleteNoteForever(target.id);
-        if (useUiStore.getState().selectedNoteId === target.id) selectNote(null);
+        closeEverywhere(target.id);
         await refreshList();
         toast(`“${displayTitle(target.title)}” deleted permanently.`);
       }),
-    [gate, refreshList, selectNote],
+    [closeEverywhere, gate, refreshList],
   );
+
+  // --- tabs and split view (PRD §4.80) ---------------------------------------
+
+  // Tabs and a split need the width of a laptop; a phone shows one note.
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 900px)");
+    const apply = () => setSplitAvailable(query.matches);
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, [setSplitAvailable]);
+
+  const [splitReload, setSplitReload] = useState(0);
+
+  /** Titles of notes opened in a tab, for tabs whose note the list is not showing. */
+  const seen = useRef(new Map<string, { title: string; locked: boolean }>());
+  const remember = (item: { id: string; title: string; locked?: boolean }) =>
+    seen.current.set(item.id, { title: item.title, locked: Boolean(item.locked) });
+  if (note) remember(note);
+  const rowsById = useMemo(() => new Map(notes.map((row) => [row.id, row])), [notes]);
+  const titleOf = useCallback(
+    (id: string) => displayTitle(rowsById.get(id)?.title ?? seen.current.get(id)?.title ?? ""),
+    [rowsById],
+  );
+  const lockedOf = useCallback(
+    (id: string) => Boolean(rowsById.get(id)?.locked ?? seen.current.get(id)?.locked),
+    [rowsById],
+  );
+
+  /** The second pane's fetch: the same rules as the main pane's (R18.2). */
+  const loadForSplit = useCallback(async (id: string, signal: AbortSignal) => {
+    const loaded = await api.fetchNote(id, signal).then(
+      (result) => result.note,
+      async (error: unknown) => {
+        if (signal.aborted) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        return (await api.fetchNote(id, signal)).note;
+      },
+    );
+    seen.current.set(loaded.id, { title: loaded.title, locked: loaded.locked });
+    const local = unsavedBodyRef.current(loaded.id);
+    if (local === undefined || !versions.current.has(loaded.id)) versions.current.set(loaded.id, loaded.version);
+    const adopted = local === undefined ? loaded : { ...loaded, body: local };
+    liveBody.current.set(adopted.id, adopted.body);
+    return adopted;
+  }, []);
+
+  /** Open a note in a new tab of the pane being worked in, or in the split. */
+  const openIn = useCallback(
+    (id: string, where: "tab" | "split") => {
+      flush();
+      const state = useUiStore.getState();
+      if (where === "tab") {
+        openNote(id, { newTab: true });
+        return;
+      }
+      if (state.split?.tabs.ids.includes(id)) {
+        openNote(id, { pane: "split" });
+        return;
+      }
+      if (!state.split) openSplit("right");
+      // One note, one place: a tab in the main pane moves across.
+      if (state.mainTabs.includes(id)) closeTab("main", id);
+      openNote(id, { pane: "split", newTab: true });
+    },
+    [closeTab, flush, openNote, openSplit],
+  );
+
+  const toggleSplit = useCallback(
+    (dir: "right" | "down" = "right") => {
+      const state = useUiStore.getState();
+      if (!state.splitAvailable) return;
+      if (state.split && state.split.dir === dir) closeSplit();
+      else openSplit(dir);
+    },
+    [closeSplit, openSplit],
+  );
+
+  const showSplit = splitAvailable && split !== null;
+  const splitHostRef = useRef<HTMLDivElement>(null);
+  /** What an empty second pane offers: the main pane's other tabs, then recent notes. */
+  const splitSuggestions = useMemo(() => {
+    if (!split || split.tabs.active) return [];
+    const taken = new Set([selectedNoteId, ...split.tabs.ids]);
+    const ids = [...mainTabs, ...recentIds].filter((id, index, all) => !taken.has(id) && all.indexOf(id) === index);
+    return ids
+      .filter((id) => !lockedOf(id))
+      .slice(0, 6)
+      .map((id) => ({ id, title: rowsById.get(id)?.title ?? seen.current.get(id)?.title ?? "" }));
+  }, [split, selectedNoteId, mainTabs, recentIds, lockedOf, rowsById]);
+  const showMainTabs = splitAvailable && (mainTabs.length > 1 || showSplit);
 
   const onSelectNote = useCallback(
     (id: string) => {
@@ -1368,6 +1482,14 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
     return [
       { id: "new", label: "New note", hint: "⌘N", run: () => void createNote() },
+      ...(splitAvailable
+        ? [
+            { id: "split-right", label: "Split right", hint: "⌘\\", run: () => openSplit("right") },
+            { id: "split-down", label: "Split down", run: () => openSplit("down") },
+            ...(split ? [{ id: "split-close", label: "Close split", run: closeSplit }] : []),
+            ...(note ? [{ id: "tab-close", label: "Close tab", run: () => closeTab("main", note.id) }] : []),
+          ]
+        : []),
       { id: "today", label: "Open today’s note", run: () => void openToday() },
       { id: "capture", label: "Quick note to Inbox", hint: "⌘⇧Space", run: () => setCaptureOpen(true) },
       ...templates.map((template) => ({
@@ -1468,7 +1590,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         : []),
       ...themeCommands,
     ];
-  }, [addStarterTemplates, lockNow, openToday, templates, newFromTemplate, setLabels, setFilter, confirmEmptyTrash, copyHtml, exportPdf, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [split, splitAvailable, openSplit, closeSplit, closeTab, addStarterTemplates, lockNow, openToday, templates, newFromTemplate, setLabels, setFilter, confirmEmptyTrash, copyHtml, exportPdf, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1479,6 +1601,13 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         case "k":
           event.preventDefault();
           setPaletteOpen(!useUiStore.getState().paletteOpen);
+          return;
+        case "\\":
+        case "|":
+          // ⌘\ splits right, pressed again it closes; ⌘⇧\ splits down
+          // (§4.80). With Shift held the key reads as "|" on most layouts.
+          event.preventDefault();
+          toggleSplit(event.shiftKey ? "down" : "right");
           return;
         case "o":
           if (event.shiftKey) {
@@ -1550,7 +1679,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [createNote, focusPane, note, setPaletteOpen, setShortcutsOpen, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [createNote, focusPane, note, setPaletteOpen, setShortcutsOpen, toggleFocusMode, toggleOutline, togglePin, toggleSplit, trash]);
 
   // --- layout --------------------------------------------------------------
   // Container queries, not viewport media queries, so the shell stays correct
@@ -1583,6 +1712,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           onRestore={(target) => void restore(target)}
           onDeleteForever={(target) => void deleteForever(target)}
           onRowAction={rowAction}
+          onOpenIn={splitAvailable ? openIn : undefined}
           canShare={canShare}
           onCreate={() => void createNote()}
           onEmptyTrash={confirmEmptyTrash}
@@ -1618,40 +1748,98 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           mobilePane === "editor" ? "flex" : "hidden"
         } min-w-0 flex-1 @[900px]:flex @[900px]:min-w-[420px]`}
       >
-        <div className="min-w-0 flex-1">
-          <EditorPane
-            note={note}
-            saveStatus={status}
-            onChange={onBodyChange}
-            onBlur={() => {
-              flush();
-              void discardFreshIfEmpty();
-            }}
-            onWikiLink={(title) => void openWikiLink(title)}
-            onTogglePin={() => note && void togglePin(note)}
-            onTrash={() => note && void trash(note)}
-            onRestore={() => note && void restore(note)}
-            onBack={backToList}
-            onOpenNote={onSelectNote}
-            pending={pending}
-            loading={noteLoading}
-            onHistory={openHistory}
-            onCreate={() => void createNote()}
-            onDuplicate={() => void duplicateNote()}
-            onCopy={() => void copyMarkdown()}
-            onCopyHtml={() => void copyHtml()}
-            onPdf={exportPdf}
-            onLabels={(patch) => note && void setLabels(note, patch)}
-            onUseTemplate={() => note && void newFromTemplate(note)}
-            onShareLink={() => setShareLinkOpen(true)}
-            onUnlocked={() => setNoteReload((n) => n + 1)}
-            onShare={canShare ? () => void shareNote() : undefined}
-            onDownload={exportCurrent}
-            onTag={searchTag}
-            loadError={noteError}
-            onRetry={() => setNoteReload((n) => n + 1)}
-            highlight={debouncedQuery}
-          />
+        <div
+          ref={splitHostRef}
+          className={`flex min-h-0 min-w-0 flex-1 ${showSplit && split?.dir === "down" ? "flex-col" : "flex-row"}`}
+        >
+          <div
+            className="flex min-h-0 min-w-0 flex-col"
+            style={{ flex: showSplit && split ? `${split.ratio} 1 0` : "1 1 0" }}
+            onPointerDownCapture={() => setFocusedPane("main")}
+            onFocusCapture={() => setFocusedPane("main")}
+          >
+            {showMainTabs && (
+              <TabStrip
+                label="Open notes"
+                ids={mainTabs}
+                active={selectedNoteId}
+                focused={showSplit && focusedPane === "main"}
+                titleOf={titleOf}
+                lockedOf={lockedOf}
+                onSelect={onSelectNote}
+                onClose={(id) => {
+                  flush();
+                  closeTab("main", id);
+                }}
+                onReorder={(id, to) => reorderTab("main", id, to)}
+                onNew={() => void createNote({ newTab: true, pane: "main" })}
+              />
+            )}
+            <div className="min-h-0 min-w-0 flex-1">
+                <EditorPane
+                  note={note}
+                  saveStatus={status}
+                  onChange={onBodyChange}
+                  onBlur={() => {
+                    flush();
+                    void discardFreshIfEmpty();
+                  }}
+                  onWikiLink={(title) => void openWikiLink(title)}
+                  onTogglePin={() => note && void togglePin(note)}
+                  onTrash={() => note && void trash(note)}
+                  onRestore={() => note && void restore(note)}
+                  onBack={backToList}
+                  onOpenNote={onSelectNote}
+                  pending={pending}
+                  loading={noteLoading}
+                  onHistory={openHistory}
+                  onCreate={() => void createNote()}
+                  onDuplicate={() => void duplicateNote()}
+                  onCopy={() => void copyMarkdown()}
+                  onCopyHtml={() => void copyHtml()}
+                  onPdf={exportPdf}
+                  onLabels={(patch) => note && void setLabels(note, patch)}
+                  onUseTemplate={() => note && void newFromTemplate(note)}
+                  onShareLink={() => setShareLinkOpen(true)}
+                  onUnlocked={() => setNoteReload((n) => n + 1)}
+                  onShare={canShare ? () => void shareNote() : undefined}
+                  onDownload={exportCurrent}
+                  onTag={searchTag}
+                  loadError={noteError}
+                  onRetry={() => setNoteReload((n) => n + 1)}
+                  highlight={debouncedQuery}
+                />
+            </div>
+          </div>
+          {showSplit && split && (
+            <>
+              <SplitDivider
+                dir={split.dir}
+                ratio={split.ratio}
+                host={splitHostRef}
+                onChange={setSplitRatio}
+              />
+              <div
+                className="flex min-h-0 min-w-0 flex-col"
+                style={{ flex: `${1 - split.ratio} 1 0` }}
+                onPointerDownCapture={() => setFocusedPane("split")}
+                onFocusCapture={() => setFocusedPane("split")}
+              >
+                <SplitPane
+                  load={loadForSplit}
+                  onChange={onBodyChange}
+                  onBlur={flush}
+                  onWikiLink={(title) => void openWikiLink(title)}
+                  onTag={searchTag}
+                  titleOf={titleOf}
+                  lockedOf={lockedOf}
+                  suggestions={splitSuggestions}
+                  onNew={() => void createNote({ newTab: true, pane: "split" })}
+                  reloadSignal={splitReload}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1729,4 +1917,66 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 function toListItem(note: NoteDetail): NoteListItem {
   const { body: _body, createdAt: _createdAt, ...row } = note;
   return row;
+}
+
+/**
+ * The line between the two note panes (PRD §4.80): drag it, or focus it and
+ * use the arrow keys. Double-click puts it back in the middle.
+ */
+function SplitDivider({
+  dir,
+  ratio,
+  host,
+  onChange,
+}: {
+  dir: "right" | "down";
+  ratio: number;
+  host: React.RefObject<HTMLDivElement | null>;
+  onChange: (ratio: number) => void;
+}) {
+  const across = dir === "right";
+  return (
+    <div
+      role="separator"
+      aria-orientation={across ? "vertical" : "horizontal"}
+      aria-label="Resize the two notes"
+      aria-valuemin={20}
+      aria-valuemax={80}
+      aria-valuenow={Math.round(ratio * 100)}
+      tabIndex={0}
+      data-ursa-split-divider=""
+      onPointerDown={(event) => {
+        const box = host.current?.getBoundingClientRect();
+        if (!box) return;
+        event.preventDefault();
+        const target = event.currentTarget;
+        target.setPointerCapture(event.pointerId);
+        const move = (e: PointerEvent) =>
+          onChange(across ? (e.clientX - box.left) / box.width : (e.clientY - box.top) / box.height);
+        const up = () => {
+          target.removeEventListener("pointermove", move);
+          target.removeEventListener("pointerup", up);
+          target.removeEventListener("pointercancel", up);
+        };
+        target.addEventListener("pointermove", move);
+        target.addEventListener("pointerup", up);
+        target.addEventListener("pointercancel", up);
+      }}
+      onDoubleClick={() => onChange(0.5)}
+      onKeyDown={(event) => {
+        const back = across ? "ArrowLeft" : "ArrowUp";
+        const forward = across ? "ArrowRight" : "ArrowDown";
+        if (event.key === back || event.key === forward) {
+          event.preventDefault();
+          onChange(ratio + (event.key === forward ? 0.05 : -0.05));
+        }
+      }}
+      className={`group relative flex-none bg-border outline-none focus-visible:bg-brand ${
+        across ? "w-px cursor-col-resize" : "h-px cursor-row-resize"
+      }`}
+    >
+      {/* A wider grab area than the 1px line it draws. */}
+      <span aria-hidden className={`absolute ${across ? "inset-y-0 -inset-x-1.5" : "inset-x-0 -inset-y-1.5"} z-10 group-hover:bg-brand/30`} />
+    </div>
+  );
 }

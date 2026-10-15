@@ -27,6 +27,8 @@ import {
   SquarePenIcon,
   Trash2Icon,
   XIcon,
+  AppWindowIcon,
+  Columns2Icon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,6 +89,8 @@ interface NoteListProps {
   onDeleteForever: (note: NoteListItem) => void;
   /** The swipe menu's actions on any row (PRD §4.52). */
   onRowAction: (note: NoteListItem, kind: "copy" | "share" | "duplicate") => void;
+  /** Open in a new tab or in the split (§4.80); absent where there is no room for either. */
+  onOpenIn?: (id: string, where: "tab" | "split") => void;
   canShare: boolean;
   /** Gated actions in flight, by key (PRD §4.25). */
   pending: ReadonlySet<string>;
@@ -122,6 +126,7 @@ export function NoteList({
   onRestore,
   onDeleteForever,
   onRowAction,
+  onOpenIn,
   canShare,
   pending,
   searchSignal = 0,
@@ -551,11 +556,26 @@ export function NoteList({
                         press.current = null;
                         return;
                       }
+                      // ⌥-click opens beside the open note (§4.80).
+                      if (onOpenIn && event.altKey && !picked) {
+                        onOpenIn(note.id, "split");
+                        return;
+                      }
                       if (picked || event.shiftKey || event.metaKey || event.ctrlKey) {
                         togglePick(note.id);
                         return;
                       }
                       onSelect(note.id);
+                    }}
+                    onAuxClick={(event) => {
+                      // Middle-click: a new tab, as in a browser (§4.80).
+                      if (event.button !== 1 || !onOpenIn || picked) return;
+                      event.preventDefault();
+                      onOpenIn(note.id, "tab");
+                    }}
+                    onMouseDown={(event) => {
+                      // Stops the browser's middle-click autoscroll from starting.
+                      if (event.button === 1 && onOpenIn) event.preventDefault();
                     }}
                     onPointerDown={(event) => {
                       if (event.pointerType === "mouse" || picked) return;
@@ -674,6 +694,22 @@ export function NoteList({
                     </>
                   ) : (
                     <>
+                      {onOpenIn && (
+                        <>
+                          <RowAction
+                            icon={AppWindowIcon}
+                            label="Open in new tab (middle-click)"
+                            onClick={() => onOpenIn(note.id, "tab")}
+                            pending={false}
+                          />
+                          <RowAction
+                            icon={Columns2Icon}
+                            label="Open beside (⌥-click)"
+                            onClick={() => onOpenIn(note.id, "split")}
+                            pending={false}
+                          />
+                        </>
+                      )}
                       <RowAction
                         icon={note.pinned ? PinOffIcon : PinIcon}
                         label={note.pinned ? "Unpin" : "Pin"}

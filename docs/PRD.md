@@ -1804,3 +1804,36 @@ Search finds notes; this finds a word or phrase inside the open one.
 - R79.5 Matches follow edits while the bar is open. Escape closes it and
   puts the caret back in the text, on the current match.
 - Not done: replace. Owner asked for find only.
+
+### 4.80 Tabs and split view
+
+Asked for by the owner: several notes open at once, and two side by side.
+
+- R80.1 Tabs. A click on a note opens it in the shown tab, as before, so one
+  note is one tab and nothing changes until you ask for more. Middle-click a
+  row, or its "Open in new tab" button, for a new tab. The strip appears once
+  there are two tabs: click to show, × or middle-click to close, drag to
+  reorder, + for a new note in a new tab, arrow keys between tabs.
+- R80.2 Split view. ⌘\ (or the split button above the note) puts a second
+  pane on the right; ⌘⇧\ puts it below. ⌘\ again closes it. The divider
+  drags between 20% and 80%, takes arrow keys, and resets on double-click.
+  ⌥-click a row, or its "Open beside" button, to open a note in the split.
+- R80.3 Each pane has its own tabs. Notes open in the pane last clicked or
+  typed in; its shown tab is marked with the brand colour.
+- R80.4 One note is open in one place only. Two editors on the same text
+  would each save over the other, so opening a note that already has a tab
+  goes to that tab, in whichever pane it is; moving one to the split takes
+  it out of the main pane's tabs.
+- R80.5 The split pane edits like the main one: the same autosave, versions,
+  conflict copies and device outbox, and it fetches again on coming back.
+  Note actions (history, share, lock, trash) stay with the main pane, and a
+  locked note opens only there, where it can be unlocked and re-locks when
+  left. "Move to the main pane" sends a split note there in a new tab.
+- R80.6 Closing the split keeps its tabs, added to the main pane's. Trashing
+  or deleting a note closes its tabs in both panes.
+- R80.7 Tab titles and the split's suggestions blur with the list when
+  titles are hidden for screen sharing.
+- R80.8 Desktop only: below 900px there is room for one note, so phones
+  work as before.
+- Not done: tabs and the split are not kept across a reload, matching how
+  the open note is not either (selection is per visit).
