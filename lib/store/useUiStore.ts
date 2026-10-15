@@ -20,7 +20,8 @@ const guardedStorage = createJSONStorage(() => ({
   removeItem: (key: string) => localStorage.removeItem(key),
 }));
 import type { NoteFilter } from "@/lib/types";
-import { closeTab, EMPTY_TABS, mergeTabs, moveTab, openTab, type TabSet } from "@/lib/tabs/tabs";
+import * as W from "@/lib/workbench/workbench";
+import type { Side } from "@/lib/workbench/layout";
 import type { NoteColor } from "@/lib/notes/colors";
 
 /**
@@ -102,27 +103,18 @@ export const LIST_BOUNDS = { min: 260, max: 520 } as const;
 /** Which pane the narrow layout is showing. */
 export type MobilePane = "list" | "editor";
 
-/** The second note pane (PRD §4.80): beside the first, or below it. */
-export interface SplitState {
-  dir: "right" | "down";
-  tabs: TabSet;
-  /** The first pane's share of the space, 0.2–0.8. */
-  ratio: number;
-}
-
-export type NotePane = "main" | "split";
 
 interface UiState {
   filter: NoteFilter;
   query: string;
   selectedNoteId: string | null;
   mobilePane: MobilePane;
-  /** Notes open as tabs in the main pane; the shown one is selectedNoteId (§4.80). */
-  mainTabs: string[];
-  split: SplitState | null;
-  /** The pane notes open into: the one last clicked or typed in. */
-  focusedPane: NotePane;
-  /** Wide enough for tabs and a split; set by the shell. Phones show one note. */
+  /**
+   * Editor groups and their tabs (PRD §4.81). On a wide screen the note shown
+   * in the active group is selectedNoteId; a phone shows only that note.
+   */
+  wb: W.Workbench;
+  /** Wide enough for tabs and groups; set by the shell. */
   splitAvailable: boolean;
 
   listWidth: number;
@@ -164,16 +156,10 @@ interface UiState {
   setFilter: (filter: NoteFilter) => void;
   setQuery: (query: string) => void;
   selectNote: (id: string | null) => void;
-  /** Open a note in the focused pane: in its tab if it has one, else in a new tab or the shown one. */
-  openNote: (id: string, options?: { newTab?: boolean; pane?: NotePane }) => void;
-  closeTab: (pane: NotePane, id: string) => void;
-  /** A note trashed or deleted: its tabs go, in both panes. */
-  closeEverywhere: (id: string) => void;
-  reorderTab: (pane: NotePane, id: string, to: number) => void;
-  openSplit: (dir: "right" | "down") => void;
-  closeSplit: () => void;
-  setFocusedPane: (pane: NotePane) => void;
-  setSplitRatio: (ratio: number) => void;
+  /** Open a note in the active group (or `group`, or a new group on `side`). */
+  openNote: (id: string, options?: { group?: string; side?: Side; preview?: boolean; index?: number }) => void;
+  /** Apply any workbench action (lib/workbench/workbench.ts). */
+  workbench: (action: (wb: W.Workbench) => W.Workbench) => void;
   setSplitAvailable: (available: boolean) => void;
   setMobilePane: (pane: MobilePane) => void;
   setListWidth: (width: number) => void;
@@ -207,47 +193,19 @@ interface UiState {
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, Math.round(value)));
 
-type TabFields = Pick<UiState, "selectedNoteId" | "mobilePane" | "mainTabs" | "split" | "focusedPane" | "splitAvailable">;
-
 /**
- * Nothing shown in the main pane (a filter changed, back to the list). A lone
- * tab goes with it, so the next note replaces it rather than opening a second
- * tab; with several, they stay to come back to.
+ * A new workbench, and on a wide screen the note its active group shows as
+ * the selection. On a phone the selection is whatever was last opened, and
+ * going back to the list clears it without touching the tabs.
  */
-const clearMain = (state: TabFields): Partial<TabFields> => ({
-  selectedNoteId: null,
-  mobilePane: "list",
-  mainTabs: state.mainTabs.length <= 1 ? [] : state.mainTabs,
-});
-
-const mainSet = (state: TabFields): TabSet => ({ ids: state.mainTabs, active: state.selectedNoteId });
-
-/** The main pane showing `tabs`, as store fields. */
-const showMain = (tabs: TabSet): Partial<TabFields> => ({
-  mainTabs: tabs.ids,
-  selectedNoteId: tabs.active,
-  mobilePane: tabs.active ? "editor" : "list",
-});
-
-/**
- * Where a note opens (PRD §4.80): its own tab if it has one in either pane,
- * else the pane asked for, else the focused one. Without room for a split,
- * everything is the main pane.
- */
-function route(state: TabFields, id: string, newTab: boolean, pane?: NotePane): Partial<TabFields> {
-  const split = state.splitAvailable ? state.split : null;
-  if (split?.tabs.ids.includes(id)) {
-    return { split: { ...split, tabs: { ...split.tabs, active: id } }, focusedPane: "split" };
+function commit(state: Pick<UiState, "splitAvailable">, wb: W.Workbench, opened?: string) {
+  if (state.splitAvailable) {
+    const shown = W.shownNote(wb);
+    return { wb, selectedNoteId: shown, ...(shown ? { mobilePane: "editor" as const } : {}) };
   }
-  if (state.mainTabs.includes(id) || !split) {
-    return { ...showMain(openTab(mainSet(state), id, newTab)), focusedPane: "main" };
-  }
-  const target = pane ?? state.focusedPane;
-  if (target === "split") {
-    return { split: { ...split, tabs: openTab(split.tabs, id, newTab) }, focusedPane: "split" };
-  }
-  return { ...showMain(openTab(mainSet(state), id, newTab)), focusedPane: "main" };
+  return { wb, ...(opened ? { selectedNoteId: opened, mobilePane: "editor" as const } : {}) };
 }
+
 
 export const useUiStore = create<UiState>()(
   persist(
@@ -256,9 +214,7 @@ export const useUiStore = create<UiState>()(
       query: "",
       selectedNoteId: null,
       mobilePane: "list",
-      mainTabs: [],
-      split: null,
-      focusedPane: "main",
+      wb: W.initialWorkbench(),
       splitAvailable: false,
 
       listWidth: 320,
@@ -287,46 +243,24 @@ export const useUiStore = create<UiState>()(
       radius: 0.625,
       headingMode: "theme",
 
-      setFilter: (filter) => set((state) => ({ filter, ...clearMain(state) })),
+      // On a phone a new filter shows the list; on a wide screen the open notes stay open.
+      setFilter: (filter) =>
+        set((state) => (state.splitAvailable ? { filter } : { filter, selectedNoteId: null, mobilePane: "list" })),
       setQuery: (query) => set({ query }),
       selectNote: (id) =>
-        set((state) => (id ? route(state, id, false) : clearMain(state))),
-      openNote: (id, options) => set((state) => route(state, id, options?.newTab ?? false, options?.pane)),
-      closeTab: (pane, id) =>
         set((state) => {
-          if (pane === "main") return showMain(closeTab(mainSet(state), id));
-          if (!state.split) return {};
-          return { split: { ...state.split, tabs: closeTab(state.split.tabs, id) } };
+          if (id) return commit(state, W.openNote(state.wb, id), id);
+          // Back to the list (a phone). On a wide screen the groups stay as they are.
+          return state.splitAvailable ? {} : { selectedNoteId: null, mobilePane: "list" };
         }),
-      closeEverywhere: (id) =>
-        set((state) => ({
-          ...showMain(closeTab(mainSet(state), id)),
-          ...(state.split ? { split: { ...state.split, tabs: closeTab(state.split.tabs, id) } } : {}),
-        })),
-      reorderTab: (pane, id, to) =>
-        set((state) => {
-          if (pane === "main") return { mainTabs: moveTab(mainSet(state), id, to).ids };
-          if (!state.split) return {};
-          return { split: { ...state.split, tabs: moveTab(state.split.tabs, id, to) } };
-        }),
-      openSplit: (dir) =>
-        set((state) => ({
-          split: state.split ? { ...state.split, dir } : { dir, tabs: EMPTY_TABS, ratio: 0.5 },
-          focusedPane: "split",
-        })),
-      closeSplit: () =>
-        set((state) =>
-          state.split
-            ? { ...showMain(mergeTabs(mainSet(state), state.split.tabs)), split: null, focusedPane: "main" }
-            : {},
-        ),
-      setFocusedPane: (focusedPane) => set((state) => (state.focusedPane === focusedPane ? {} : { focusedPane })),
-      setSplitRatio: (ratio) =>
-        set((state) =>
-          state.split ? { split: { ...state.split, ratio: Math.min(0.8, Math.max(0.2, ratio)) } } : {},
-        ),
+      openNote: (id, options) => set((state) => commit(state, W.openNote(state.wb, id, options), id)),
+      workbench: (action) => set((state) => commit(state, action(state.wb))),
       setSplitAvailable: (splitAvailable) =>
-        set((state) => (state.splitAvailable === splitAvailable ? {} : { splitAvailable })),
+        set((state) => {
+          if (state.splitAvailable === splitAvailable) return {};
+          // Growing wide: show the active group's note. Shrinking: keep what is shown.
+          return splitAvailable ? { splitAvailable, ...commit({ splitAvailable }, state.wb) } : { splitAvailable };
+        }),
       setMobilePane: (mobilePane) => set({ mobilePane }),
       setListWidth: (width) => set({ listWidth: clamp(width, LIST_BOUNDS.min, LIST_BOUNDS.max) }),
       toggleFocusMode: () => set((state) => ({ focusMode: !state.focusMode })),
@@ -341,7 +275,10 @@ export const useUiStore = create<UiState>()(
       setHaptics: (haptics) => set({ haptics }),
       setIdleHideMinutes: (idleHideMinutes) => set({ idleHideMinutes }),
       setTypewriterMode: (typewriterMode) => set({ typewriterMode }),
-      setColorFilter: (colorFilter) => set((state) => ({ colorFilter, ...clearMain(state) })),
+      setColorFilter: (colorFilter) =>
+        set((state) =>
+          state.splitAvailable ? { colorFilter } : { colorFilter, selectedNoteId: null, mobilePane: "list" },
+        ),
       setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
       setTheme: (theme) => set({ theme }),
       setEditorWidth: (editorWidth) => set({ editorWidth }),
@@ -385,7 +322,13 @@ export const useUiStore = create<UiState>()(
         haptics: state.haptics,
         idleHideMinutes: state.idleHideMinutes,
         typewriterMode: state.typewriterMode,
+        // The editor layout comes back after a reload, as in VS Code (§4.81).
+        wb: { ...state.wb, closed: [], maximized: null },
       }),
+      merge: (persisted, current) => {
+        const stored = (persisted ?? {}) as Partial<UiState>;
+        return { ...current, ...stored, wb: W.restore(stored.wb) };
+      },
     },
   ),
 );

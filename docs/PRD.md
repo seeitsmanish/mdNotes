@@ -1807,6 +1807,9 @@ Search finds notes; this finds a word or phrase inside the open one.
 
 ### 4.80 Tabs and split view
 
+*Superseded by §4.81 in v1.69: the main pane and one split became any
+number of editor groups.*
+
 Asked for by the owner: several notes open at once, and two side by side.
 
 - R80.1 Tabs. A click on a note opens it in the shown tab, as before, so one
@@ -1837,3 +1840,63 @@ Asked for by the owner: several notes open at once, and two side by side.
   work as before.
 - Not done: tabs and the split are not kept across a reload, matching how
   the open note is not either (selection is per visit).
+
+### 4.81 Editor groups, as in VS Code
+
+Asked for by the owner: tabs and splitting should do everything VS Code's
+do. §4.80's two panes become a grid of editor groups, each with its own tabs.
+
+- R81.1 Groups. Any group splits left, right, up or down, as often as
+  wanted; the grid is a tree of rows and columns. Dividers drag (keys too),
+  and double-clicking one makes the groups even. A group left empty closes,
+  unless it is the last. Maximize Group shows one alone (double-click a tab,
+  or ⌘K ⌘M); focusing another restores. Lock Group sends new notes to
+  another group. Join with Next Group, Join All Groups, Close Group, Flip
+  Layout (⌥⌘0), and presets: single, two or three columns or rows, 2×2 grid,
+  two rows right, two columns bottom.
+- R81.2 Tabs. A click in the list (or a pick in ⌘K) opens a *preview*:
+  italic, replaced by the next preview. Typing in it, double-clicking its tab
+  or Keep Open (⌘K ⏎) keeps it. Middle-click a row for a kept tab. Pinned tabs
+  (⌘K ⇧⏎) sit first and survive Close Others, Close to the Right and Close
+  All. Closing the shown tab shows the one used before it. Unsaved text shows
+  a dot in place of ×. The strip scrolls with the wheel and keeps the shown
+  tab in view; + and a double-click on its empty part make a note there.
+- R81.3 Menus. A tab's right-click menu: Close, Close Others, Close to the
+  Right, Close All, Reopen Closed Tab, Keep Open, Pin/Unpin, Split Up/Down/
+  Left/Right, Move to the next, previous or a neighbouring group, Copy Link
+  to Note. The group's ⋯ menu (also right-click beside the tabs): new note,
+  splits, close all, close group, reopen, lock, maximize, even, join, layout
+  presets, and the group's open notes.
+- R81.4 Drag and drop. A tab drags within its strip, to another group's
+  strip, or onto a group: the middle joins it, an edge splits that side.
+  ⌥ copies instead of moving; ⇧ lets it fall into the text as a [[link]].
+  Notes drag in from the list the same way. Group sizes and editors are kept
+  through every rearrangement: groups are placed by measurement, never
+  rebuilt, so caret, scroll and undo survive.
+- R81.5 One note in two groups. Split Editor copies the shown note into the
+  new group. Each group has its own editor, caret and undo; typing in one is
+  applied to the others at once, so they never disagree or save over each
+  other.
+- R81.6 Keys, as in VS Code: ⌘\ split, ⌘K ⌘\ (or ⌘⇧\) split down, ⌘1…⌘9
+  focus group n (one past the last makes it), ⌘0 the list, ⌃1…⌃9 (Alt on
+  Windows) the n-th tab, ⌃PageDown/⌃PageUp (and ⌥⌘→/←, ⌘⇧]/[) next and
+  previous tab, ⌃⌘→/← (Ctrl+Alt on Windows) move the tab between groups,
+  ⌘K ⌘arrows focus a neighbouring group, ⌘K ⌘W close all. A browser keeps
+  ⌘W and ⌘⇧T for itself, so ⌥W closes a tab and ⌥⇧T reopens one anywhere;
+  the ⌘ forms work in the installed app. ⌘K still opens the palette: a chord
+  is only a modified second key (or Enter as the first), so typing in the
+  palette is never taken for one.
+- R81.7 The layout, every group's tabs, pins and locks come back after a
+  reload, checked; a stored layout that does not make sense starts fresh,
+  and tabs of notes deleted meanwhile close. Recently closed tabs do not.
+- R81.8 Note actions (pin, history, share, lock, trash…) are on every
+  group's pane and act on the active group's note; any click in a group
+  makes it active first. Only the active group takes the caret on opening,
+  answers ⌘F from outside the text, and shows the outline and format bar;
+  the app-wide buttons sit in the top-right group.
+- R81.9 A locked note shows sealed in every group but the active one, and
+  re-locks on leaving, as before (§4.69). Trashing or deleting a note closes
+  its tabs everywhere; it is not offered for reopening.
+- R81.10 Phones are unchanged: one note at a time, no tabs.
+- Not done: moving a group to a new window, and editor history per group
+  (VS Code's Go Back within a group).

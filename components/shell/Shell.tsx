@@ -42,8 +42,12 @@ import { ClockProvider } from "./ClockProvider";
 import { EditorPane } from "./EditorPane";
 import { NoteList } from "./NoteList";
 import { PaneDivider } from "./PaneDivider";
-import { SplitPane } from "./SplitPane";
-import { TabStrip } from "./TabStrip";
+import { Workbench } from "@/components/workbench/Workbench";
+import type { TabInfo } from "@/components/workbench/GroupTabs";
+import * as W from "@/lib/workbench/workbench";
+import type { Group } from "@/lib/workbench/group";
+import { chordAction, isMac, keyAction } from "@/lib/workbench/keys";
+import { PRESETS } from "@/lib/workbench/layout";
 
 /**
  * Two-pane shell: note list and editor. Owns the fetched data and the keyboard
@@ -89,20 +93,15 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   const selectNote = useUiStore((state) => state.selectNote);
   const mobilePane = useUiStore((state) => state.mobilePane);
   const setMobilePane = useUiStore((state) => state.setMobilePane);
-  // Tabs and split view (PRD §4.80).
-  const mainTabs = useUiStore((state) => state.mainTabs);
-  const split = useUiStore((state) => state.split);
-  const focusedPane = useUiStore((state) => state.focusedPane);
+  // Editor groups and tabs (PRD §4.81).
   const splitAvailable = useUiStore((state) => state.splitAvailable);
   const openNote = useUiStore((state) => state.openNote);
-  const closeTab = useUiStore((state) => state.closeTab);
-  const closeEverywhere = useUiStore((state) => state.closeEverywhere);
-  const reorderTab = useUiStore((state) => state.reorderTab);
-  const openSplit = useUiStore((state) => state.openSplit);
-  const closeSplit = useUiStore((state) => state.closeSplit);
-  const setFocusedPane = useUiStore((state) => state.setFocusedPane);
-  const setSplitRatio = useUiStore((state) => state.setSplitRatio);
+  const workbench = useUiStore((state) => state.workbench);
   const setSplitAvailable = useUiStore((state) => state.setSplitAvailable);
+  /** Every note a group shows; each must be loaded to draw the grid. */
+  const visibleKey = useUiStore((state) =>
+    (state.splitAvailable ? W.visibleNotes(state.wb) : state.selectedNoteId ? [state.selectedNoteId] : []).join(","),
+  );
   const listWidth = useUiStore((state) => state.listWidth);
   const setListWidth = useUiStore((state) => state.setListWidth);
   const focusMode = useUiStore((state) => state.focusMode);
@@ -118,7 +117,36 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
   const [notes, setNotes] = useState(initialNotes);
   const [counts, setCounts] = useState(initialCounts);
-  const [note, setNote] = useState<NoteDetail | null>(null);
+  /**
+   * Notes loaded for display, by id: one per group showing it (§4.81). The
+   * active group's is `note`, which every note action works on.
+   */
+  const [loadedNotes, setLoadedNotes] = useState<Record<string, NoteDetail>>({});
+  const note = selectedNoteId ? (loadedNotes[selectedNoteId] ?? null) : null;
+  const loadedNotesRef = useRef(loadedNotes);
+  loadedNotesRef.current = loadedNotes;
+  /**
+   * Update loaded notes. Given a note, it is stored; given a function, it is
+   * applied to each loaded note in turn — the callers' functions change only
+   * the note whose id they name, wherever it is shown.
+   */
+  const setNote = useCallback(
+    (update: NoteDetail | null | ((prev: NoteDetail | null) => NoteDetail | null)) => {
+      setLoadedNotes((map) => {
+        if (update === null) return map;
+        if (typeof update !== "function") return { ...map, [update.id]: update };
+        let changed = false;
+        const next: Record<string, NoteDetail> = {};
+        for (const [id, current] of Object.entries(map)) {
+          const result = update(current);
+          if (result !== current) changed = true;
+          if (result) next[result.id] = result;
+        }
+        return changed ? next : map;
+      });
+    },
+    [],
+  );
   const [loading, setLoading] = useState(false);
   /**
    * The editor's latest text per note. A ref, not state: it changes on every
@@ -129,12 +157,16 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   const liveBody = useRef(new Map<string, string>());
 
   const [historyOpen, setHistoryOpen] = useState(false);
-  /** A note is being fetched after a switch (PRD §4.25). */
-  const [noteLoading, setNoteLoading] = useState(false);
+  /** Notes being fetched after a switch (PRD §4.25), by id. */
+  const [loadingIds, setLoadingIds] = useState<ReadonlySet<string>>(() => new Set());
   // A note that failed to open says so, with Retry, instead of silently
   // showing the empty "Pick a note" screen (PRD R25.5).
-  const [noteError, setNoteError] = useState<string | null>(null);
-  const [noteReload, setNoteReload] = useState(0);
+  const [loadErrors, setLoadErrors] = useState<Record<string, string>>({});
+  /** Asks for a note to be fetched again: Retry, after unlocking, after re-locking. */
+  const [reloads, setReloads] = useState<Record<string, number>>({});
+  const reloadNote = useCallback((id: string) => setReloads((r) => ({ ...r, [id]: (r[id] ?? 0) + 1 })), []);
+  const noteLoading = selectedNoteId ? loadingIds.has(selectedNoteId) : false;
+  const noteError = selectedNoteId ? (loadErrors[selectedNoteId] ?? null) : null;
 
   // Network actions run one at a time per key, show while they run, and say
   // when they fail (PRD §4.25).
@@ -250,58 +282,107 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     };
   }, [refreshList]);
 
+  // Every note a group shows is fetched when it comes into view — on a
+  // switch, as before, and now for each group (§4.81) — and again on request.
+  const fetching = useRef(new Map<string, AbortController>());
+  const shownBefore = useRef(new Set<string>());
+  const reloadsSeen = useRef<Record<string, number>>({});
   useEffect(() => {
-    setNoteError(null);
-    if (!selectedNoteId) {
-      setNote(null);
-      return;
-    }
+    const ids = visibleKey ? visibleKey.split(",") : [];
+    const visible = new Set(ids);
+    const setLoading = (id: string, on: boolean) =>
+      setLoadingIds((prev) => {
+        if (prev.has(id) === on) return prev;
+        const next = new Set(prev);
+        if (on) next.add(id);
+        else next.delete(id);
+        return next;
+      });
 
     // A superseded request must not land after the one that replaced it.
-    const controller = new AbortController();
-    let cancelled = false;
-    setNoteLoading(true);
-
-    // One quiet retry: a request cut off by the browser (Safari's Esc stops
-    // loading) or a blip on a phone network should not lose the note.
-    const load = () =>
-      api.fetchNote(selectedNoteId, controller.signal).catch(async (error: unknown) => {
-        if (controller.signal.aborted) throw error;
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        return api.fetchNote(selectedNoteId, controller.signal);
-      });
-    load()
-      .then(({ note: loaded }) => {
-        if (cancelled) return;
-        // If this client still holds text the server has not acknowledged, the
-        // response is stale by definition — keep the local body. Adopting the
-        // server's copy here is what used to truncate notes on switch-away and
-        // switch-back.
-        const local = unsavedBodyRef.current(loaded.id);
-        // The version travels with the text it describes: adopt the server's
-        // only when adopting its body. Unsaved local text was built on the
-        // version this client already holds (PRD R18.2).
-        if (local === undefined || !versions.current.has(loaded.id)) {
-          versions.current.set(loaded.id, loaded.version);
-        }
-        const adopted = local === undefined ? loaded : { ...loaded, body: local };
-        liveBody.current.set(adopted.id, adopted.body);
-        setNote(adopted);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        setNote(null);
-        setNoteError(error instanceof Error ? error.message : "Couldn’t open this note.");
-      })
-      .finally(() => {
-        if (!cancelled) setNoteLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
+    for (const [id, controller] of fetching.current) {
+      if (visible.has(id)) continue;
       controller.abort();
-    };
-  }, [selectedNoteId, noteReload]);
+      fetching.current.delete(id);
+      setLoading(id, false);
+    }
+
+    for (const id of ids) {
+      const asked = reloads[id] ?? 0;
+      if (shownBefore.current.has(id) && (reloadsSeen.current[id] ?? 0) === asked) continue;
+      reloadsSeen.current[id] = asked;
+      fetching.current.get(id)?.abort();
+      const controller = new AbortController();
+      fetching.current.set(id, controller);
+      setLoading(id, true);
+      setLoadErrors((prev) => {
+        if (!(id in prev)) return prev;
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+
+      // One quiet retry: a request cut off by the browser (Safari's Esc stops
+      // loading) or a blip on a phone network should not lose the note.
+      api
+        .fetchNote(id, controller.signal)
+        .catch(async (error: unknown) => {
+          if (controller.signal.aborted || (error instanceof api.ApiError && error.status === 404)) throw error;
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          return api.fetchNote(id, controller.signal);
+        })
+        .then(({ note: loaded }) => {
+          if (controller.signal.aborted) return;
+          // If this client still holds text the server has not acknowledged, the
+          // response is stale by definition — keep the local body. Adopting the
+          // server's copy here is what used to truncate notes on switch-away and
+          // switch-back.
+          const local = unsavedBodyRef.current(loaded.id);
+          // The version travels with the text it describes: adopt the server's
+          // only when adopting its body. Unsaved local text was built on the
+          // version this client already holds (PRD R18.2).
+          if (local === undefined || !versions.current.has(loaded.id)) {
+            versions.current.set(loaded.id, loaded.version);
+          }
+          const adopted = local === undefined ? loaded : { ...loaded, body: local };
+          liveBody.current.set(adopted.id, adopted.body);
+          setNote(adopted);
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) return;
+          // Deleted since its tab was opened (another device, or a reload of an
+          // old layout): the tab goes rather than showing an error (§4.81).
+          if (error instanceof api.ApiError && error.status === 404) {
+            useUiStore.getState().workbench((wb) => W.closeEverywhere(wb, id));
+            if (!useUiStore.getState().splitAvailable && useUiStore.getState().selectedNoteId === id) {
+              useUiStore.getState().selectNote(null);
+            }
+            return;
+          }
+          setLoadErrors((prev) => ({ ...prev, [id]: error instanceof Error ? error.message : "Couldn’t open this note." }));
+        })
+        .finally(() => {
+          if (fetching.current.get(id) !== controller) return;
+          fetching.current.delete(id);
+          setLoading(id, false);
+        });
+    }
+    shownBefore.current = visible;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleKey, reloads]);
+
+  // Notes no longer in any tab are let go.
+  const openKey = useUiStore((state) => [...W.openNotes(state.wb), state.selectedNoteId ?? ""].join(","));
+  useEffect(() => {
+    const keep = new Set(openKey.split(","));
+    setLoadedNotes((map) => {
+      const gone = Object.keys(map).filter((id) => !keep.has(id));
+      if (gone.length === 0) return map;
+      const next = { ...map };
+      for (const id of gone) delete next[id];
+      return next;
+    });
+  }, [openKey]);
 
   // --- saving --------------------------------------------------------------
 
@@ -432,7 +513,6 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
     // Replacing the body resets the editor to the current text.
     liveBody.current.set(id, current.body);
-    if (useUiStore.getState().split?.tabs.active === id) setSplitReload((n) => n + 1);
     setNote((prev) => (prev && prev.id === id ? current : prev));
     setNotes((prev) => [
       toListItem(copy),
@@ -502,9 +582,24 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       outbox.put(id, body, versions.current.get(id) ?? null);
       if (freshNoteId.current === id && body.length > 0) freshNoteId.current = null;
       queue(id, body);
+      // Typing in a preview tab keeps it (§4.81).
+      const wb = useUiStore.getState().wb;
+      if (Object.values(wb.groups).some((g) => g.preview === id)) {
+        useUiStore.getState().workbench((w) => W.keepEverywhere(w, id));
+      }
     },
     [outbox, queue],
   );
+
+  /**
+   * A note trashed or deleted: its tabs close in every group (§4.81). On a
+   * phone, if it was the note on screen, back to the list.
+   */
+  const closeNoteEverywhere = useCallback((id: string) => {
+    const state = useUiStore.getState();
+    state.workbench((wb) => W.closeEverywhere(wb, id));
+    if (!state.splitAvailable && state.selectedNoteId === id) state.selectNote(null);
+  }, []);
 
   const discardFreshIfEmpty = useCallback(async () => {
     const id = freshNoteId.current;
@@ -513,11 +608,11 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     try {
       await api.deleteNoteForever(id);
       setNotes((prev) => prev.filter((row) => row.id !== id));
-      useUiStore.getState().closeEverywhere(id);
+      closeNoteEverywhere(id);
     } catch {
       // A failed cleanup is harmless — the note stays as an empty row.
     }
-  }, [selectNote]);
+  }, [closeNoteEverywhere]);
 
   // --- edits written offline (PRD §4.55) -------------------------------------
 
@@ -580,36 +675,42 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   // note only to have it become a conflicted copy is the wrong first moment.
   const resync = useCallback(async () => {
     await refreshList().catch(() => undefined);
-    // The second pane fetches again too; text not yet saved here still wins.
-    if (useUiStore.getState().split?.tabs.active) setSplitReload((n) => n + 1);
-    const id = useUiStore.getState().selectedNoteId;
-    if (!id) return;
-    let loaded: NoteDetail;
-    try {
-      ({ note: loaded } = await api.fetchNote(id));
-    } catch {
-      return;
-    }
-    // The unlock ran out while away: seal the open note now (PRD §4.69).
-    if (loaded.sealed && useUiStore.getState().selectedNoteId === id) {
-      setNote(loaded);
-      return;
-    }
-    // Checked after the fetch too: typing may have started while it ran.
-    const adopt =
-      useUiStore.getState().selectedNoteId === id &&
-      shouldAdopt({
-        hasUnsaved: unsavedBodyRef.current(id) !== undefined,
-        localVersion: versions.current.get(id),
-        serverVersion: loaded.version,
-      });
-    if (!adopt) return;
-    const changed = liveBody.current.get(id) !== loaded.body;
-    versions.current.set(id, loaded.version);
-    liveBody.current.set(id, loaded.body);
-    setNote((prev) => (prev && prev.id === id ? loaded : prev));
+    // Every note on screen, in every group (§4.81).
+    const shown = () => {
+      const state = useUiStore.getState();
+      return state.splitAvailable ? W.visibleNotes(state.wb) : state.selectedNoteId ? [state.selectedNoteId] : [];
+    };
+    let changed = false;
+    await Promise.all(
+      shown().map(async (id) => {
+        let loaded: NoteDetail;
+        try {
+          ({ note: loaded } = await api.fetchNote(id));
+        } catch {
+          return;
+        }
+        // The unlock ran out while away: seal the open note now (PRD §4.69).
+        if (loaded.sealed && shown().includes(id)) {
+          setNote(loaded);
+          return;
+        }
+        // Checked after the fetch too: typing may have started while it ran.
+        const adopt =
+          shown().includes(id) &&
+          shouldAdopt({
+            hasUnsaved: unsavedBodyRef.current(id) !== undefined,
+            localVersion: versions.current.get(id),
+            serverVersion: loaded.version,
+          });
+        if (!adopt) return;
+        if (liveBody.current.get(id) !== loaded.body) changed = true;
+        versions.current.set(id, loaded.version);
+        liveBody.current.set(id, loaded.body);
+        setNote((prev) => (prev && prev.id === id ? loaded : prev));
+      }),
+    );
     if (changed) toast("Updated with changes from another device.");
-  }, [refreshList]);
+  }, [refreshList, setNote]);
 
   useEffect(() => {
     let hiddenAt: number | null = null;
@@ -633,7 +734,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   // --- actions -------------------------------------------------------------
 
   const createNote = useCallback(
-    (options?: { newTab?: boolean; pane?: "main" | "split" }) =>
+    (options?: { group?: string }) =>
       // Gated: pressing New again while the first is on its way made a note
       // per press.
       gate.run("create", async () => {
@@ -645,11 +746,11 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
         if (filter === "trash") setFilter("all");
         setNotes((prev) => [toListItem(created), ...prev]);
-        // Into the pane being worked in (§4.80); the main pane's note is set
-        // straight away only if it went there, or it would show in both.
-        if (options) openNote(created.id, options);
+        // Into the active group, or the one asked for (§4.81).
+        setNote(created);
+        liveBody.current.set(created.id, created.body);
+        if (options?.group) openNote(created.id, { group: options.group });
         else selectNote(created.id);
-        if (useUiStore.getState().selectedNoteId === created.id) setNote(created);
       }),
     [discardFreshIfEmpty, filter, flush, gate, openNote, selectNote, setFilter],
   );
@@ -712,7 +813,9 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
     await api.lockAction({ action: "lock", scope: id }).catch(() => undefined);
-  }, []);
+    // Any other group still showing it is sealed too (§4.81).
+    setNote((prev) => (prev && prev.id === id && prev.locked ? { ...prev, sealed: true, body: "" } : prev));
+  }, [setNote]);
 
   // Leaving an unlocked locked note locks it; so does switching away from the
   // app, with the note sealed for when you come back.
@@ -730,24 +833,23 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
       const id = openLocked.current;
       if (document.visibilityState !== "hidden" || !id) return;
       flush();
-      void relockWhenSaved(id).then(() => {
-        if (useUiStore.getState().selectedNoteId === id) setNoteReload((n) => n + 1);
-      });
+      void relockWhenSaved(id).then(() => reloadNote(id));
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [flush, relockWhenSaved]);
+  }, [flush, relockWhenSaved, reloadNote]);
 
   /** Lock every note again now (PRD §4.69); the open one is sealed straight away. */
   const lockNow = useCallback(async () => {
     try {
       await api.lockAction({ action: "lock" });
       toast("Locked notes are locked.");
-      if (useUiStore.getState().selectedNoteId) setNoteReload((n) => n + 1);
+      // Every open locked note is sealed straight away, in every group.
+      setNote((prev) => (prev && prev.locked && !prev.sealed ? { ...prev, sealed: true, body: "" } : prev));
     } catch {
       toast.error("Couldn’t lock notes. Try again.");
     }
-  }, []);
+  }, [setNote]);
 
   // Templates for ⌘K's "New from …" commands; re-read when the palette opens
   // so a renamed template shows its new name.
@@ -782,44 +884,47 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         flush();
         await api.trashNote(target.id);
         // Its tabs close in both panes; the main pane shows the next tab (§4.80).
-        closeEverywhere(target.id);
+        closeNoteEverywhere(target.id);
         await refreshList();
         toast(`“${displayTitle(target.title)}” moved to trash.`, {
           action: { label: "Undo", onClick: () => void restore(target) },
         });
       }),
-    [closeEverywhere, flush, gate, refreshList, restore],
+    [closeNoteEverywhere, flush, gate, refreshList, restore],
   );
 
   const deleteForever = useCallback(
     (target: NoteListItem | NoteDetail) =>
       gate.run(`delete:${target.id}`, async () => {
         await api.deleteNoteForever(target.id);
-        closeEverywhere(target.id);
+        closeNoteEverywhere(target.id);
         await refreshList();
         toast(`“${displayTitle(target.title)}” deleted permanently.`);
       }),
-    [closeEverywhere, gate, refreshList],
+    [closeNoteEverywhere, gate, refreshList],
   );
 
-  // --- tabs and split view (PRD §4.80) ---------------------------------------
+  // --- editor groups and tabs (PRD §4.81) -----------------------------------
 
-  // Tabs and a split need the width of a laptop; a phone shows one note.
+  // Tabs and groups need the width of a laptop; a phone shows one note.
   useEffect(() => {
     const query = window.matchMedia("(min-width: 900px)");
     const apply = () => setSplitAvailable(query.matches);
     apply();
     query.addEventListener("change", apply);
-    return () => query.removeEventListener("change", apply);
+    // The saved layout arrives after the first render: show its note then.
+    const unsubscribe = useUiStore.persist.onFinishHydration(() => {
+      if (useUiStore.getState().splitAvailable) useUiStore.getState().workbench((wb) => wb);
+    });
+    return () => {
+      query.removeEventListener("change", apply);
+      unsubscribe();
+    };
   }, [setSplitAvailable]);
-
-  const [splitReload, setSplitReload] = useState(0);
 
   /** Titles of notes opened in a tab, for tabs whose note the list is not showing. */
   const seen = useRef(new Map<string, { title: string; locked: boolean }>());
-  const remember = (item: { id: string; title: string; locked?: boolean }) =>
-    seen.current.set(item.id, { title: item.title, locked: Boolean(item.locked) });
-  if (note) remember(note);
+  for (const item of Object.values(loadedNotes)) seen.current.set(item.id, { title: item.title, locked: item.locked });
   const rowsById = useMemo(() => new Map(notes.map((row) => [row.id, row])), [notes]);
   const titleOf = useCallback(
     (id: string) => displayTitle(rowsById.get(id)?.title ?? seen.current.get(id)?.title ?? ""),
@@ -830,76 +935,25 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     [rowsById],
   );
 
-  /** The second pane's fetch: the same rules as the main pane's (R18.2). */
-  const loadForSplit = useCallback(async (id: string, signal: AbortSignal) => {
-    const loaded = await api.fetchNote(id, signal).then(
-      (result) => result.note,
-      async (error: unknown) => {
-        if (signal.aborted) throw error;
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        return (await api.fetchNote(id, signal)).note;
-      },
-    );
-    seen.current.set(loaded.id, { title: loaded.title, locked: loaded.locked });
-    const local = unsavedBodyRef.current(loaded.id);
-    if (local === undefined || !versions.current.has(loaded.id)) versions.current.set(loaded.id, loaded.version);
-    const adopted = local === undefined ? loaded : { ...loaded, body: local };
-    liveBody.current.set(adopted.id, adopted.body);
-    return adopted;
-  }, []);
-
-  /** Open a note in a new tab of the pane being worked in, or in the split. */
+  /** From the note list: a new tab beside the shown one, or Open to the Side. */
   const openIn = useCallback(
     (id: string, where: "tab" | "split") => {
       flush();
-      const state = useUiStore.getState();
-      if (where === "tab") {
-        openNote(id, { newTab: true });
-        return;
-      }
-      if (state.split?.tabs.ids.includes(id)) {
-        openNote(id, { pane: "split" });
-        return;
-      }
-      if (!state.split) openSplit("right");
-      // One note, one place: a tab in the main pane moves across.
-      if (state.mainTabs.includes(id)) closeTab("main", id);
-      openNote(id, { pane: "split", newTab: true });
+      if (where === "tab") openNote(id);
+      else workbench((wb) => W.openToSide(wb, id));
     },
-    [closeTab, flush, openNote, openSplit],
+    [flush, openNote, workbench],
   );
 
-  const toggleSplit = useCallback(
-    (dir: "right" | "down" = "right") => {
-      const state = useUiStore.getState();
-      if (!state.splitAvailable) return;
-      if (state.split && state.split.dir === dir) closeSplit();
-      else openSplit(dir);
-    },
-    [closeSplit, openSplit],
-  );
-
-  const showSplit = splitAvailable && split !== null;
-  const splitHostRef = useRef<HTMLDivElement>(null);
-  /** What an empty second pane offers: the main pane's other tabs, then recent notes. */
-  const splitSuggestions = useMemo(() => {
-    if (!split || split.tabs.active) return [];
-    const taken = new Set([selectedNoteId, ...split.tabs.ids]);
-    const ids = [...mainTabs, ...recentIds].filter((id, index, all) => !taken.has(id) && all.indexOf(id) === index);
-    return ids
-      .filter((id) => !lockedOf(id))
-      .slice(0, 6)
-      .map((id) => ({ id, title: rowsById.get(id)?.title ?? seen.current.get(id)?.title ?? "" }));
-  }, [split, selectedNoteId, mainTabs, recentIds, lockedOf, rowsById]);
-  const showMainTabs = splitAvailable && (mainTabs.length > 1 || showSplit);
-
+  /** A list click or a pick from ⌘K opens as a preview, as in VS Code's explorer. */
   const onSelectNote = useCallback(
     (id: string) => {
       flush();
       if (freshNoteId.current && freshNoteId.current !== id) void discardFreshIfEmpty();
-      selectNote(id);
+      if (useUiStore.getState().splitAvailable) openNote(id, { preview: true });
+      else selectNote(id);
     },
-    [discardFreshIfEmpty, flush, selectNote],
+    [discardFreshIfEmpty, flush, openNote, selectNote],
   );
 
   openNoteRef.current = onSelectNote;
@@ -1018,9 +1072,12 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     (pane: "list" | "editor") => {
       setMobilePane(pane);
       const host = pane === "list" ? listRef.current : editorRef.current;
+      // The editor: the active group's, when there are several (§4.81).
+      const active = useUiStore.getState().wb.active;
       const target =
         pane === "editor"
-          ? host?.querySelector<HTMLElement>(".cm-content")
+          ? (host?.querySelector<HTMLElement>(`[data-ursa-group="${active}"] .cm-content`) ??
+            host?.querySelector<HTMLElement>(".cm-content"))
           : host?.querySelector<HTMLElement>("[data-ursa-row]");
       target?.focus();
     },
@@ -1198,9 +1255,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         };
         const results = await Promise.allSettled(ids.map(one));
         const failed = results.filter((r) => r.status === "rejected").length;
-        const open = useUiStore.getState().selectedNoteId;
-        if (open && ids.includes(open) && (action.kind === "trash" || action.kind === "delete" || action.kind === "restore")) {
-          selectNote(null);
+        if (action.kind === "trash" || action.kind === "delete" || action.kind === "restore") {
+          for (const id of ids) closeNoteEverywhere(id);
         }
         await refreshList();
         const done = ids.length - failed;
@@ -1228,7 +1284,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           ...(undo ? { action: { label: "Undo", onClick: undo } } : {}),
         });
       }),
-    [flush, gate, refreshList, selectNote],
+    [closeNoteEverywhere, flush, gate, refreshList],
   );
 
   /** Quick capture to the Inbox (PRD §4.73). */
@@ -1443,11 +1499,12 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     }
     void gate.run("empty-trash", async () => {
       const { deleted } = await api.emptyTrash();
-      if (selectedNoteId) selectNote(null);
+      // Tabs of the notes that were in the trash close (§4.81).
+      for (const item of Object.values(loadedNotesRef.current)) if (item.deletedAt) closeNoteEverywhere(item.id);
       await refreshList();
       toast(`Deleted ${deleted} ${deleted === 1 ? "note" : "notes"}.`);
     });
-  }, [counts.trash, gate, refreshList, selectNote, selectedNoteId]);
+  }, [closeNoteEverywhere, counts.trash, gate, refreshList]);
 
   // --- history (PRD §4.28) --------------------------------------------------
 
@@ -1473,6 +1530,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
     [takePending],
   );
 
+  /** The palette's group commands depend on the layout (§4.81). */
+  const wbNow = useUiStore((state) => state.wb);
   const commands = useMemo<Command[]>(() => {
     const themeCommands: Command[] = THEMES.map((option) => ({
       id: `theme:${option.value}`,
@@ -1482,14 +1541,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
     return [
       { id: "new", label: "New note", hint: "⌘N", run: () => void createNote() },
-      ...(splitAvailable
-        ? [
-            { id: "split-right", label: "Split right", hint: "⌘\\", run: () => openSplit("right") },
-            { id: "split-down", label: "Split down", run: () => openSplit("down") },
-            ...(split ? [{ id: "split-close", label: "Close split", run: closeSplit }] : []),
-            ...(note ? [{ id: "tab-close", label: "Close tab", run: () => closeTab("main", note.id) }] : []),
-          ]
-        : []),
+      ...(splitAvailable ? workbenchCommands(workbench) : []),
       { id: "today", label: "Open today’s note", run: () => void openToday() },
       { id: "capture", label: "Quick note to Inbox", hint: "⌘⇧Space", run: () => setCaptureOpen(true) },
       ...templates.map((template) => ({
@@ -1590,7 +1642,7 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         : []),
       ...themeCommands,
     ];
-  }, [split, splitAvailable, openSplit, closeSplit, closeTab, addStarterTemplates, lockNow, openToday, templates, newFromTemplate, setLabels, setFilter, confirmEmptyTrash, copyHtml, exportPdf, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
+  }, [wbNow, splitAvailable, workbench, addStarterTemplates, lockNow, openToday, templates, newFromTemplate, setLabels, setFilter, confirmEmptyTrash, copyHtml, exportPdf, copyMarkdown, counts.trash, createNote, duplicateNote, exportAll, exportCurrent, focusMode, installMode, note, openHistory, setSettingsOpen, setShortcutsOpen, setTheme, toggleFocusMode, toggleOutline, togglePin, trash]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1601,13 +1653,6 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
         case "k":
           event.preventDefault();
           setPaletteOpen(!useUiStore.getState().paletteOpen);
-          return;
-        case "\\":
-        case "|":
-          // ⌘\ splits right, pressed again it closes; ⌘⇧\ splits down
-          // (§4.80). With Shift held the key reads as "|" on most layouts.
-          event.preventDefault();
-          toggleSplit(event.shiftKey ? "down" : "right");
           return;
         case "o":
           if (event.shiftKey) {
@@ -1648,10 +1693,13 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           toggleFocusMode();
           return;
         case "1":
+          // On a phone (no groups): ⌘1 the list, ⌘2 the note, as before.
+          if (useUiStore.getState().splitAvailable) return;
           event.preventDefault();
           focusPane("list");
           return;
         case "2":
+          if (useUiStore.getState().splitAvailable) return;
           event.preventDefault();
           focusPane("editor");
           return;
@@ -1679,7 +1727,183 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [createNote, focusPane, note, setPaletteOpen, setShortcutsOpen, toggleFocusMode, toggleOutline, togglePin, toggleSplit, trash]);
+  }, [createNote, focusPane, note, setPaletteOpen, setShortcutsOpen, toggleFocusMode, toggleOutline, togglePin, trash]);
+
+  // VS Code's editor-group keys (§4.81), ahead of everything else so ⌘K's
+  // chords reach here before the palette's input does.
+  useEffect(() => {
+    const mac = isMac();
+    let chordUntil = 0;
+    const focusEditorSoon = () =>
+      requestAnimationFrame(() => {
+        const active = useUiStore.getState().wb.active;
+        document.querySelector<HTMLElement>(`[data-ursa-group="${active}"] .cm-content`)?.focus();
+      });
+    const act = (action: (wb: W.Workbench) => W.Workbench, focus = true) => {
+      flush();
+      workbench(action);
+      if (focus) focusEditorSoon();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!useUiStore.getState().splitAvailable) return;
+      if (["Meta", "Control", "Alt", "Shift"].includes(event.key)) return;
+
+      if (chordUntil > Date.now()) {
+        chordUntil = 0;
+        const chord = chordAction(event, mac);
+        if (chord) {
+          event.preventDefault();
+          event.stopPropagation();
+          setPaletteOpen(false);
+          const wb = useUiStore.getState().wb;
+          const group = wb.active;
+          const shown = W.shownNote(wb);
+          switch (chord.kind) {
+            case "splitDown":
+              return act((w) => W.split(w, group, "down", { note: shown ?? undefined }));
+            case "closeAllInGroup":
+              return act((w) => W.closeAllInGroup(w, group));
+            case "closeAll":
+              return act(W.closeAllGroups);
+            case "maximize":
+              return act((w) => W.toggleMaximize(w, group));
+            case "keepOpen":
+              return shown ? act((w) => W.keepTab(w, group, shown)) : undefined;
+            case "togglePin":
+              if (!shown) return;
+              return act((w) =>
+                W.activeGroup(w).pinned.includes(shown) ? W.unpinTab(w, group, shown) : W.pinTab(w, group, shown),
+              );
+            case "focusSide":
+              return act((w) => W.focusSide(w, chord.side));
+          }
+        }
+      }
+
+      const action = keyAction(event, mac);
+      if (!action) return;
+      const wb = useUiStore.getState().wb;
+      const group = wb.active;
+      const shown = W.shownNote(wb);
+      // ⌘K still opens the palette (the listener below); it also starts a chord.
+      if (action.kind === "startChord") {
+        chordUntil = Date.now() + 2000;
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      switch (action.kind) {
+        case "splitRight":
+          return act((w) => W.split(w, group, "right", { note: shown ?? undefined }));
+        case "splitDown":
+          return act((w) => W.split(w, group, "down", { note: shown ?? undefined }));
+        case "focusList":
+          return focusPane("list");
+        case "focusGroup":
+          return act((w) => W.focusGroupAt(w, action.n));
+        case "tabAt":
+          return act((w) => W.tabAt(w, action.n));
+        case "nextTab":
+          return act((w) => W.step(w, 1));
+        case "previousTab":
+          return act((w) => W.step(w, -1));
+        case "closeTab":
+          return shown ? act((w) => W.closeTab(w, group, shown)) : undefined;
+        case "reopenTab":
+          return act((w) => W.reopenClosed(w));
+        case "moveToNextGroup":
+        case "moveToPreviousGroup": {
+          if (!shown) return;
+          const offset = action.kind === "moveToNextGroup" ? 1 : -1;
+          const target = W.adjacentGroup(wb, group, offset);
+          return act((w) =>
+            target ? W.moveTab(w, group, shown, target) : W.split(w, group, offset === 1 ? "right" : "left", { note: shown, move: true }),
+          );
+        }
+        case "flipLayout":
+          return act(W.flipLayout, false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [flush, focusPane, setPaletteOpen, workbench]);
+
+  // --- editor panes (PRD §4.81) ---------------------------------------------
+
+  /** What each group last showed, kept on screen (dimmed) while its next note loads. */
+  const lastShown = useRef(new Map<string, NoteDetail>());
+
+  /**
+   * One note pane. Every group gets the full pane; its actions work on `note`,
+   * the active group's, and a click anywhere in a group makes it active first.
+   */
+  const paneFor = (shown: NoteDetail | null, group: string | null, active: boolean, chrome = true) => {
+    const id = shown?.id ?? (group ? useUiStore.getState().wb.groups[group]?.active : selectedNoteId) ?? null;
+    return (
+      <EditorPane
+        note={shown}
+        active={active}
+        chrome={chrome}
+        saveStatus={status}
+        onChange={onBodyChange}
+        onBlur={() => {
+          flush();
+          void discardFreshIfEmpty();
+        }}
+        onWikiLink={(title) => void openWikiLink(title)}
+        onTogglePin={() => note && void togglePin(note)}
+        onTrash={() => note && void trash(note)}
+        onRestore={() => note && void restore(note)}
+        onBack={backToList}
+        onOpenNote={onSelectNote}
+        pending={pending}
+        loading={id ? loadingIds.has(id) : false}
+        onHistory={openHistory}
+        onCreate={() => void createNote(group ? { group } : undefined)}
+        onDuplicate={() => void duplicateNote()}
+        onCopy={() => void copyMarkdown()}
+        onCopyHtml={() => void copyHtml()}
+        onPdf={exportPdf}
+        onLabels={(patch) => note && void setLabels(note, patch)}
+        onUseTemplate={() => note && void newFromTemplate(note)}
+        onShareLink={() => setShareLinkOpen(true)}
+        onUnlocked={() => id && reloadNote(id)}
+        onShare={canShare ? () => void shareNote() : undefined}
+        onDownload={exportCurrent}
+        onTag={searchTag}
+        loadError={id ? (loadErrors[id] ?? null) : null}
+        onRetry={() => id && reloadNote(id)}
+        highlight={active ? debouncedQuery : ""}
+      />
+    );
+  };
+
+  const renderGroup = (group: Group, active: boolean, corner: boolean) => {
+    let shown = group.active ? (loadedNotes[group.active] ?? null) : null;
+    if (shown) lastShown.current.set(group.id, shown);
+    else if (group.active && loadingIds.has(group.active)) shown = lastShown.current.get(group.id) ?? null;
+    // A locked note stays readable only in the group being used; elsewhere it
+    // shows sealed until that group is clicked (PRD §4.69).
+    if (shown && shown.locked && !active) shown = { ...shown, sealed: true, body: "" };
+    return paneFor(shown, group.id, active, corner);
+  };
+
+  // A phone shows one note; the last one stays (dimmed) while the next loads.
+  if (note) lastShown.current.set("", note);
+  const phoneNote = note ?? (noteLoading ? (lastShown.current.get("") ?? null) : null);
+
+  const tabInfo: TabInfo = {
+    titleOf,
+    lockedOf,
+    dirtyOf: (id) => unsavedBody(id) !== undefined,
+    onNewNote: (group) => void createNote({ group }),
+    onCopyLink: (id) => {
+      void navigator.clipboard
+        .writeText(`[[${titleOf(id)}]]`)
+        .then(() => toast("Link copied. Paste it into another note."))
+        .catch(() => toast.error("Couldn’t copy the link."));
+    },
+  };
 
   // --- layout --------------------------------------------------------------
   // Container queries, not viewport media queries, so the shell stays correct
@@ -1748,98 +1972,8 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
           mobilePane === "editor" ? "flex" : "hidden"
         } min-w-0 flex-1 @[900px]:flex @[900px]:min-w-[420px]`}
       >
-        <div
-          ref={splitHostRef}
-          className={`flex min-h-0 min-w-0 flex-1 ${showSplit && split?.dir === "down" ? "flex-col" : "flex-row"}`}
-        >
-          <div
-            className="flex min-h-0 min-w-0 flex-col"
-            style={{ flex: showSplit && split ? `${split.ratio} 1 0` : "1 1 0" }}
-            onPointerDownCapture={() => setFocusedPane("main")}
-            onFocusCapture={() => setFocusedPane("main")}
-          >
-            {showMainTabs && (
-              <TabStrip
-                label="Open notes"
-                ids={mainTabs}
-                active={selectedNoteId}
-                focused={showSplit && focusedPane === "main"}
-                titleOf={titleOf}
-                lockedOf={lockedOf}
-                onSelect={onSelectNote}
-                onClose={(id) => {
-                  flush();
-                  closeTab("main", id);
-                }}
-                onReorder={(id, to) => reorderTab("main", id, to)}
-                onNew={() => void createNote({ newTab: true, pane: "main" })}
-              />
-            )}
-            <div className="min-h-0 min-w-0 flex-1">
-                <EditorPane
-                  note={note}
-                  saveStatus={status}
-                  onChange={onBodyChange}
-                  onBlur={() => {
-                    flush();
-                    void discardFreshIfEmpty();
-                  }}
-                  onWikiLink={(title) => void openWikiLink(title)}
-                  onTogglePin={() => note && void togglePin(note)}
-                  onTrash={() => note && void trash(note)}
-                  onRestore={() => note && void restore(note)}
-                  onBack={backToList}
-                  onOpenNote={onSelectNote}
-                  pending={pending}
-                  loading={noteLoading}
-                  onHistory={openHistory}
-                  onCreate={() => void createNote()}
-                  onDuplicate={() => void duplicateNote()}
-                  onCopy={() => void copyMarkdown()}
-                  onCopyHtml={() => void copyHtml()}
-                  onPdf={exportPdf}
-                  onLabels={(patch) => note && void setLabels(note, patch)}
-                  onUseTemplate={() => note && void newFromTemplate(note)}
-                  onShareLink={() => setShareLinkOpen(true)}
-                  onUnlocked={() => setNoteReload((n) => n + 1)}
-                  onShare={canShare ? () => void shareNote() : undefined}
-                  onDownload={exportCurrent}
-                  onTag={searchTag}
-                  loadError={noteError}
-                  onRetry={() => setNoteReload((n) => n + 1)}
-                  highlight={debouncedQuery}
-                />
-            </div>
-          </div>
-          {showSplit && split && (
-            <>
-              <SplitDivider
-                dir={split.dir}
-                ratio={split.ratio}
-                host={splitHostRef}
-                onChange={setSplitRatio}
-              />
-              <div
-                className="flex min-h-0 min-w-0 flex-col"
-                style={{ flex: `${1 - split.ratio} 1 0` }}
-                onPointerDownCapture={() => setFocusedPane("split")}
-                onFocusCapture={() => setFocusedPane("split")}
-              >
-                <SplitPane
-                  load={loadForSplit}
-                  onChange={onBodyChange}
-                  onBlur={flush}
-                  onWikiLink={(title) => void openWikiLink(title)}
-                  onTag={searchTag}
-                  titleOf={titleOf}
-                  lockedOf={lockedOf}
-                  suggestions={splitSuggestions}
-                  onNew={() => void createNote({ newTab: true, pane: "split" })}
-                  reloadSignal={splitReload}
-                />
-              </div>
-            </>
-          )}
+        <div className="min-h-0 min-w-0 flex-1">
+          {splitAvailable ? <Workbench info={tabInfo} renderGroup={renderGroup} /> : paneFor(phoneNote, null, true)}
         </div>
       </div>
 
@@ -1914,69 +2048,64 @@ export function Shell({ initialNotes, initialCounts, initialSettings, initialClo
   );
 }
 
+/** The editor-group commands for ⌘K (PRD §4.81), named as in VS Code. */
+function workbenchCommands(workbench: (action: (wb: W.Workbench) => W.Workbench) => void): Command[] {
+  const wb = useUiStore.getState().wb;
+  const group = wb.active;
+  const shown = W.shownNote(wb);
+  const g = W.activeGroup(wb);
+  const many = Object.keys(wb.groups).length > 1;
+  const on = (action: (w: W.Workbench) => W.Workbench) => () => workbench(action);
+  const commands: Command[] = [
+    { id: "wb-split-right", label: "Split Editor Right", hint: "⌘\\", run: on((w) => W.split(w, group, "right", { note: shown ?? undefined })) },
+    { id: "wb-split-down", label: "Split Editor Down", hint: "⌘K ⌘\\", run: on((w) => W.split(w, group, "down", { note: shown ?? undefined })) },
+    { id: "wb-split-left", label: "Split Editor Left", run: on((w) => W.split(w, group, "left", { note: shown ?? undefined })) },
+    { id: "wb-split-up", label: "Split Editor Up", run: on((w) => W.split(w, group, "up", { note: shown ?? undefined })) },
+    { id: "wb-reopen", label: "Reopen Closed Tab", hint: "⌥⇧T", run: on((w) => W.reopenClosed(w)) },
+    { id: "wb-close-group-tabs", label: "Close All Tabs in Group", run: on((w) => W.closeAllInGroup(w, group)) },
+    { id: "wb-close-all", label: "Close All Tabs", hint: "⌘K ⌘W", run: on(W.closeAllGroups) },
+    { id: "wb-next-tab", label: "Next Tab", hint: "⌃PageDown", run: on((w) => W.step(w, 1)) },
+    { id: "wb-previous-tab", label: "Previous Tab", hint: "⌃PageUp", run: on((w) => W.step(w, -1)) },
+    { id: "wb-lock", label: g.locked ? "Unlock Group" : "Lock Group", run: on((w) => W.toggleLock(w, group)) },
+    { id: "wb-flip", label: "Flip Editor Layout", hint: "⌥⌘0", run: on(W.flipLayout) },
+    ...PRESETS.map((preset) => ({
+      id: `wb-layout-${preset.value}`,
+      label: `Editor Layout: ${preset.label}`,
+      run: on((w) => W.applyPreset(w, preset.value)),
+    })),
+  ];
+  if (shown) {
+    commands.push(
+      { id: "wb-close-tab", label: "Close Tab", hint: "⌥W", run: on((w) => W.closeTab(w, group, shown)) },
+      { id: "wb-close-others", label: "Close Other Tabs", run: on((w) => W.closeOthers(w, group, shown)) },
+      { id: "wb-close-right", label: "Close Tabs to the Right", run: on((w) => W.closeToRight(w, group, shown)) },
+      g.pinned.includes(shown)
+        ? { id: "wb-unpin", label: "Unpin Tab", hint: "⌘K ⇧⏎", run: on((w) => W.unpinTab(w, group, shown)) }
+        : { id: "wb-pin", label: "Pin Tab", hint: "⌘K ⇧⏎", run: on((w) => W.pinTab(w, group, shown)) },
+      { id: "wb-move-next", label: "Move Tab into Next Group", hint: "⌃⌘→", run: on((w) => W.sendTab(w, group, shown, "right")) },
+      { id: "wb-move-previous", label: "Move Tab into Previous Group", hint: "⌃⌘←", run: on((w) => W.sendTab(w, group, shown, "left")) },
+      { id: "wb-move-below", label: "Move Tab into Group Below", run: on((w) => W.sendTab(w, group, shown, "down")) },
+      { id: "wb-move-above", label: "Move Tab into Group Above", run: on((w) => W.sendTab(w, group, shown, "up")) },
+    );
+    if (g.preview === shown) commands.push({ id: "wb-keep", label: "Keep Tab Open", hint: "⌘K ⏎", run: on((w) => W.keepTab(w, group, shown)) });
+  }
+  if (many) {
+    commands.push(
+      { id: "wb-maximize", label: wb.maximized ? "Restore Group Sizes" : "Maximize Group", hint: "⌘K ⌘M", run: on((w) => W.toggleMaximize(w, group)) },
+      { id: "wb-even", label: "Make Groups Even", run: on(W.even) },
+      { id: "wb-join", label: "Join Group with Next Group", run: on((w) => W.joinGroup(w, group)) },
+      { id: "wb-join-all", label: "Join All Groups", run: on(W.joinAll) },
+      { id: "wb-close-group", label: "Close Group", run: on((w) => W.closeGroup(w, group)) },
+      { id: "wb-focus-left", label: "Focus Left Group", hint: "⌘K ⌘←", run: on((w) => W.focusSide(w, "left")) },
+      { id: "wb-focus-right", label: "Focus Right Group", hint: "⌘K ⌘→", run: on((w) => W.focusSide(w, "right")) },
+      { id: "wb-focus-up", label: "Focus Group Above", hint: "⌘K ⌘↑", run: on((w) => W.focusSide(w, "up")) },
+      { id: "wb-focus-down", label: "Focus Group Below", hint: "⌘K ⌘↓", run: on((w) => W.focusSide(w, "down")) },
+    );
+  }
+  return commands;
+}
+
 function toListItem(note: NoteDetail): NoteListItem {
   const { body: _body, createdAt: _createdAt, ...row } = note;
   return row;
-}
-
-/**
- * The line between the two note panes (PRD §4.80): drag it, or focus it and
- * use the arrow keys. Double-click puts it back in the middle.
- */
-function SplitDivider({
-  dir,
-  ratio,
-  host,
-  onChange,
-}: {
-  dir: "right" | "down";
-  ratio: number;
-  host: React.RefObject<HTMLDivElement | null>;
-  onChange: (ratio: number) => void;
-}) {
-  const across = dir === "right";
-  return (
-    <div
-      role="separator"
-      aria-orientation={across ? "vertical" : "horizontal"}
-      aria-label="Resize the two notes"
-      aria-valuemin={20}
-      aria-valuemax={80}
-      aria-valuenow={Math.round(ratio * 100)}
-      tabIndex={0}
-      data-ursa-split-divider=""
-      onPointerDown={(event) => {
-        const box = host.current?.getBoundingClientRect();
-        if (!box) return;
-        event.preventDefault();
-        const target = event.currentTarget;
-        target.setPointerCapture(event.pointerId);
-        const move = (e: PointerEvent) =>
-          onChange(across ? (e.clientX - box.left) / box.width : (e.clientY - box.top) / box.height);
-        const up = () => {
-          target.removeEventListener("pointermove", move);
-          target.removeEventListener("pointerup", up);
-          target.removeEventListener("pointercancel", up);
-        };
-        target.addEventListener("pointermove", move);
-        target.addEventListener("pointerup", up);
-        target.addEventListener("pointercancel", up);
-      }}
-      onDoubleClick={() => onChange(0.5)}
-      onKeyDown={(event) => {
-        const back = across ? "ArrowLeft" : "ArrowUp";
-        const forward = across ? "ArrowRight" : "ArrowDown";
-        if (event.key === back || event.key === forward) {
-          event.preventDefault();
-          onChange(ratio + (event.key === forward ? 0.05 : -0.05));
-        }
-      }}
-      className={`group relative flex-none bg-border outline-none focus-visible:bg-brand ${
-        across ? "w-px cursor-col-resize" : "h-px cursor-row-resize"
-      }`}
-    >
-      {/* A wider grab area than the 1px line it draws. */}
-      <span aria-hidden className={`absolute ${across ? "inset-y-0 -inset-x-1.5" : "inset-x-0 -inset-y-1.5"} z-10 group-hover:bg-brand/30`} />
-    </div>
-  );
 }

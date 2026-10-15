@@ -18,6 +18,19 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.69.0",
+    date: "2026-10-15",
+    title: "Editor groups, like VS Code",
+    changes: [
+      "Split as often as you like, in any direction, and drag the lines between to resize. Layouts like two columns or a 2×2 grid are in each group's ⋯ menu.",
+      "Drag tabs between groups, or onto a group's edge to split it. Drag notes in from the list too. Hold ⌥ to copy instead of move.",
+      "Clicking a note opens a preview tab that the next click replaces; start typing to keep it. Pin tabs to keep them first.",
+      "Right-click a tab for Close Others, Close to the Right, Pin, Split and more. ⌥W closes a tab and ⌥⇧T reopens it.",
+      "The same note can be open in two groups, and both stay in step as you type.",
+      "Your layout and tabs come back after a reload.",
+    ],
+  },
+  {
     version: "1.68.0",
     date: "2026-10-15",
     title: "Tabs and split view",

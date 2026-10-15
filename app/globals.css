@@ -1224,8 +1224,9 @@ input[type="search"]::-webkit-search-cancel-button {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 45%, transparent);
 }
 
-/* Tabs (PRD §4.80). The shown tab joins the note below it; in a split, the
-   pane notes will open into marks its shown tab with the brand colour. */
+/* Editor groups and tabs (PRD §4.81). The shown tab joins the note below
+   it; in the active group it also carries the brand line on top, so it is
+   clear where the next note will open. */
 .ursa-tab[data-active] {
   background: var(--canvas);
   color: var(--ink);
@@ -1244,13 +1245,66 @@ input[type="search"]::-webkit-search-cancel-button {
   height: 2px;
   background: var(--brand);
 }
-.ursa-tab[data-drop]::before {
+.ursa-tab[data-drop] {
+  box-shadow: inset 2px 0 0 var(--brand);
+}
+.ursa-tab[data-drop-end] {
+  box-shadow: inset -2px 0 0 var(--brand);
+}
+.ursa-tab-scroller {
+  scrollbar-width: none;
+}
+.ursa-tab-scroller::-webkit-scrollbar {
+  display: none;
+}
+/* Unsaved: a dot where × goes, × again on hover (VS Code's dirty mark). */
+.ursa-tab-close .ursa-tab-dot {
+  display: none;
+}
+.ursa-tab-close[data-dirty] .ursa-tab-x {
+  display: none;
+}
+.ursa-tab-close[data-dirty] .ursa-tab-dot {
+  display: block;
+}
+.ursa-tab:hover .ursa-tab-close[data-dirty] .ursa-tab-x {
+  display: block;
+}
+.ursa-tab:hover .ursa-tab-close[data-dirty] .ursa-tab-dot {
+  display: none;
+}
+
+/* Where a dragged tab will land: the whole group, or the half it splits off. */
+.ursa-drop-zone {
+  position: absolute;
+  z-index: 30;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand) 45%, transparent);
+  transition: inset 120ms ease;
+}
+.ursa-drop-zone[data-ursa-drop-zone="center"] { inset: 0; }
+.ursa-drop-zone[data-ursa-drop-zone="left"] { inset: 0 50% 0 0; }
+.ursa-drop-zone[data-ursa-drop-zone="right"] { inset: 0 0 0 50%; }
+.ursa-drop-zone[data-ursa-drop-zone="up"] { inset: 0 0 50% 0; }
+.ursa-drop-zone[data-ursa-drop-zone="down"] { inset: 50% 0 0 0; }
+
+/* Dividers between groups: a wide grab area over a 1px border. */
+.ursa-sash { outline: none; touch-action: none; }
+.ursa-sash-v { width: 8px; margin-left: -4px; cursor: col-resize; }
+.ursa-sash-h { height: 8px; margin-top: -4px; cursor: row-resize; }
+.ursa-sash::after {
   content: "";
   position: absolute;
-  inset: 4px auto 4px -1px;
-  width: 2px;
   background: var(--brand);
+  opacity: 0;
+  transition: opacity 120ms ease 150ms;
 }
+.ursa-sash-v::after { inset: 0 3px; }
+.ursa-sash-h::after { inset: 3px 0; }
+.ursa-sash:hover::after,
+.ursa-sash:focus-visible::after,
+.ursa-sash[data-dragging]::after { opacity: 1; }
 
 /* Find in note (PRD §4.79). The bar sits in CodeMirror's top panel, above
    the scroller, so it stays put while the note scrolls under it. */

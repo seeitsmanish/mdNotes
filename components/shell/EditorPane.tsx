@@ -29,9 +29,6 @@ import {
   ShareIcon,
   Trash2Icon,
   TextSearchIcon,
-  Columns2Icon,
-  Rows2Icon,
-  XIcon,
 } from "lucide-react";
 import { Illustration } from "@/components/brand/Illustration";
 import { Button } from "@/components/ui/button";
@@ -70,6 +67,18 @@ import { useClock } from "./ClockProvider";
 
 interface EditorPaneProps {
   note: NoteDetail | null;
+  /**
+   * The pane of the active editor group (PRD §4.81), or the only pane. Only
+   * it takes the caret on opening a note, answers ⌘F from outside the text,
+   * and shows the outline and the format bar.
+   */
+  active?: boolean;
+  /**
+   * Carries the app-wide buttons (outline, focus mode, appearance). With
+   * several groups only the top-right one does, as VS Code keeps such
+   * controls in one place.
+   */
+  chrome?: boolean;
   saveStatus: SaveStatus;
   onChange: (noteId: string, body: string) => void;
   onBlur: () => void;
@@ -141,6 +150,8 @@ export function EditorPane({
   highlight,
   loadError,
   onRetry,
+  active = true,
+  chrome = true,
 }: EditorPaneProps) {
   const [stats, setStats] = useState<EditorStats>(() => measure(note?.body ?? ""));
   const [view, setView] = useState<EditorView | null>(null);
@@ -173,7 +184,7 @@ export function EditorPane({
   // search keeps ⌘F there (§4.79). Inside the text, the editor's own keymap
   // handles it.
   useEffect(() => {
-    if (!canFind || !view) return;
+    if (!canFind || !view || !active) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || event.shiftKey || event.altKey) return;
       if (event.key.toLowerCase() !== "f" || event.defaultPrevented) return;
@@ -186,7 +197,7 @@ export function EditorPane({
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [canFind, view]);
+  }, [canFind, view, active]);
 
   const measureRem = EDITOR_WIDTHS.find((o) => o.value === editorWidth)?.rem ?? 44;
   const padRem = EDITOR_PADDINGS.find((o) => o.value === editorPadding)?.rem ?? 3;
@@ -321,8 +332,7 @@ export function EditorPane({
           </div>
         )}
 
-        <div className="hidden @[900px]:contents">
-          <SplitMenu />
+        <div className={chrome ? "hidden @[900px]:contents" : "hidden"}>
           <IconAction
             icon={ListTreeIcon}
             label={outlineOpen ? "Hide outline (⌘⇧O)" : "Show outline (⌘⇧O)"}
@@ -331,7 +341,7 @@ export function EditorPane({
           />
         </div>
 
-        <div className="hidden @[900px]:contents">
+        <div className={chrome ? "hidden @[900px]:contents" : "hidden"}>
           <IconAction
             icon={PanelLeftIcon}
             label={focusMode ? "Exit focus mode (⌘.)" : "Focus mode (⌘.)"}
@@ -399,6 +409,7 @@ export function EditorPane({
             highlight={highlight}
             onReady={setView}
             typewriterMode={typewriterMode}
+            autoFocus={active}
           />
         ) : loadError ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 px-8 pb-16 text-center" role="alert">
@@ -427,12 +438,13 @@ export function EditorPane({
             <dl className="mt-2 flex flex-col gap-1.5 text-[0.75rem] text-ink-faint">
               <Shortcut keys="⌘N" label="New note" />
               <Shortcut keys="⌘K" label="Command palette" />
-              <Shortcut keys="⌘F" label="Search" />
+              <Shortcut keys="⌘⇧F" label="Search notes" />
+              <Shortcut keys="⌘\" label="Split editor" />
             </dl>
           </div>
         )}
       </div>
-      <Outline view={view} open={outlineOpen && note !== null} />
+      <Outline view={view} open={outlineOpen && note !== null && active} />
       </div>
 
       {/* Inside the host so --editor-measure resolves and the strip lines up
@@ -444,7 +456,7 @@ export function EditorPane({
         <Backlinks noteId={note?.id ?? null} onOpen={onOpenNote} />
       </div>
 
-      {note && !inTrash && !readingMode && !note.sealed && <FormatBar view={view} />}
+      {note && active && !inTrash && !readingMode && !note.sealed && <FormatBar view={view} />}
       {note && !inTrash && readingMode && (
         <button
           type="button"
@@ -682,60 +694,5 @@ function Shortcut({ keys, label }: { keys: string; label: string }) {
         </kbd>
       </dd>
     </div>
-  );
-}
-
-/**
- * Split view (PRD §4.80): a second note beside this one, or below it. Each
- * side has its own tabs; notes open in the side last clicked.
- */
-function SplitMenu() {
-  const split = useUiStore((s) => s.split);
-  const openSplit = useUiStore((s) => s.openSplit);
-  const closeSplit = useUiStore((s) => s.closeSplit);
-  return (
-    <DropdownMenu>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Split view"
-                  aria-pressed={split !== null}
-                  className={split ? "bg-brand-soft text-brand" : "text-ink-soft"}
-                >
-                  {split?.dir === "down" ? <Rows2Icon /> : <Columns2Icon />}
-                </Button>
-              }
-            />
-          }
-        />
-        <TooltipContent>Split view (⌘\)</TooltipContent>
-      </Tooltip>
-      <DropdownMenuContent align="end" className="min-w-48">
-        <DropdownMenuItem onClick={() => openSplit("right")}>
-          <Columns2Icon />
-          Split right
-          <span className="ml-auto text-[0.7rem] text-ink-faint">⌘\</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openSplit("down")}>
-          <Rows2Icon />
-          Split down
-          <span className="ml-auto text-[0.7rem] text-ink-faint">⌘⇧\</span>
-        </DropdownMenuItem>
-        {split && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={closeSplit}>
-              <XIcon />
-              Close split
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }

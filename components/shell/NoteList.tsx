@@ -48,6 +48,7 @@ import { SwipeAction, SwipeRow } from "./SwipeRow";
 import { useClock } from "./ClockProvider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { displayExcerpt, displayTitle } from "@/lib/markdown/derive";
+import { endDrag, startDrag } from "@/components/workbench/drag";
 import { sectionNotes } from "@/lib/notes/sections";
 import { relativeTime } from "@/lib/time";
 import { TagTree } from "./TagTree";
@@ -89,7 +90,7 @@ interface NoteListProps {
   onDeleteForever: (note: NoteListItem) => void;
   /** The swipe menu's actions on any row (PRD §4.52). */
   onRowAction: (note: NoteListItem, kind: "copy" | "share" | "duplicate") => void;
-  /** Open in a new tab or in the split (§4.80); absent where there is no room for either. */
+  /** Open in a new tab or to the side (§4.81); absent where there is no room for either. */
   onOpenIn?: (id: string, where: "tab" | "split") => void;
   canShare: boolean;
   /** Gated actions in flight, by key (PRD §4.25). */
@@ -556,7 +557,7 @@ export function NoteList({
                         press.current = null;
                         return;
                       }
-                      // ⌥-click opens beside the open note (§4.80).
+                      // ⌥-click: Open to the Side, as in VS Code (§4.81).
                       if (onOpenIn && event.altKey && !picked) {
                         onOpenIn(note.id, "split");
                         return;
@@ -567,8 +568,15 @@ export function NoteList({
                       }
                       onSelect(note.id);
                     }}
+                    draggable={onOpenIn ? true : undefined}
+                    onDragStart={(event) => {
+                      // Into an editor group, or onto one's edge to split (§4.81).
+                      if (!onOpenIn || picked) return event.preventDefault();
+                      startDrag(event, { note: note.id, group: null }, displayTitle(note.title));
+                    }}
+                    onDragEnd={endDrag}
                     onAuxClick={(event) => {
-                      // Middle-click: a new tab, as in a browser (§4.80).
+                      // Middle-click: a new tab, as in a browser (§4.81).
                       if (event.button !== 1 || !onOpenIn || picked) return;
                       event.preventDefault();
                       onOpenIn(note.id, "tab");
@@ -704,7 +712,7 @@ export function NoteList({
                           />
                           <RowAction
                             icon={Columns2Icon}
-                            label="Open beside (⌥-click)"
+                            label="Open to the side (⌥-click)"
                             onClick={() => onOpenIn(note.id, "split")}
                             pending={false}
                           />
